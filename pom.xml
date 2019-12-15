@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.soabase.record-builder</groupId>
+    <artifactId>record-builder</artifactId>
+    <packaging>pom</packaging>
+    <version>1.0-SNAPSHOT</version>
+
+    <modules>
+        <module>record-builder-core</module>
+        <module>record-builder-processor</module>
+        <module>record-builder-test</module>
+    </modules>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <jdk-version>14</jdk-version>
+
+        <maven-compiler-plugin-version>3.8.1</maven-compiler-plugin-version>
+        <maven-source-plugin-version>3.2.0</maven-source-plugin-version>
+        <maven-install-plugin-version>2.5.2</maven-install-plugin-version>
+        <maven-deploy-plugin-version>2.8.2</maven-deploy-plugin-version>
+        <maven-license-plugin-version>1.9.0</maven-license-plugin-version>
+        <maven-gpg-plugin-version>1.6</maven-gpg-plugin-version>
+        <maven-javadoc-plugin-version>3.1.1</maven-javadoc-plugin-version>
+        <maven-resources-plugin-version>2.3</maven-resources-plugin-version>
+        <maven-clean-plugin-version>3.1.0</maven-clean-plugin-version>
+        <maven-shade-plugin-version>3.2.1</maven-shade-plugin-version>
+        <maven-dependency-plugin-version>3.1.1</maven-dependency-plugin-version>
+
+        <javapoet-version>1.11.0</javapoet-version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.squareup</groupId>
+                <artifactId>javapoet</artifactId>
+                <version>${javapoet-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.soabase.record-builder</groupId>
+                <artifactId>record-builder-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven-compiler-plugin-version}</version>
+                    <configuration>
+                        <release>${jdk-version}</release>
+                        <compilerArgs>
+                            <arg>--enable-preview</arg>
+                        </compilerArgs>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>${maven-install-plugin-version}</version>
+                    <configuration>
+                        <createChecksum>true</createChecksum>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>${maven-source-plugin-version}</version>
+                    <executions>
+                        <execution>
+                            <id>attach-sources</id>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>com.mycila.maven-license-plugin</groupId>
+                    <artifactId>maven-license-plugin</artifactId>
+                    <version>${maven-license-plugin-version}</version>
+                    <configuration>
+                        <header>src/etc/header.txt</header>
+                        <excludes>
+                            <exclude>**/*.apt</exclude>
+                            <exclude>**/*.md</exclude>
+                            <exclude>**/*.graffle</exclude>
+                            <exclude>**/.gitignore</exclude>
+                            <exclude>**/*.json</exclude>
+                            <exclude>**/.idea/**</exclude>
+                            <exclude>**/DISCLAIMER</exclude>
+                            <exclude>**/DEPENDENCIES</exclude>
+                            <exclude>**/KEYS</exclude>
+                            <exclude>**/LICENSE</exclude>
+                            <exclude>**/NOTICE</exclude>
+                            <exclude>**/README</exclude>
+                            <exclude>**/CHANGES</exclude>
+                            <exclude>**/RELEASE-NOTES</exclude>
+                            <exclude>**/generated/**</exclude>
+                            <exclude>**/test-file.txt</exclude>
+                            <exclude>**/assets/**</exclude>
+                            <exclude>**/examples/**</exclude>
+                            <exclude>**/io/soabase/com/google/**</exclude>
+                            <exclude>**/com/company/**</exclude>
+                            <exclude>**/META-INF/services/**</exclude>
+                        </excludes>
+                        <strictCheck>true</strictCheck>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>license</id>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                            <phase>compile</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>${maven-javadoc-plugin-version}</version>
+                    <configuration>
+                        <failOnError>false</failOnError>
+                        <additionalJOption>-Xdoclint:none</additionalJOption>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>${maven-deploy-plugin-version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>${maven-resources-plugin-version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>${maven-clean-plugin-version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>${maven-shade-plugin-version}</version>
+                    <configuration>
+                        <createDependencyReducedPom>false</createDependencyReducedPom>
+                        <filters>
+                            <filter>
+                                <artifact>*:*</artifact>
+                                <excludes>
+                                    <exclude>META-INF/*.SF</exclude>
+                                    <exclude>META-INF/*.DSA</exclude>
+                                    <exclude>META-INF/*.RSA</exclude>
+                                </excludes>
+                            </filter>
+                        </filters>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>shade</goal>
+                            </goals>
+                            <configuration>
+                                <transformers>
+                                    <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                                </transformers>
+                                <!--relocations>
+                                    <relocation>
+                                        <pattern>com.squareup.javapoet</pattern>
+                                        <shadedPattern>io.soabase.com.squareup.javapoet</shadedPattern>
+                                    </relocation>
+                                </relocations-->
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>${maven-dependency-plugin-version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>properties</goal>
+                            </goals>
+                            <phase>initialize</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>com.mycila.maven-license-plugin</groupId>
+                <artifactId>maven-license-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>oss</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>${maven-gpg-plugin-version}</version>
+                        <configuration>
+                            <passphrase>${gpg.passphrase}</passphrase>
+                            <useAgent>true</useAgent>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>gpg</id>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <phase>verify</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
