@@ -29,11 +29,68 @@
         <maven-javadoc-plugin-version>3.1.1</maven-javadoc-plugin-version>
         <maven-clean-plugin-version>3.1.0</maven-clean-plugin-version>
         <maven-shade-plugin-version>3.2.1</maven-shade-plugin-version>
+        <maven-release-plugin-version>2.5.3</maven-release-plugin-version>
+        <maven-scm-provider-gitexe-version>1.11.2</maven-scm-provider-gitexe-version>
 
         <javapoet-version>1.11.0</javapoet-version>
         <junit-jupiter-version>5.5.2</junit-jupiter-version>
         <asm-version>7.2</asm-version>
     </properties>
+
+    <name>Record Builder</name>
+    <description>Record builder generator for Java records</description>
+    <url>https://github.com/randgalt/record-builder</url>
+    <inceptionYear>2019</inceptionYear>
+
+    <organization>
+        <name>Record Builder</name>
+        <url>https://github.com/randgalt/record-builder</url>
+    </organization>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Jordan Zimmerman</name>
+            <email>jordan@jordanzimmerman.com</email>
+            <timezone>-5</timezone>
+            <url>https://github.com/randgalt/</url>
+            <roles>
+                <role>Author</role>
+            </roles>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/randgalt/record-builder</url>
+        <connection>scm:git:https://github.com/randgalt/record-builder.git</connection>
+        <developerConnection>scm:git:git@github.com:randgalt/record-builder.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <issueManagement>
+        <system>Github</system>
+        <url>https://github.com/randgalt/record-builder/issues</url>
+    </issueManagement>
+
+    <distributionManagement>
+        <repository>
+            <id>sonatype-nexus-staging</id>
+            <name>Sonatype Nexus Staging</name>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+        </repository>
+        <snapshotRepository>
+            <id>sonatype-nexus-snapshots</id>
+            <name>Sonatype Nexus Snapshots</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <dependencyManagement>
         <dependencies>
@@ -202,6 +259,22 @@
                         </dependency>
                     </dependencies>
                 </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-release-plugin</artifactId>
+                    <version>${maven-release-plugin-version}</version>
+                    <configuration>
+                        <autoVersionSubmodules>true</autoVersionSubmodules>
+                    </configuration>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.apache.maven.scm</groupId>
+                            <artifactId>maven-scm-provider-gitexe</artifactId>
+                            <version>${maven-scm-provider-gitexe-version}</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -229,6 +302,11 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
