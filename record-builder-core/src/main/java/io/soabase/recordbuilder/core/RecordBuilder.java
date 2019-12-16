@@ -23,5 +23,4 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
 public @interface RecordBuilder {
-    Class<? extends RecordBuilderMetaData> metaDataClass() default DefaultRecordBuilderMetaData.class;
 }

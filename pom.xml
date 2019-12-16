@@ -27,12 +27,12 @@
         <maven-license-plugin-version>1.9.0</maven-license-plugin-version>
         <maven-gpg-plugin-version>1.6</maven-gpg-plugin-version>
         <maven-javadoc-plugin-version>3.1.1</maven-javadoc-plugin-version>
-        <maven-resources-plugin-version>2.3</maven-resources-plugin-version>
         <maven-clean-plugin-version>3.1.0</maven-clean-plugin-version>
         <maven-shade-plugin-version>3.2.1</maven-shade-plugin-version>
-        <maven-dependency-plugin-version>3.1.1</maven-dependency-plugin-version>
 
         <javapoet-version>1.11.0</javapoet-version>
+        <junit-jupiter-version>5.5.2</junit-jupiter-version>
+        <asm-version>7.2</asm-version>
     </properties>
 
     <dependencyManagement>
@@ -47,6 +47,12 @@
                 <groupId>io.soabase.record-builder</groupId>
                 <artifactId>record-builder-core</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit-jupiter-version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -149,12 +155,6 @@
 
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-resources-plugin</artifactId>
-                    <version>${maven-resources-plugin-version}</version>
-                </plugin>
-
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-clean-plugin</artifactId>
                     <version>${maven-clean-plugin-version}</version>
                 </plugin>
@@ -164,10 +164,10 @@
                     <artifactId>maven-shade-plugin</artifactId>
                     <version>${maven-shade-plugin-version}</version>
                     <configuration>
-                        <createDependencyReducedPom>false</createDependencyReducedPom>
+                        <createDependencyReducedPom>true</createDependencyReducedPom>
+                        <dependencyReducedPomLocation>${project.build.outputDirectory}/META-INF/reduced-pom.xml</dependencyReducedPomLocation>
                         <filters>
                             <filter>
-                                <artifact>*:*</artifact>
                                 <excludes>
                                     <exclude>META-INF/*.SF</exclude>
                                     <exclude>META-INF/*.DSA</exclude>
@@ -186,29 +186,21 @@
                                 <transformers>
                                     <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
                                 </transformers>
-                                <!--relocations>
-                                    <relocation>
-                                        <pattern>com.squareup.javapoet</pattern>
-                                        <shadedPattern>io.soabase.com.squareup.javapoet</shadedPattern>
-                                    </relocation>
-                                </relocations-->
                             </configuration>
                         </execution>
                     </executions>
-                </plugin>
-
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-dependency-plugin</artifactId>
-                    <version>${maven-dependency-plugin-version}</version>
-                    <executions>
-                        <execution>
-                            <goals>
-                                <goal>properties</goal>
-                            </goals>
-                            <phase>initialize</phase>
-                        </execution>
-                    </executions>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.ow2.asm</groupId>
+                            <artifactId>asm</artifactId>
+                            <version>${asm-version}</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.ow2.asm</groupId>
+                            <artifactId>asm-commons</artifactId>
+                            <version>${asm-version}</version>
+                        </dependency>
+                    </dependencies>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -237,11 +229,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

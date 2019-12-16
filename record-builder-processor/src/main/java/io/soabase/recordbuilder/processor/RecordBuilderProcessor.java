@@ -16,7 +16,6 @@
 package io.soabase.recordbuilder.processor;
 
 import com.squareup.javapoet.*;
-import io.soabase.recordbuilder.core.DefaultRecordBuilderMetaData;
 import io.soabase.recordbuilder.core.RecordBuilderMetaData;
 
 import javax.annotation.processing.*;
@@ -39,22 +38,24 @@ import java.util.stream.IntStream;
 public class RecordBuilderProcessor extends AbstractProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        annotations.forEach(annotation -> roundEnv.getElementsAnnotatedWith(annotation).forEach(element -> process(annotation, element, roundEnv)));
+        annotations.forEach(annotation -> roundEnv.getElementsAnnotatedWith(annotation).forEach(this::process));
         return true;
     }
 
-    private void process(TypeElement annotation, Element element, RoundEnvironment roundEnv) {
+    private void process(Element element) {
+        var messager = processingEnv.getMessager();
         if (element.getKind() != ElementKind.RECORD) {
-            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "RecordBuilder only valid for records.", element);
+            messager.printMessage(Diagnostic.Kind.ERROR, "RecordBuilder only valid for records.", element);
             return;
         }
-        process(annotation, (TypeElement) element, roundEnv, new DefaultRecordBuilderMetaData());   // TODO DefaultRecordBuilderMetaData
+        var metaData = new RecordBuilderMetaDataLoader(processingEnv.getOptions().get(RecordBuilderMetaData.JAVAC_OPTION_NAME), s -> messager.printMessage(Diagnostic.Kind.NOTE, s)).getMetaData();
+        process((TypeElement) element, metaData);
     }
 
-    private void process(TypeElement annotation, TypeElement record, RoundEnvironment roundEnv, RecordBuilderMetaData metaData) {
+    private void process(TypeElement record, RecordBuilderMetaData metaData) {
         var recordClassType = ElementUtils.getClassType(record, record.getTypeParameters());
         var packageName = ElementUtils.getPackageName(record);
-        var builderClassType = ElementUtils.getClassType(packageName, recordClassType.name() + metaData.suffix(), record.getTypeParameters());
+        var builderClassType = ElementUtils.getClassType(packageName, getBuilderName(record, metaData, recordClassType), record.getTypeParameters());
         var typeVariables = record.getTypeParameters().stream().map(TypeVariableName::get).collect(Collectors.toList());
         var recordComponents = record.getRecordComponents().stream().map(ElementUtils::getClassType).collect(Collectors.toList());
 
@@ -73,6 +74,19 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         });
 
         writeJavaFile(record, packageName, builderClassType, builder, metaData);
+    }
+
+    private String getBuilderName(TypeElement record, RecordBuilderMetaData metaData, ClassType recordClassType) {
+        // generate the record builder class name
+        return getBuilderNamePrefix(record.getEnclosingElement()) + recordClassType.name() + metaData.suffix();
+    }
+
+    private String getBuilderNamePrefix(Element element) {
+        // prefix enclosing class names if this record is nested in a class
+        if (element instanceof TypeElement) {
+            return getBuilderNamePrefix(element.getEnclosingElement()) + element.getSimpleName().toString();
+        }
+        return "";
     }
 
     private void addDefaultConstructor(TypeSpec.Builder builder) {
@@ -123,6 +137,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         codeBuilder.add(")");
 
         var methodSpec = MethodSpec.methodBuilder(metaData.buildMethodName())
+                .addJavadoc("Return a new record instance with all fields set to the current values in this builder\n")
                 .addModifiers(Modifier.PUBLIC)
                 .returns(recordClassType.typeName())
                 .addStatement(codeBuilder.build())
@@ -148,6 +163,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         codeBuilder.add(")");
 
         var methodSpec = MethodSpec.methodBuilder(metaData.copyMethodName())
+                .addJavadoc("Return a new builder with all fields set to the values taken from the given record instance\n")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addTypeVariables(typeVariables)
                 .addParameter(recordClassType.typeName(), "from")
@@ -166,6 +182,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
             }
          */
         var methodSpecBuilder = MethodSpec.methodBuilder(metaData.builderMethodName())
+                .addJavadoc("Return a new builder with all fields set to the given values\n")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addTypeVariables(typeVariables)
                 .returns(builderClassType.typeName());
@@ -192,6 +209,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
             }
          */
         var methodSpec = MethodSpec.methodBuilder(metaData.builderMethodName())
+                .addJavadoc("Return a new builder with all fields set to default Java values\n")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addTypeVariables(typeVariables)
                 .returns(builderClassType.typeName())
@@ -221,6 +239,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
          */
         var parameterSpec = ParameterSpec.builder(component.typeName(), component.name()).build();
         var methodSpec = MethodSpec.methodBuilder(component.name())
+                .addJavadoc("Set a new value for this record component in the builder\n")
                 .addModifiers(Modifier.PUBLIC)
                 .addParameter(parameterSpec)
                 .returns(builderClassType.typeName())
@@ -232,14 +251,18 @@ public class RecordBuilderProcessor extends AbstractProcessor {
 
     private void writeJavaFile(TypeElement record, String packageName, ClassType builderClassType, TypeSpec.Builder builder, RecordBuilderMetaData metaData) {
         // produces the Java file
-        JavaFile javaFile = JavaFile.builder(packageName, builder.build())
-                .addFileComment(metaData.fileComment())
-                .indent(metaData.fileIndent())
-                .build();
+        var javaFileBuilder = JavaFile.builder(packageName, builder.build())
+                .indent(metaData.fileIndent());
+        var comment = metaData.fileComment();
+        if ((comment != null) && !comment.isEmpty()) {
+            javaFileBuilder.addFileComment(comment);
+        }
+        JavaFile javaFile = javaFileBuilder.build();
         Filer filer = processingEnv.getFiler();
         try
         {
-            JavaFileObject sourceFile = filer.createSourceFile(builderClassType.name());
+            String fullyQualifiedName = packageName.isEmpty() ? builderClassType.name() : (packageName + "." + builderClassType.name());
+            JavaFileObject sourceFile = filer.createSourceFile(fullyQualifiedName);
             try ( Writer writer = sourceFile.openWriter() )
             {
                 javaFile.writeTo(writer);
