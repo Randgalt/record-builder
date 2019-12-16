@@ -5,7 +5,7 @@
     <groupId>io.soabase.record-builder</groupId>
     <artifactId>record-builder</artifactId>
     <packaging>pom</packaging>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.ea-SNAPSHOT</version>
 
     <modules>
         <module>record-builder-core</module>
@@ -30,7 +30,6 @@
         <maven-clean-plugin-version>3.1.0</maven-clean-plugin-version>
         <maven-shade-plugin-version>3.2.1</maven-shade-plugin-version>
         <maven-release-plugin-version>2.5.3</maven-release-plugin-version>
-        <maven-scm-provider-gitexe-version>1.11.2</maven-scm-provider-gitexe-version>
 
         <javapoet-version>1.11.0</javapoet-version>
         <junit-jupiter-version>5.5.2</junit-jupiter-version>
@@ -266,14 +265,8 @@
                     <version>${maven-release-plugin-version}</version>
                     <configuration>
                         <autoVersionSubmodules>true</autoVersionSubmodules>
+                        <tagNameFormat>record-builder-@{project.version}</tagNameFormat>
                     </configuration>
-                    <dependencies>
-                        <dependency>
-                            <groupId>org.apache.maven.scm</groupId>
-                            <artifactId>maven-scm-provider-gitexe</artifactId>
-                            <version>${maven-scm-provider-gitexe-version}</version>
-                        </dependency>
-                    </dependencies>
                 </plugin>
             </plugins>
         </pluginManagement>
