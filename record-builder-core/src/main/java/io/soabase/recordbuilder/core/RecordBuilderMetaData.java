@@ -85,4 +85,14 @@ public interface RecordBuilderMetaData {
     default String fileIndent() {
         return "    ";
     }
+
+    /**
+     * If the record is declared inside of another class, the outer class's name will
+     * be prefixed to the builder name if this returns true.
+     *
+     * @return true/false
+     */
+    default boolean prefixEnclosingClassNames() {
+        return true;
+    }
 }

@@ -78,7 +78,8 @@ public class RecordBuilderProcessor extends AbstractProcessor {
 
     private String getBuilderName(TypeElement record, RecordBuilderMetaData metaData, ClassType recordClassType) {
         // generate the record builder class name
-        return getBuilderNamePrefix(record.getEnclosingElement()) + recordClassType.name() + metaData.suffix();
+        var baseName = recordClassType.name() + metaData.suffix();
+        return metaData.prefixEnclosingClassNames() ? (getBuilderNamePrefix(record.getEnclosingElement()) + baseName) : baseName;
     }
 
     private String getBuilderNamePrefix(Element element) {
