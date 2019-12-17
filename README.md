@@ -79,6 +79,11 @@ public class NameAndAgeBuilder {
         this.age = age;
         return this;
     }
+
+    @Override
+    public String toString() {
+        return "NameAndAgeBuilder[name=" + name + ", age=" + age + "]";
+    }
 }
 ```
 

@@ -67,6 +67,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         addStaticDefaultBuilderMethod(builder, builderClassType, typeVariables, metaData);
         addStaticCopyMethod(builder, builderClassType, recordClassType, recordComponents, typeVariables, metaData);
         addBuildMethod(builder, recordClassType, recordComponents, metaData);
+        addToStringMethod(builder, builderClassType, recordComponents);
         recordComponents.forEach(component -> {
             add1Field(builder, component);
             add1SetterMethod(builder, component, builderClassType);
@@ -117,6 +118,33 @@ public class RecordBuilderProcessor extends AbstractProcessor {
             constructorBuilder.addStatement(codeBuilder.build());
         });
         builder.addMethod(constructorBuilder.build());
+    }
+
+    private void addToStringMethod(TypeSpec.Builder builder, ClassType builderClassType, List<ClassType> recordComponents) {
+        /*
+            add a toString() method similar to:
+
+            public String toString() {
+                return "MyRecord[p1=blah, p2=blah]";
+            }
+         */
+        var codeBuilder = CodeBlock.builder().add("return \"$L[", builderClassType.name());
+        IntStream.range(0, recordComponents.size()).forEach(index -> {
+            if (index > 0) {
+                codeBuilder.add(", ");
+            }
+            String name = recordComponents.get(index).name();
+            codeBuilder.add("$L=\" + $L + \"", name, name);
+        });
+        codeBuilder.add("]\"");
+
+        var methodSpec = MethodSpec.methodBuilder("toString")
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(Override.class)
+                .returns(String.class)
+                .addStatement(codeBuilder.build())
+                .build();
+        builder.addMethod(methodSpec);
     }
 
     private void addBuildMethod(TypeSpec.Builder builder, ClassType recordClassType, List<ClassType> recordComponents, RecordBuilderMetaData metaData) {
