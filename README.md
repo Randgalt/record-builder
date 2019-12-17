@@ -51,13 +51,6 @@ public class NameAndAgeBuilder {
     }
 
     /**
-     * Return a new builder with all fields set to the given values
-     */
-    public static NameAndAgeBuilder builder(String name, int age) {
-        return new NameAndAgeBuilder(name, age);
-    }
-
-    /**
      * Return a new builder with all fields set to the values taken from the given record instance
      */
     public static NameAndAgeBuilder builder(NameAndAge from) {

@@ -65,7 +65,6 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         addDefaultConstructor(builder);
         addAllArgsConstructor(builder, recordComponents);
         addStaticDefaultBuilderMethod(builder, builderClassType, typeVariables, metaData);
-        addStaticAllArgsBuilderMethod(builder, builderClassType, recordComponents, typeVariables, metaData);
         addStaticCopyMethod(builder, builderClassType, recordClassType, recordComponents, typeVariables, metaData);
         addBuildMethod(builder, recordClassType, recordComponents, metaData);
         recordComponents.forEach(component -> {
@@ -172,33 +171,6 @@ public class RecordBuilderProcessor extends AbstractProcessor {
                 .addStatement(codeBuilder.build())
                 .build();
         builder.addMethod(methodSpec);
-    }
-
-    private void addStaticAllArgsBuilderMethod(TypeSpec.Builder builder, ClassType builderClassType, List<ClassType> recordComponents, List<TypeVariableName> typeVariables, RecordBuilderMetaData metaData) {
-        /*
-            Adds an all-args builder method that pre-fills the builder with values similar to:
-
-            public static MyRecordBuilder builder(int p1, T p2, ...) {
-                return new MyRecordBuilder(p1, p2, ...);
-            }
-         */
-        var methodSpecBuilder = MethodSpec.methodBuilder(metaData.builderMethodName())
-                .addJavadoc("Return a new builder with all fields set to the given values\n")
-                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .addTypeVariables(typeVariables)
-                .returns(builderClassType.typeName());
-        var codeBuilder = CodeBlock.builder().add("return new $T(", builderClassType.typeName());
-        IntStream.range(0, recordComponents.size()).forEach(index -> {
-            ClassType component = recordComponents.get(index);
-            methodSpecBuilder.addParameter(component.typeName(), component.name());
-            if (index > 0) {
-                codeBuilder.add(", ");
-            }
-            codeBuilder.add("$L", component.name());
-        });
-        codeBuilder.add(")");
-        methodSpecBuilder.addStatement(codeBuilder.build());
-        builder.addMethod(methodSpecBuilder.build());
     }
 
     private void addStaticDefaultBuilderMethod(TypeSpec.Builder builder, ClassType builderClassType, List<TypeVariableName> typeVariables, RecordBuilderMetaData metaData) {
