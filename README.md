@@ -84,6 +84,18 @@ public class NameAndAgeBuilder {
     public String toString() {
         return "NameAndAgeBuilder[name=" + name + ", age=" + age + "]";
     }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, age);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return (this == o) || ((o instanceof NameAndAgeBuilder b)
+                && Objects.equals(name, b.name)
+                && (age == b.age));
+    }
 }
 ```
 

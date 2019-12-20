@@ -29,6 +29,7 @@ import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -68,6 +69,8 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         addStaticCopyMethod(builder, builderClassType, recordClassType, recordComponents, typeVariables, metaData);
         addBuildMethod(builder, recordClassType, recordComponents, metaData);
         addToStringMethod(builder, builderClassType, recordComponents);
+        addHashCodeMethod(builder, recordComponents);
+        addEqualsMethod(builder, builderClassType, recordComponents);
         recordComponents.forEach(component -> {
             add1Field(builder, component);
             add1SetterMethod(builder, component, builderClassType);
@@ -124,6 +127,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         /*
             add a toString() method similar to:
 
+            @Override
             public String toString() {
                 return "MyRecord[p1=blah, p2=blah]";
             }
@@ -142,6 +146,68 @@ public class RecordBuilderProcessor extends AbstractProcessor {
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
                 .returns(String.class)
+                .addStatement(codeBuilder.build())
+                .build();
+        builder.addMethod(methodSpec);
+    }
+
+    private void addHashCodeMethod(TypeSpec.Builder builder, List<ClassType> recordComponents) {
+        /*
+            add an hashCode() method similar to:
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(p1, p2);
+            }
+         */
+        var codeBuilder = CodeBlock.builder().add("return $T.hash(", Objects.class);
+        IntStream.range(0, recordComponents.size()).forEach(index -> {
+            if (index > 0) {
+                codeBuilder.add(", ");
+            }
+            codeBuilder.add("$L", recordComponents.get(index).name());
+        });
+        codeBuilder.add(")");
+
+        var methodSpec = MethodSpec.methodBuilder("hashCode")
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(Override.class)
+                .returns(TypeName.INT)
+                .addStatement(codeBuilder.build())
+                .build();
+        builder.addMethod(methodSpec);
+    }
+
+    private void addEqualsMethod(TypeSpec.Builder builder, ClassType builderClassType, List<ClassType> recordComponents) {
+        /*
+            add an equals() method similar to:
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                return (o instanceof MyRecordBuilder b)
+                    && Objects.equals(p1, b.p1)
+                    && Objects.equals(p2, b.p2);
+            }
+         */
+        var codeBuilder = CodeBlock.builder();
+        codeBuilder.add("return (this == o) || (");
+        codeBuilder.add("(o instanceof $L b)", builderClassType.name());
+        recordComponents.forEach(recordComponent -> {
+            String name = recordComponent.name();
+            if (recordComponent.typeName().isPrimitive()) {
+                codeBuilder.add("\n&& ($L == b.$L)", name, name);
+            } else {
+                codeBuilder.add("\n&& $T.equals($L, b.$L)", Objects.class, name, name);
+            }
+        });
+        codeBuilder.add(")");
+
+        var methodSpec = MethodSpec.methodBuilder("equals")
+                .addParameter(Object.class, "o")
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(Override.class)
+                .returns(TypeName.BOOLEAN)
                 .addStatement(codeBuilder.build())
                 .build();
         builder.addMethod(methodSpec);
