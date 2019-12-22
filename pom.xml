@@ -179,6 +179,9 @@
                             <exclude>**/io/soabase/com/google/**</exclude>
                             <exclude>**/com/company/**</exclude>
                             <exclude>**/META-INF/services/**</exclude>
+                            <exclude>**/jvm.config</exclude>
+                            <exclude>**/.java-version</exclude>
+                            <exclude>**/.travis.yml</exclude>
                         </excludes>
                         <strictCheck>true</strictCheck>
                     </configuration>
