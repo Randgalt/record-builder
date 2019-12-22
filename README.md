@@ -64,22 +64,6 @@ public class NameAndAgeBuilder {
         return new NameAndAge(name, age);
     }
 
-    /**
-     * Set a new value for this record component in the builder
-     */
-    public NameAndAgeBuilder name(String name) {
-        this.name = name;
-        return this;
-    }
-
-    /**
-     * Set a new value for this record component in the builder
-     */
-    public NameAndAgeBuilder age(int age) {
-        this.age = age;
-        return this;
-    }
-
     @Override
     public String toString() {
         return "NameAndAgeBuilder[name=" + name + ", age=" + age + "]";
@@ -95,6 +79,36 @@ public class NameAndAgeBuilder {
         return (this == o) || ((o instanceof NameAndAgeBuilder b)
                 && Objects.equals(name, b.name)
                 && (age == b.age));
+    }
+
+    /**
+     * Set a new value for the {@code name} record component in the builder
+     */
+    public NameAndAgeBuilder name(String name) {
+        this.name = name;
+        return this;
+    }
+
+    /**
+     * Return the current value for the {@code name} record component in the builder
+     */
+    public String name() {
+        return name;
+    }
+
+    /**
+     * Set a new value for the {@code age} record component in the builder
+     */
+    public NameAndAgeBuilder age(int age) {
+        this.age = age;
+        return this;
+    }
+
+    /**
+     * Return the current value for the {@code age} record component in the builder
+     */
+    public int age() {
+        return age;
     }
 }
 ```
