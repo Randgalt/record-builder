@@ -186,7 +186,7 @@ Note: I've seen some very odd compilation bugs with the current Java 14 and Mave
 
 ## Customizing
 
-The names of the generated methods, etc. are determined by `RecordBuilderMetaData`. If you want to use your own meta data instance:
+The names of the generated methods, etc. are determined by [RecordBuilderMetaData](https://github.com/Randgalt/record-builder/blob/master/record-builder-core/src/main/java/io/soabase/recordbuilder/core/RecordBuilderMetaData.java). If you want to use your own meta data instance:
 
 - Create a class that implements RecordBuilderMetaData
 - When compiling, make sure that the compiled class is in the processor path
