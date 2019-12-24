@@ -67,23 +67,6 @@ public class NameAndAgeBuilder {
         return new NameAndAge(name, age);
     }
 
-    @Override
-    public String toString() {
-        return "NameAndAgeBuilder[name=" + name + ", age=" + age + "]";
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, age);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return (this == o) || ((o instanceof NameAndAgeBuilder b)
-                && Objects.equals(name, b.name)
-                && (age == b.age));
-    }
-
     /**
      * Set a new value for the {@code name} record component in the builder
      */
@@ -112,6 +95,31 @@ public class NameAndAgeBuilder {
      */
     public int age() {
         return age;
+    }
+
+    /**
+     * Return a stream of the record components as map entries keyed with the component name and the value as the component value
+     */
+    public static Stream<Map.Entry<String, Object>> stream(NameAndAge record) {
+        return Stream.of(new AbstractMap.SimpleEntry<>("name", record.name()),
+                 new AbstractMap.SimpleEntry<>("age", record.age()));
+    }
+
+    @Override
+    public String toString() {
+        return "NameAndAgeBuilder[name=" + name + ", age=" + age + "]";
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, age);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return (this == o) || ((o instanceof NameAndAgeBuilder b)
+                && Objects.equals(name, b.name)
+                && (age == b.age));
     }
 }
 ```
