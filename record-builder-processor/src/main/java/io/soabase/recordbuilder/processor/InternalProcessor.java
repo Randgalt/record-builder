@@ -22,10 +22,13 @@ import javax.annotation.processing.Generated;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
+import java.util.AbstractMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 class InternalProcessor {
     private static final AnnotationSpec generatedAnnotation = AnnotationSpec.builder(Generated.class).addMember("value", "$S", RecordBuilderProcessor.NAME).build();
@@ -55,6 +58,7 @@ class InternalProcessor {
         addAllArgsConstructor();
         addStaticDefaultBuilderMethod();
         addStaticCopyBuilderMethod();
+        addStaticComponentsMethod();
         addBuildMethod();
         addToStringMethod();
         addHashCodeMethod();
@@ -292,6 +296,40 @@ class InternalProcessor {
                 .addTypeVariables(typeVariables)
                 .returns(builderClassType.typeName())
                 .addStatement("return new $T()", builderClassType.typeName())
+                .build();
+        builder.addMethod(methodSpec);
+    }
+
+    private void addStaticComponentsMethod() {
+        /*
+            Adds a static method that converts a record instance into a stream of its component parts
+
+            public static Stream<Map.Entry<String, Object>> stream(MyRecord record) {
+                return Stream.of(
+                    new AbstractMap.SimpleEntry<>("p1", record.p1()),
+                    new AbstractMap.SimpleEntry<>("p2", record.p2())
+                );
+            }
+         */
+        var codeBuilder = CodeBlock.builder().add("return $T.of(", Stream.class);
+        IntStream.range(0, recordComponents.size()).forEach(index -> {
+            if (index > 0) {
+                codeBuilder.add(",\n ");
+            }
+            var name = recordComponents.get(index).name();
+            codeBuilder.add("new $T<>($S, record.$L())", AbstractMap.SimpleEntry.class, name, name);
+        });
+        codeBuilder.add(")");
+        var mapEntryTypeVariables = ParameterizedTypeName.get(Map.Entry.class, String.class, Object.class);
+        var mapEntryType = ParameterizedTypeName.get(ClassName.get(Stream.class), mapEntryTypeVariables);
+        var methodSpec = MethodSpec.methodBuilder(metaData.componentsMethodName())
+                .addJavadoc("Return a stream of the record components as map entries keyed with the component name and the value as the component value\n")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .addParameter(recordClassType.typeName(), "record")
+                .addAnnotation(generatedAnnotation)
+                .addTypeVariables(typeVariables)
+                .returns(mapEntryType)
+                .addStatement(codeBuilder.build())
                 .build();
         builder.addMethod(methodSpec);
     }
