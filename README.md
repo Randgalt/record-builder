@@ -184,6 +184,14 @@ Note: records are a preview feature only. You'll need take a number of steps in 
 
 Note: I've seen some very odd compilation bugs with the current Java 14 and Maven. If you get internal Javac errors I suggest rebuilding with `mvn clean package` and/or `mvn clean install`.
 
+## Customizing
+
+The names of the generated methods, etc. are determined by [RecordBuilderMetaData](https://github.com/Randgalt/record-builder/blob/master/record-builder-core/src/main/java/io/soabase/recordbuilder/core/RecordBuilderMetaData.java). If you want to use your own meta data instance:
+
+- Create a class that implements RecordBuilderMetaData
+- When compiling, make sure that the compiled class is in the processor path
+- Add a "metaDataClass" compiler option with the class name. E.g. `javac ... -AmetaDataClass=foo.bar.MyMetaData`
+
 ## TODOs
 
 - Document how to integrate with Gradle
