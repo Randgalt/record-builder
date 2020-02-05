@@ -64,7 +64,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
             messager.printMessage(Diagnostic.Kind.ERROR, "RecordBuilder only valid for records.", element);
             return;
         }
-        var metaData = new RecordBuilderMetaDataLoader(processingEnv.getOptions().get(RecordBuilderMetaData.JAVAC_OPTION_NAME), s -> messager.printMessage(Diagnostic.Kind.NOTE, s)).getMetaData();
+        var metaData = new RecordBuilderMetaDataLoader(processingEnv, s -> messager.printMessage(Diagnostic.Kind.NOTE, s)).getMetaData();
         process((TypeElement) element, metaData);
     }
 
