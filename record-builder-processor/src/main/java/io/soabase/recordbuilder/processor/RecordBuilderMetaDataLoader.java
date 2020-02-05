@@ -17,26 +17,37 @@ package io.soabase.recordbuilder.processor;
 
 import io.soabase.recordbuilder.core.RecordBuilderMetaData;
 
+import java.lang.reflect.InvocationTargetException;
+import java.util.Map;
 import java.util.function.Consumer;
 
+import javax.annotation.processing.ProcessingEnvironment;
+
 class RecordBuilderMetaDataLoader {
-    private final RecordBuilderMetaData metaData;
+	private final RecordBuilderMetaData metaData;
 
-    RecordBuilderMetaDataLoader(String metaDataClassName, Consumer<String> logger) {
-        RecordBuilderMetaData localMetaData = null;
-        if ((metaDataClassName != null) && !metaDataClassName.isEmpty()) {
-            try {
-                Class<?> clazz = Class.forName(metaDataClassName);
-                localMetaData = (RecordBuilderMetaData) clazz.getDeclaredConstructor().newInstance();
-                logger.accept("Found meta data: " + localMetaData.getClass());
-            } catch (Exception e) {
-                logger.accept("Could not load meta data: " + metaDataClassName + " - " + e.getMessage());
-            }
-        }
-        metaData = (localMetaData != null) ? localMetaData : RecordBuilderMetaData.DEFAULT;
-    }
+	RecordBuilderMetaDataLoader(ProcessingEnvironment processingEnv, Consumer<String> logger) {
+		Map<String, String> options = processingEnv.getOptions();
+		String metaDataClassName = options.get(RecordBuilderMetaData.JAVAC_OPTION_NAME);
+		if ((metaDataClassName != null) && !metaDataClassName.isEmpty()) {
+			RecordBuilderMetaData loadedMetaData = null;
+			try {
+				Class<?> clazz = Class.forName(metaDataClassName);
+				loadedMetaData = (RecordBuilderMetaData) clazz.getDeclaredConstructor().newInstance();
+				logger.accept("Found meta data: " + clazz);
+			} catch (InvocationTargetException e) {
+				// log the thrown exception instead of the invocation target exception
+				logger.accept("Could not load meta data: " + metaDataClassName + " - " + e);
+			} catch (Exception e) {
+				logger.accept("Could not load meta data: " + metaDataClassName + " - " + e);
+			}
+			metaData = (loadedMetaData != null) ? loadedMetaData : RecordBuilderMetaData.DEFAULT;
+		} else {
+			metaData = new OptionBasedRecordBuilderMetaData(options);
+		}
+	}
 
-    RecordBuilderMetaData getMetaData() {
-        return metaData;
-    }
+	RecordBuilderMetaData getMetaData() {
+		return metaData;
+	}
 }
