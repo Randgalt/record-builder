@@ -47,11 +47,11 @@ public class RecordBuilderProcessor extends AbstractProcessor {
     
     @Override
     public SourceVersion getSupportedSourceVersion() {
-    	// we don't directly return RELEASE_14 as that may 
-    	// not exist in prior releases
-    	// if we're running on an older release, returning latest()
-    	// is fine as we won't encounter any records anyway
-    	return SourceVersion.latest();
+        // we don't directly return RELEASE_14 as that may 
+        // not exist in prior releases
+        // if we're running on an older release, returning latest()
+        // is fine as we won't encounter any records anyway
+        return SourceVersion.latest();
     }
 
     private void process(Element element) {
@@ -60,7 +60,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         // as the ElementKind.RECORD enum doesn't exist on JRE releases
         // older than Java 14, and we don't want to throw unexpected
         // NoSuchFieldErrors
-		if (!"RECORD".equals(element.getKind().name())) {
+        if (!"RECORD".equals(element.getKind().name())) {
             messager.printMessage(Diagnostic.Kind.ERROR, "RecordBuilder only valid for records.", element);
             return;
         }
