@@ -34,7 +34,6 @@ import java.util.Set;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.NAME;
 
 @SupportedAnnotationTypes(NAME)
-@SupportedSourceVersion(SourceVersion.RELEASE_14)
 public class RecordBuilderProcessor extends AbstractProcessor {
     public static final String NAME = "io.soabase.recordbuilder.core.RecordBuilder";
 
@@ -45,10 +44,23 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         annotations.forEach(annotation -> roundEnv.getElementsAnnotatedWith(annotation).forEach(this::process));
         return true;
     }
+    
+    @Override
+    public SourceVersion getSupportedSourceVersion() {
+    	// we don't directly return RELEASE_14 as that may 
+    	// not exist in prior releases
+    	// if we're running on an older release, returning latest()
+    	// is fine as we won't encounter any records anyway
+    	return SourceVersion.latest();
+    }
 
     private void process(Element element) {
         var messager = processingEnv.getMessager();
-        if (element.getKind() != ElementKind.RECORD) {
+        // we use string based name comparison for the element kind,
+        // as the ElementKind.RECORD enum doesn't exist on JRE releases
+        // older than Java 14, and we don't want to throw unexpected
+        // NoSuchFieldErrors
+		if (!"RECORD".equals(element.getKind().name())) {
             messager.printMessage(Diagnostic.Kind.ERROR, "RecordBuilder only valid for records.", element);
             return;
         }
