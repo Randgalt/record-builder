@@ -37,7 +37,7 @@ class RecordBuilderMetaDataLoader {
                 logger.accept("Found meta data: " + clazz);
             } catch (InvocationTargetException e) {
                 // log the thrown exception instead of the invocation target exception
-                logger.accept("Could not load meta data: " + metaDataClassName + " - " + e);
+                logger.accept("Could not load meta data: " + metaDataClassName + " - " + e.getCause());
             } catch (Exception e) {
                 logger.accept("Could not load meta data: " + metaDataClassName + " - " + e);
             }
