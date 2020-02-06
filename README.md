@@ -192,6 +192,16 @@ The names of the generated methods, etc. are determined by [RecordBuilderMetaDat
 - When compiling, make sure that the compiled class is in the processor path
 - Add a "metaDataClass" compiler option with the class name. E.g. `javac ... -AmetaDataClass=foo.bar.MyMetaData`
 
+Alternatively, you can provide values for each individual meta data (or combinations):
+
+- `javac ... -AcopyMethodName=foo`
+- `javac ... -AbuilderMethodName=foo`
+- `javac ... -AbuildMethodName=foo`
+- `javac ... -AcomponentsMethodName=foo`
+- `javac ... -AfileComment=foo`
+- `javac ... -AfileIndent=foo`
+- `javac ... -AprefixEnclosingClassNames=foo`
+
 ## TODOs
 
 - Document how to integrate with Gradle
