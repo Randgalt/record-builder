@@ -170,6 +170,26 @@ public class NameAndAgeBuilder {
 </plugin>
 ```
 
+### Gradle
+
+*Note: Gradle builds are not currently working. Please track https://github.com/gradle/gradle/issues/12680 for a fix*
+
+Add the following to your build.gradle file:
+
+```
+dependencies {
+    annotationProcessor 'io.soabase.record-builder:record-builder-processor:$version-goes-here'
+    implementation 'io.soabase.record-builder:record-builder-core:$version-goes-here'
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs += '--enable-preview'
+}
+tasks.withType(Test) {
+    jvmArgs += "--enable-preview"
+}
+```
+
 ### IDE
 
 Depending on your IDE you are likely to need to enable Annotation Processing in your IDE settings.
