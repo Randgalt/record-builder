@@ -172,8 +172,6 @@ public class NameAndAgeBuilder {
 
 ### Gradle
 
-*Note: Gradle builds are not currently working. Please track https://github.com/gradle/gradle/issues/12680 for a fix*
-
 Add the following to your build.gradle file:
 
 ```
@@ -183,6 +181,8 @@ dependencies {
 }
 
 tasks.withType(JavaCompile) {
+    options.fork = true
+    options.forkOptions.jvmArgs += '--enable-preview'
     options.compilerArgs += '--enable-preview'
 }
 tasks.withType(Test) {
