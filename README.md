@@ -170,6 +170,10 @@ public class NameAndAgeBuilder {
 </plugin>
 ```
 
+3\. Enable Preview for Maven
+
+Create a file in your project's root named `.mvn/jvm.config`. The file should have 1 line with the value: `--enable-preview`. (see: https://stackoverflow.com/questions/58023240)
+
 ### Gradle
 
 Add the following to your build.gradle file:
