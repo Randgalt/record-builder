@@ -11,7 +11,7 @@ In addition to a record builder an annotation is provided that can generate a Ja
 where a Record (with toString(), hashCode(), equals(), etc.) and a companion RecordBuilder are needed.
 
 - [RecordBuilder Details](#RecordBuilder-Example)
-- [Record From Interface Details](#Record-Interface-Example)
+- [Record From Interface Details](#RecordInterface-Example)
 
 ## RecordBuilder Example
 
