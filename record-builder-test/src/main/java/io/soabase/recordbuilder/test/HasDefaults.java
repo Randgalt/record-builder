@@ -15,20 +15,22 @@
  */
 package io.soabase.recordbuilder.test;
 
-public class Usage {
-    public static void main(String[] args) {
-        var hey = SimpleRecordBuilder.builder().i(10).s("hey").build();
-        System.out.println(hey);
-        var hey2 = SimpleRecordBuilder.builder(hey).i(100).build();
-        System.out.println(hey2);
+import io.soabase.recordbuilder.core.IgnoreDefaultMethod;
+import io.soabase.recordbuilder.core.RecordInterface;
 
-        var person = new PersonRecord("me", 42);
-        outputPerson(person);
-        var aged = PersonRecordBuilder.builder(person).age(100).build();
-        outputPerson(aged);
+import java.time.Instant;
+import java.util.concurrent.TimeUnit;
+
+@RecordInterface
+public interface HasDefaults {
+    Instant time();
+
+    default Instant tomorrow() {
+        return Instant.now().plusMillis(TimeUnit.DAYS.toMillis(1));
     }
 
-    private static void outputPerson(Person p) {
-        System.out.println(p.toString());
+    @IgnoreDefaultMethod
+    default void complexMethod(String s1, String s2) {
+        // do nothing
     }
 }

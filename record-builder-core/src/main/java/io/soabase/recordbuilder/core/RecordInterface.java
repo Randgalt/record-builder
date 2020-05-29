@@ -13,22 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.soabase.recordbuilder.test;
+package io.soabase.recordbuilder.core;
 
-public class Usage {
-    public static void main(String[] args) {
-        var hey = SimpleRecordBuilder.builder().i(10).s("hey").build();
-        System.out.println(hey);
-        var hey2 = SimpleRecordBuilder.builder(hey).i(100).build();
-        System.out.println(hey2);
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-        var person = new PersonRecord("me", 42);
-        outputPerson(person);
-        var aged = PersonRecordBuilder.builder(person).age(100).build();
-        outputPerson(aged);
-    }
-
-    private static void outputPerson(Person p) {
-        System.out.println(p.toString());
-    }
+@Retention(RetentionPolicy.SOURCE)
+@Target(ElementType.TYPE)
+public @interface RecordInterface {
+    boolean addRecordBuilder() default true;
 }

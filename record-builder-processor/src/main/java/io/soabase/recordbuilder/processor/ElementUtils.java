@@ -19,6 +19,7 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeVariableName;
+import io.soabase.recordbuilder.core.RecordBuilderMetaData;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.RecordComponentElement;
@@ -58,6 +59,20 @@ public class ElementUtils {
 
     public static ClassType getClassType(RecordComponentElement recordComponent) {
         return new ClassType(TypeName.get(recordComponent.asType()), recordComponent.getSimpleName().toString());
+    }
+
+    public static String getBuilderName(TypeElement element, RecordBuilderMetaData metaData, ClassType classType, String suffix) {
+        // generate the class name
+        var baseName = classType.name() + suffix;
+        return metaData.prefixEnclosingClassNames() ? (getBuilderNamePrefix(element.getEnclosingElement()) + baseName) : baseName;
+    }
+
+    private static String getBuilderNamePrefix(Element element) {
+        // prefix enclosing class names if nested in a class
+        if (element instanceof TypeElement) {
+            return getBuilderNamePrefix(element.getEnclosingElement()) + element.getSimpleName().toString();
+        }
+        return "";
     }
 
     private ElementUtils() {

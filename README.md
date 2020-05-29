@@ -7,7 +7,13 @@
 
 Java 14 is introducing [Records](https://cr.openjdk.java.net/~briangoetz/amber/datum.html) as a preview feature. Since Java 9, features in Java are being released in stages. While the Java 14 version of records is fantastic, it's currently missing an important feature for data classes: a builder. This project is an annotation processor that creates companion builder classes for Java records.
 
-## Example
+In addition to a record builder an annotation is provided that can generate a Java record from an Interface template. This will be useful for DAO-style interfaces, etc.
+where a Record (with toString(), hashCode(), equals(), etc.) and a companion RecordBuilder are needed.
+
+- [RecordBuilder Details](#RecordBuilder-Example)
+- [Record From Interface Details](#Record-Interface-Example)
+
+## RecordBuilder Example
 
 ```java
 @RecordBuilder
@@ -124,6 +130,35 @@ public class NameAndAgeBuilder {
 }
 ```
 
+## RecordInterface Example
+
+```java
+@RecordInterface
+public interface NameAndAge {
+    String name(); 
+    int age();
+}
+```
+
+This will generate a record ala:
+
+```java
+@RecordBuilder
+public record NameAndAgeRecord(String name, int age){}
+```
+
+Note that the generated record is annotated with `@RecordBuilder` so a record
+builder is generated for the new record as well.
+
+Notes:
+
+- Non static methods in the interface...
+  - ...cannot have arguments
+  - ...must return a value
+  - ...cannot have type parameters
+- Methods with default implementations are used in the generation unless they are annotated with `@IgnoreDefaultMethod`
+- If you do not want a record builder generated, annotate your interface as `@RecordInterface(addRecordBuilder = false)`
+
 ## Usage
 
 ### Maven
@@ -218,6 +253,8 @@ The names of the generated methods, etc. are determined by [RecordBuilderMetaDat
 
 Alternatively, you can provide values for each individual meta data (or combinations):
 
+- `javac ... -Asuffix=foo`
+- `javac ... -AinterfaceSuffix=foo`
 - `javac ... -AcopyMethodName=foo`
 - `javac ... -AbuilderMethodName=foo`
 - `javac ... -AbuildMethodName=foo`

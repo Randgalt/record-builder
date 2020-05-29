@@ -18,7 +18,6 @@ package io.soabase.recordbuilder.processor;
 import com.squareup.javapoet.*;
 import io.soabase.recordbuilder.core.RecordBuilderMetaData;
 
-import javax.annotation.processing.Generated;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
@@ -30,9 +29,10 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-class InternalProcessor {
-    private static final AnnotationSpec generatedAnnotation = AnnotationSpec.builder(Generated.class).addMember("value", "$S", RecordBuilderProcessor.NAME).build();
+import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
 
+class InternalRecordBuilderProcessor {
     private final RecordBuilderMetaData metaData;
     private final ClassType recordClassType;
     private final String packageName;
@@ -42,17 +42,17 @@ class InternalProcessor {
     private final TypeSpec builderType;
     private final TypeSpec.Builder builder;
 
-    InternalProcessor(TypeElement record, RecordBuilderMetaData metaData) {
+    InternalRecordBuilderProcessor(TypeElement record, RecordBuilderMetaData metaData) {
         this.metaData = metaData;
         recordClassType = ElementUtils.getClassType(record, record.getTypeParameters());
         packageName = ElementUtils.getPackageName(record);
-        builderClassType = ElementUtils.getClassType(packageName, getBuilderName(record, metaData, recordClassType), record.getTypeParameters());
+        builderClassType = ElementUtils.getClassType(packageName, getBuilderName(record, metaData, recordClassType, metaData.suffix()), record.getTypeParameters());
         typeVariables = record.getTypeParameters().stream().map(TypeVariableName::get).collect(Collectors.toList());
         recordComponents = record.getRecordComponents().stream().map(ElementUtils::getClassType).collect(Collectors.toList());
 
         builder = TypeSpec.classBuilder(builderClassType.name())
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(generatedAnnotation)
+                .addAnnotation(generatedRecordBuilderAnnotation)
                 .addTypeVariables(typeVariables);
         addDefaultConstructor();
         addAllArgsConstructor();
@@ -83,21 +83,6 @@ class InternalProcessor {
         return builderType;
     }
 
-    private String getBuilderName(TypeElement record, RecordBuilderMetaData metaData, ClassType recordClassType) {
-        // generate the record builder class name
-        var baseName = recordClassType.name() + metaData.suffix();
-        return metaData.prefixEnclosingClassNames() ? (getBuilderNamePrefix(record.getEnclosingElement()) + baseName) : baseName;
-    }
-
-    private String getBuilderNamePrefix(Element element) {
-        // prefix enclosing class names if this record is nested in a class
-        if (element instanceof TypeElement) {
-            return getBuilderNamePrefix(element.getEnclosingElement()) + element.getSimpleName().toString();
-        }
-        return "";
-    }
-
-
     private void addDefaultConstructor() {
         /*
             Adds a default constructor similar to:
@@ -107,7 +92,7 @@ class InternalProcessor {
          */
         var constructor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PRIVATE)
-                .addAnnotation(generatedAnnotation)
+                .addAnnotation(generatedRecordBuilderAnnotation)
                 .build();
         builder.addMethod(constructor);
     }
@@ -124,7 +109,7 @@ class InternalProcessor {
          */
         var constructorBuilder = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PRIVATE)
-                .addAnnotation(generatedAnnotation);
+                .addAnnotation(generatedRecordBuilderAnnotation);
         recordComponents.forEach(component -> {
             constructorBuilder.addParameter(component.typeName(), component.name());
             var codeBuilder = CodeBlock.builder().add("this.$L = $L", component.name(), component.name());
@@ -154,7 +139,7 @@ class InternalProcessor {
 
         var methodSpec = MethodSpec.methodBuilder("toString")
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(generatedAnnotation)
+                .addAnnotation(generatedRecordBuilderAnnotation)
                 .addAnnotation(Override.class)
                 .returns(String.class)
                 .addStatement(codeBuilder.build())
@@ -182,7 +167,7 @@ class InternalProcessor {
 
         var methodSpec = MethodSpec.methodBuilder("hashCode")
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(generatedAnnotation)
+                .addAnnotation(generatedRecordBuilderAnnotation)
                 .addAnnotation(Override.class)
                 .returns(TypeName.INT)
                 .addStatement(codeBuilder.build())
@@ -217,7 +202,7 @@ class InternalProcessor {
         var methodSpec = MethodSpec.methodBuilder("equals")
                 .addParameter(Object.class, "o")
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(generatedAnnotation)
+                .addAnnotation(generatedRecordBuilderAnnotation)
                 .addAnnotation(Override.class)
                 .returns(TypeName.BOOLEAN)
                 .addStatement(codeBuilder.build())
@@ -245,7 +230,7 @@ class InternalProcessor {
         var methodSpec = MethodSpec.methodBuilder(metaData.buildMethodName())
                 .addJavadoc("Return a new record instance with all fields set to the current values in this builder\n")
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(generatedAnnotation)
+                .addAnnotation(generatedRecordBuilderAnnotation)
                 .returns(recordClassType.typeName())
                 .addStatement(codeBuilder.build())
                 .build();
@@ -272,7 +257,7 @@ class InternalProcessor {
         var methodSpec = MethodSpec.methodBuilder(metaData.copyMethodName())
                 .addJavadoc("Return a new builder with all fields set to the values taken from the given record instance\n")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .addAnnotation(generatedAnnotation)
+                .addAnnotation(generatedRecordBuilderAnnotation)
                 .addTypeVariables(typeVariables)
                 .addParameter(recordClassType.typeName(), "from")
                 .returns(builderClassType.typeName())
@@ -292,7 +277,7 @@ class InternalProcessor {
         var methodSpec = MethodSpec.methodBuilder(metaData.builderMethodName())
                 .addJavadoc("Return a new builder with all fields set to default Java values\n")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .addAnnotation(generatedAnnotation)
+                .addAnnotation(generatedRecordBuilderAnnotation)
                 .addTypeVariables(typeVariables)
                 .returns(builderClassType.typeName())
                 .addStatement("return new $T()", builderClassType.typeName())
@@ -326,7 +311,7 @@ class InternalProcessor {
                 .addJavadoc("Return a stream of the record components as map entries keyed with the component name and the value as the component value\n")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addParameter(recordClassType.typeName(), "record")
-                .addAnnotation(generatedAnnotation)
+                .addAnnotation(generatedRecordBuilderAnnotation)
                 .addTypeVariables(typeVariables)
                 .returns(mapEntryType)
                 .addStatement(codeBuilder.build())
@@ -355,7 +340,7 @@ class InternalProcessor {
         var methodSpec = MethodSpec.methodBuilder(component.name())
                 .addJavadoc("Return the current value for the {@code $L} record component in the builder\n", component.name())
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(generatedAnnotation)
+                .addAnnotation(generatedRecordBuilderAnnotation)
                 .returns(component.typeName())
                 .addStatement("return $L", component.name())
                 .build();
@@ -375,7 +360,7 @@ class InternalProcessor {
         var methodSpec = MethodSpec.methodBuilder(component.name())
                 .addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name())
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(generatedAnnotation)
+                .addAnnotation(generatedRecordBuilderAnnotation)
                 .addParameter(parameterSpec)
                 .returns(builderClassType.typeName())
                 .addStatement("this.$L = $L", component.name(), component.name())

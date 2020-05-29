@@ -24,36 +24,49 @@ public class OptionBasedRecordBuilderMetaData implements RecordBuilderMetaData {
      * @see #suffix()
      */
     public static final String OPTION_SUFFIX = "suffix";
+
+    /**
+     * @see #interfaceSuffix()
+     */
+    public static final String OPTION_INTERFACE_SUFFIX = "interfaceSuffix";
+
     /**
      * @see #copyMethodName()
      */
     public static final String OPTION_COPY_METHOD_NAME = "copyMethodName";
+
     /**
      * @see #builderMethodName()
      */
     public static final String OPTION_BUILDER_METHOD_NAME = "builderMethodName";
+
     /**
      * @see #buildMethodName()
      */
     public static final String OPTION_BUILD_METHOD_NAME = "buildMethodName";
+
     /**
      * @see #componentsMethodName()
      */
     public static final String OPTION_COMPONENTS_METHOD_NAME = "componentsMethodName";
+
     /**
      * @see #fileComment()
      */
     public static final String OPTION_FILE_COMMENT = "fileComment";
+
     /**
      * @see #fileIndent()
      */
     public static final String OPTION_FILE_INDENT = "fileIndent";
+
     /**
      * @see #prefixEnclosingClassNames()
      */
     public static final String OPTION_PREFIX_ENCLOSING_CLASS_NAMES = "prefixEnclosingClassNames";
 
     private final String suffix;
+    private final String interfaceSuffix;
     private final String copyMethodName;
     private final String builderMethodName;
     private final String buildMethodName;
@@ -64,6 +77,7 @@ public class OptionBasedRecordBuilderMetaData implements RecordBuilderMetaData {
 
     public OptionBasedRecordBuilderMetaData(Map<String, String> options) {
         suffix = options.getOrDefault(OPTION_SUFFIX, "Builder");
+        interfaceSuffix = options.getOrDefault(OPTION_INTERFACE_SUFFIX, "Record");
         builderMethodName = options.getOrDefault(OPTION_BUILDER_METHOD_NAME, "builder");
         copyMethodName = options.getOrDefault(OPTION_COPY_METHOD_NAME, builderMethodName);
         buildMethodName = options.getOrDefault(OPTION_BUILD_METHOD_NAME, "build");
@@ -119,4 +133,8 @@ public class OptionBasedRecordBuilderMetaData implements RecordBuilderMetaData {
         return prefixEnclosingClassNames;
     }
 
+    @Override
+    public String interfaceSuffix() {
+        return interfaceSuffix;
+    }
 }

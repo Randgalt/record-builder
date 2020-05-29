@@ -24,30 +24,15 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <proc>none</proc>
+                    <source>14</source>
+                    <target>14</target>
+                    <compilerArgs>--enable-preview</compilerArgs>
                 </configuration>
             </plugin>
-
-            <!--plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <configuration>
-                    <artifactSet>
-                        <includes>
-                            <include>com.squareup:javapoet</include>
-                            <include>io.soabase.record-builder:record-builder-processor</include>
-                        </includes>
-                    </artifactSet>
-                    <relocations>
-                        <relocation>
-                            <pattern>com.squareup.javapoet</pattern>
-                            <shadedPattern>io.soabase.com.squareup.javapoet</shadedPattern>
-                        </relocation>
-                    </relocations>
-                </configuration>
-            </plugin-->
         </plugins>
     </build>
 </project>

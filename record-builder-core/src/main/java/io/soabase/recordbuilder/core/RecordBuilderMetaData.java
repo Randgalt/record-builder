@@ -42,6 +42,16 @@ public interface RecordBuilderMetaData {
     }
 
     /**
+     * Used by {@code RecordInterface}. The generated record will have the same name as the annotated interface
+     * plus this suffix. E.g. if the interface name is "Foo", the record will be named "FooRecord".
+     *
+     * @return suffix
+     */
+    default String interfaceSuffix() {
+        return "Record";
+    }
+
+    /**
      * The name to use for the copy builder
      *
      * @return copy builder name

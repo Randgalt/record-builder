@@ -15,20 +15,16 @@
  */
 package io.soabase.recordbuilder.test;
 
-public class Usage {
-    public static void main(String[] args) {
-        var hey = SimpleRecordBuilder.builder().i(10).s("hey").build();
-        System.out.println(hey);
-        var hey2 = SimpleRecordBuilder.builder(hey).i(100).build();
-        System.out.println(hey2);
+import io.soabase.recordbuilder.core.RecordInterface;
 
-        var person = new PersonRecord("me", 42);
-        outputPerson(person);
-        var aged = PersonRecordBuilder.builder(person).age(100).build();
-        outputPerson(aged);
-    }
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
-    private static void outputPerson(Person p) {
-        System.out.println(p.toString());
-    }
+@RecordInterface
+public interface SpecializedPerson<T, U> extends Person {
+    List<T> features();
+
+    Map<Supplier<T>, Function<U, Function<T, U>>> complex();
 }

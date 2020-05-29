@@ -15,20 +15,11 @@
  */
 package io.soabase.recordbuilder.test;
 
-public class Usage {
-    public static void main(String[] args) {
-        var hey = SimpleRecordBuilder.builder().i(10).s("hey").build();
-        System.out.println(hey);
-        var hey2 = SimpleRecordBuilder.builder(hey).i(100).build();
-        System.out.println(hey2);
+import io.soabase.recordbuilder.core.RecordInterface;
 
-        var person = new PersonRecord("me", 42);
-        outputPerson(person);
-        var aged = PersonRecordBuilder.builder(person).age(100).build();
-        outputPerson(aged);
-    }
+@RecordInterface
+public interface Person {
+    String name();
 
-    private static void outputPerson(Person p) {
-        System.out.println(p.toString());
-    }
+    int age();
 }
