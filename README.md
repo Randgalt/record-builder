@@ -144,7 +144,7 @@ This will generate a record ala:
 
 ```java
 @RecordBuilder
-public record NameAndAgeRecord(String name, int age){}
+public record NameAndAgeRecord(String name, int age) implements NameAndAge {}
 ```
 
 Note that the generated record is annotated with `@RecordBuilder` so a record
