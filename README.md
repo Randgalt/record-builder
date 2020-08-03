@@ -5,7 +5,7 @@
 
 ## What is RecordBuilder
 
-Java 14 is introducing [Records](https://cr.openjdk.java.net/~briangoetz/amber/datum.html) as a preview feature. Since Java 9, features in Java are being released in stages. While the Java 14 version of records is fantastic, it's currently missing an important feature for data classes: a builder. This project is an annotation processor that creates companion builder classes for Java records.
+Java 14 introduced [Records](https://cr.openjdk.java.net/~briangoetz/amber/datum.html) as a preview feature. Since Java 9, features in Java are being released in stages. While the Java 14 version of records is fantastic, it's currently missing an important feature for data classes: a builder. This project is an annotation processor that creates companion builder classes for Java records.
 
 In addition to a record builder an annotation is provided that can generate a Java record from an Interface template. This will be useful for DAO-style interfaces, etc.
 where a Record (with toString(), hashCode(), equals(), etc.) and a companion RecordBuilder are needed.
