@@ -75,11 +75,6 @@ public class OptionBasedRecordBuilderMetaData implements RecordBuilderMetaData {
      */
     public static final String OPTION_WITH_CLASS_METHOD_PREFIX = "withClassMethodPrefix";
 
-    /**
-     * @see #withClassGetThisMethodName()
-     */
-    public static final String OPTION_WITH_CLASS_GET_THIS_METHOD_NAME = "withClassGetThisMethodName";
-
     private final String suffix;
     private final String interfaceSuffix;
     private final String copyMethodName;
@@ -88,7 +83,6 @@ public class OptionBasedRecordBuilderMetaData implements RecordBuilderMetaData {
     private final String componentsMethodName;
     private final String withClassName;
     private final String withClassMethodPrefix;
-    private final String withClassGetThisMethodName;
     private final String fileComment;
     private final String fileIndent;
     private final boolean prefixEnclosingClassNames;
@@ -102,7 +96,6 @@ public class OptionBasedRecordBuilderMetaData implements RecordBuilderMetaData {
         componentsMethodName = options.getOrDefault(OPTION_COMPONENTS_METHOD_NAME, DEFAULT.componentsMethodName());
         withClassName = options.getOrDefault(OPTION_WITH_CLASS_NAME, DEFAULT.withClassName());
         withClassMethodPrefix = options.getOrDefault(OPTION_WITH_CLASS_METHOD_PREFIX, DEFAULT.withClassMethodPrefix());
-        withClassGetThisMethodName = options.getOrDefault(OPTION_WITH_CLASS_GET_THIS_METHOD_NAME, DEFAULT.withClassGetThisMethodName());
         fileComment = options.getOrDefault(OPTION_FILE_COMMENT, DEFAULT.fileComment());
         fileIndent = options.getOrDefault(OPTION_FILE_INDENT, DEFAULT.fileIndent());
         String prefixenclosingclassnamesopt = options.getOrDefault(OPTION_PREFIX_ENCLOSING_CLASS_NAMES, String.valueOf(DEFAULT.prefixEnclosingClassNames()));
@@ -146,11 +139,6 @@ public class OptionBasedRecordBuilderMetaData implements RecordBuilderMetaData {
     @Override
     public String withClassMethodPrefix() {
         return withClassMethodPrefix;
-    }
-
-    @Override
-    public String withClassGetThisMethodName() {
-        return withClassGetThisMethodName;
     }
 
     @Override

@@ -106,15 +106,6 @@ public interface RecordBuilderMetaData {
     }
 
     /**
-     * The name to use for the method that returns "this" cast to the record type
-     *
-     * @return method name
-     */
-    default String withClassGetThisMethodName() {
-        return "internalGetThis";
-    }
-
-    /**
      * Return the comment to place at the top of generated files. Return null or an empty string for no comment.
      *
      * @return comment or empty
