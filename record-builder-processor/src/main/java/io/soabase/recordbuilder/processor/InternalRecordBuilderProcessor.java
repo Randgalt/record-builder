@@ -94,45 +94,29 @@ class InternalRecordBuilderProcessor {
                 }
             }
          */
-        TypeSpec.Builder classBuilder = TypeSpec.interfaceBuilder(metaData.withClassName())
+        var classBuilder = TypeSpec.interfaceBuilder(metaData.withClassName())
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Add withers to {@code $L}\n", recordClassType.name())
                 .addModifiers(Modifier.PUBLIC)
                 .addTypeVariables(typeVariables);
-        addWithGetThisMethod(classBuilder);
         addWithBuilderMethod(classBuilder);
         IntStream.range(0, recordComponents.size()).forEach(index -> add1WithMethod(classBuilder, recordComponents.get(index), index));
         builder.addType(classBuilder.build());
     }
 
-    private void addWithGetThisMethod(TypeSpec.Builder classBuilder) {
+    private void addWithBuilderMethod(TypeSpec.Builder classBuilder) {
         /*
-            Adds a method that returns "this" cast to the record similar to:
+            Adds a method that returns a pre-filled copy builder similar to:
 
-            default MyRecord internalGetThis() {
-                Object obj = this;
-                return (MyRecord)obj;
+            default MyRecordBuilder with() {
+                MyRecord r = (MyRecord)(Object)this;
+                return MyRecordBuilder.builder(r);
             }
          */
-        CodeBlock codeBlock = CodeBlock.builder()
-                .add("Object obj = this;\n")
-                .add("return ($T)obj;", recordClassType.typeName())
-                .build();
-        MethodSpec methodSpec = MethodSpec.methodBuilder(metaData.withClassGetThisMethodName())
-                .addAnnotation(generatedRecordBuilderAnnotation)
-                .addJavadoc("Cast this to the record type")
-                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
-                .returns(recordClassType.typeName())
-                .addCode(codeBlock)
-                .build();
-        classBuilder.addMethod(methodSpec);
-    }
-
-    private void addWithBuilderMethod(TypeSpec.Builder classBuilder) {
-        CodeBlock.Builder codeBlockBuilder = CodeBlock.builder()
-                .add("$T r = $L();\n", recordClassType.typeName(), metaData.withClassGetThisMethodName())
+        var codeBlockBuilder = CodeBlock.builder()
+                .add("var r = ($T)(Object)this;\n", recordClassType.typeName())
                 .add("return $L.$L(r);", builderClassType.name(), metaData.copyMethodName());
-        MethodSpec methodSpec = MethodSpec.methodBuilder(metaData.withClassMethodPrefix())
+        var methodSpec = MethodSpec.methodBuilder(metaData.withClassMethodPrefix())
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Return a new record builder using the current values")
                 .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
@@ -147,12 +131,12 @@ class InternalRecordBuilderProcessor {
             Adds a with method for the component similar to:
 
             default MyRecord withName(String name) {
-                MyRecord r = internalGetThis();
+                MyRecord r = (MyRecord)(Object)this;
                 return new MyRecord(name, r.age());
             }
          */
-        CodeBlock.Builder codeBlockBuilder = CodeBlock.builder()
-                .add("$T r = $L();\n", recordClassType.typeName(), metaData.withClassGetThisMethodName())
+        var codeBlockBuilder = CodeBlock.builder()
+                .add("var r = ($T)(Object)this;\n", recordClassType.typeName())
                 .add("return new $T(", recordClassType.typeName());
         IntStream.range(0, recordComponents.size()).forEach(parameterIndex -> {
             if (parameterIndex > 0) {
@@ -167,9 +151,9 @@ class InternalRecordBuilderProcessor {
         });
         codeBlockBuilder.add(");");
 
-        String methodName = getWithMethodName(component, metaData.withClassMethodPrefix());
+        var methodName = getWithMethodName(component, metaData.withClassMethodPrefix());
         var parameterSpec = ParameterSpec.builder(component.typeName(), component.name()).build();
-        MethodSpec methodSpec = MethodSpec.methodBuilder(methodName)
+        var methodSpec = MethodSpec.methodBuilder(methodName)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Return a new instance of {@code $L} with a new value for {@code $L}\n", recordClassType.name(), component.name())
                 .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)

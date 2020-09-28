@@ -162,18 +162,10 @@ public class NameAndAgeBuilder {
      */
     public interface With {
         /**
-         * Cast this to the record type
-         */
-        default NameAndAge internalGetThis() {
-            Object obj = this;
-            return (PersonRecord)obj;
-        }
-
-        /**
          * Return a new record builder using the current values
          */
         default NameAndAgeBuilder with() {
-            NameAndAge r = internalGetThis();
+            var r = (NameAndAge)(Object)this;
             return NameAndAgeBuilder.builder(r);
         }
 
@@ -181,7 +173,7 @@ public class NameAndAgeBuilder {
          * Return a new instance of {@code NameAndAge} with a new value for {@code name}
          */
         default NameAndAge withName(String name) {
-            NameAndAge r = internalGetThis();
+            var r = (NameAndAge)(Object)this;
             return new NameAndAge(name, r.age());
         }
 
@@ -189,7 +181,7 @@ public class NameAndAgeBuilder {
          * Return a new instance of {@code NameAndAge} with a new value for {@code age}
          */
         default NameAndAge withAge(int age) {
-            NameAndAge r = internalGetThis();
+            var r = (NameAndAge)(Object)this;
             return new NameAndAge(r.name(), age);
         }
     }
@@ -327,7 +319,6 @@ Alternatively, you can provide values for each individual meta data (or combinat
 - `javac ... -AcomponentsMethodName=foo`
 - `javac ... -AwithClassName=foo`
 - `javac ... -AwithClassMethodPrefix=foo`
-- `javac ... -AwithClassGetThisMethodName=foo`
 - `javac ... -AfileComment=foo`
 - `javac ... -AfileIndent=foo`
 - `javac ... -AprefixEnclosingClassNames=foo`
