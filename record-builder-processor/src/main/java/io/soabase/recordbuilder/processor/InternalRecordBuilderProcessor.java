@@ -18,7 +18,6 @@ package io.soabase.recordbuilder.processor;
 import com.squareup.javapoet.*;
 import io.soabase.recordbuilder.core.RecordBuilderMetaData;
 
-import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import java.util.AbstractMap;
@@ -30,6 +29,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
+import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
 
 class InternalRecordBuilderProcessor {
@@ -54,6 +54,7 @@ class InternalRecordBuilderProcessor {
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addTypeVariables(typeVariables);
+        addWithNestedClass();
         addDefaultConstructor();
         addAllArgsConstructor();
         addStaticDefaultBuilderMethod();
@@ -81,6 +82,102 @@ class InternalRecordBuilderProcessor {
 
     TypeSpec builderType() {
         return builderType;
+    }
+
+    private void addWithNestedClass() {
+        /*
+            Adds a nested interface that adds withers similar to:
+
+            public class MyRecordBuilder {
+                public interface With {
+                    // with methods
+                }
+            }
+         */
+        TypeSpec.Builder classBuilder = TypeSpec.interfaceBuilder(metaData.withClassName())
+                .addAnnotation(generatedRecordBuilderAnnotation)
+                .addJavadoc("Add withers to {@code $L}\n", recordClassType.name())
+                .addModifiers(Modifier.PUBLIC)
+                .addTypeVariables(typeVariables);
+        addWithGetThisMethod(classBuilder);
+        addWithBuilderMethod(classBuilder);
+        IntStream.range(0, recordComponents.size()).forEach(index -> add1WithMethod(classBuilder, recordComponents.get(index), index));
+        builder.addType(classBuilder.build());
+    }
+
+    private void addWithGetThisMethod(TypeSpec.Builder classBuilder) {
+        /*
+            Adds a method that returns "this" cast to the record similar to:
+
+            default MyRecord internalGetThis() {
+                Object obj = this;
+                return (MyRecord)obj;
+            }
+         */
+        CodeBlock codeBlock = CodeBlock.builder()
+                .add("Object obj = this;\n")
+                .add("return ($T)obj;", recordClassType.typeName())
+                .build();
+        MethodSpec methodSpec = MethodSpec.methodBuilder(metaData.withClassGetThisMethodName())
+                .addAnnotation(generatedRecordBuilderAnnotation)
+                .addJavadoc("Cast this to the record type")
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .returns(recordClassType.typeName())
+                .addCode(codeBlock)
+                .build();
+        classBuilder.addMethod(methodSpec);
+    }
+
+    private void addWithBuilderMethod(TypeSpec.Builder classBuilder) {
+        CodeBlock.Builder codeBlockBuilder = CodeBlock.builder()
+                .add("$T r = $L();\n", recordClassType.typeName(), metaData.withClassGetThisMethodName())
+                .add("return $L.$L(r);", builderClassType.name(), metaData.copyMethodName());
+        MethodSpec methodSpec = MethodSpec.methodBuilder(metaData.withClassMethodPrefix())
+                .addAnnotation(generatedRecordBuilderAnnotation)
+                .addJavadoc("Return a new record builder using the current values")
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .returns(builderClassType.typeName())
+                .addCode(codeBlockBuilder.build())
+                .build();
+        classBuilder.addMethod(methodSpec);
+    }
+
+    private void add1WithMethod(TypeSpec.Builder classBuilder, ClassType component, int index) {
+        /*
+            Adds a with method for the component similar to:
+
+            default MyRecord withName(String name) {
+                MyRecord r = internalGetThis();
+                return new MyRecord(name, r.age());
+            }
+         */
+        CodeBlock.Builder codeBlockBuilder = CodeBlock.builder()
+                .add("$T r = $L();\n", recordClassType.typeName(), metaData.withClassGetThisMethodName())
+                .add("return new $T(", recordClassType.typeName());
+        IntStream.range(0, recordComponents.size()).forEach(parameterIndex -> {
+            if (parameterIndex > 0) {
+                codeBlockBuilder.add(", ");
+            }
+            ClassType parameterComponent = recordComponents.get(parameterIndex);
+            if (parameterIndex == index) {
+                codeBlockBuilder.add(parameterComponent.name());
+            } else {
+                codeBlockBuilder.add("r.$L()", parameterComponent.name());
+            }
+        });
+        codeBlockBuilder.add(");");
+
+        String methodName = getWithMethodName(component, metaData.withClassMethodPrefix());
+        var parameterSpec = ParameterSpec.builder(component.typeName(), component.name()).build();
+        MethodSpec methodSpec = MethodSpec.methodBuilder(methodName)
+                .addAnnotation(generatedRecordBuilderAnnotation)
+                .addJavadoc("Return a new instance of {@code $L} with a new value for {@code $L}\n", recordClassType.name(), component.name())
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .addParameter(parameterSpec)
+                .addCode(codeBlockBuilder.build())
+                .returns(recordClassType.typeName())
+                .build();
+        classBuilder.addMethod(methodSpec);
     }
 
     private void addDefaultConstructor() {

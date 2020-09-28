@@ -5,12 +5,19 @@
 
 ## What is RecordBuilder
 
-Java 14 introduced [Records](https://cr.openjdk.java.net/~briangoetz/amber/datum.html) as a preview feature. Since Java 9, features in Java are being released in stages. While the Java 14 version of records is fantastic, it's currently missing an important feature for data classes: a builder. This project is an annotation processor that creates companion builder classes for Java records.
+Java 15 introduced [Records](https://cr.openjdk.java.net/~briangoetz/amber/datum.html) as a preview feature. Since Java 9, 
+features in Java are being released in stages. While the Java 15 version of records is fantastic, it's currently missing important features 
+for data classes: a builder and "with"ers. This project is an annotation processor that creates:
+ 
+- a companion builder class for Java records
+- an interface that adds "with" copy methods
+- an annotation that generates a Java record from an Interface template
 
-In addition to a record builder an annotation is provided that can generate a Java record from an Interface template. This will be useful for DAO-style interfaces, etc.
-where a Record (with toString(), hashCode(), equals(), etc.) and a companion RecordBuilder are needed.
+_Details:_
 
 - [RecordBuilder Details](#RecordBuilder-Example)
+- [Wither Details](#Wither-Example)
+- [RecordBuilder Full Definition](#Builder-Class-Definition)
 - [Record From Interface Details](#RecordInterface-Example)
 
 ## RecordBuilder Example
@@ -35,6 +42,28 @@ setName(builder);
 setAge(builder);
 var n3 = builder.build();
 ```
+
+## Wither Example
+
+```java
+@RecordBuilder
+public record NameAndAge(String name, int age) implements NameAndAgeBuilder.With {}
+```
+
+In addition to creating a builder, your record is enhanced by "wither" methods ala:
+
+```java
+var r1 = new NameAndAge("foo", 123);
+var r2 = r1.withName("bar");
+var r3 = r2.withAge(456);
+
+// access the builder as well:
+var r4 = r3.with().age(101).name("baz").build();
+```
+
+_Hat tip to [Benji Weber](https://benjiweber.co.uk/blog/2020/09/19/fun-with-java-records/) for the Withers idea._
+
+## Builder Class Definition
 
 The full builder class is defined as:
 
@@ -127,6 +156,43 @@ public class NameAndAgeBuilder {
                 && Objects.equals(name, b.name)
                 && (age == b.age));
     }
+
+    /**
+     * Add withers to {@code NameAndAge}
+     */
+    public interface With {
+        /**
+         * Cast this to the record type
+         */
+        default NameAndAge internalGetThis() {
+            Object obj = this;
+            return (PersonRecord)obj;
+        }
+
+        /**
+         * Return a new record builder using the current values
+         */
+        default NameAndAgeBuilder with() {
+            NameAndAge r = internalGetThis();
+            return NameAndAgeBuilder.builder(r);
+        }
+
+        /**
+         * Return a new instance of {@code NameAndAge} with a new value for {@code name}
+         */
+        default NameAndAge withName(String name) {
+            NameAndAge r = internalGetThis();
+            return new NameAndAge(name, r.age());
+        }
+
+        /**
+         * Return a new instance of {@code NameAndAge} with a new value for {@code age}
+         */
+        default NameAndAge withAge(int age) {
+            NameAndAge r = internalGetThis();
+            return new NameAndAge(r.name(), age);
+        }
+    }
 }
 ```
 
@@ -195,7 +261,7 @@ Notes:
 
         
         <!-- "release" and "enable-preview" are required while records are preview features -->
-        <release>14</release>
+        <release>15</release>
         <compilerArgs>
             <arg>--enable-preview</arg>
         </compilerArgs>
@@ -237,11 +303,11 @@ Depending on your IDE you are likely to need to enable Annotation Processing in 
 
 Note: records are a preview feature only. You'll need take a number of steps in order to try RecordBuilder:
 
-- Install and make active Java 14 or later
-- Make sure your development tool is using Java 14 or later and is configured to enable preview features (for Maven I've documented how to do this here: [https://stackoverflow.com/a/59363152/2048051](https://stackoverflow.com/a/59363152/2048051))
+- Install and make active Java 15 or later
+- Make sure your development tool is using Java 15 or later and is configured to enable preview features (for Maven I've documented how to do this here: [https://stackoverflow.com/a/59363152/2048051](https://stackoverflow.com/a/59363152/2048051))
 - Bear in mind that this is not yet meant for production and there are numerous bugs in the tools and JDKs.
 
-Note: I've seen some very odd compilation bugs with the current Java 14 and Maven. If you get internal Javac errors I suggest rebuilding with `mvn clean package` and/or `mvn clean install`.
+Note: I've seen some very odd compilation bugs with the current Java 15 and Maven. If you get internal Javac errors I suggest rebuilding with `mvn clean package` and/or `mvn clean install`.
 
 ## Customizing
 
@@ -259,6 +325,9 @@ Alternatively, you can provide values for each individual meta data (or combinat
 - `javac ... -AbuilderMethodName=foo`
 - `javac ... -AbuildMethodName=foo`
 - `javac ... -AcomponentsMethodName=foo`
+- `javac ... -AwithClassName=foo`
+- `javac ... -AwithClassMethodPrefix=foo`
+- `javac ... -AwithClassGetThisMethodName=foo`
 - `javac ... -AfileComment=foo`
 - `javac ... -AfileIndent=foo`
 - `javac ... -AprefixEnclosingClassNames=foo`

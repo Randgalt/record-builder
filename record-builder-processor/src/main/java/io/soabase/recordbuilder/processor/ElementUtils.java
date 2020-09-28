@@ -61,6 +61,14 @@ public class ElementUtils {
         return new ClassType(TypeName.get(recordComponent.asType()), recordComponent.getSimpleName().toString());
     }
 
+    public static String getWithMethodName(ClassType component, String prefix) {
+        var name = component.name();
+        if (name.length() == 1) {
+            return prefix + name.toUpperCase();
+        }
+        return prefix + Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    }
+
     public static String getBuilderName(TypeElement element, RecordBuilderMetaData metaData, ClassType classType, String suffix) {
         // generate the class name
         var baseName = classType.name() + suffix;
