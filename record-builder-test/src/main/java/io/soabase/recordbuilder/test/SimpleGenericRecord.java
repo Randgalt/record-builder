@@ -18,5 +18,5 @@ package io.soabase.recordbuilder.test;
 import io.soabase.recordbuilder.core.RecordBuilder;
 
 @RecordBuilder
-public record SimpleGenericRecord<T>(int i, T s) {
+public record SimpleGenericRecord<T>(int i, T s) implements SimpleGenericRecordBuilder.With<T> {
 }
