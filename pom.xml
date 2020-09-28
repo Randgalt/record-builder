@@ -5,7 +5,7 @@
     <groupId>io.soabase.record-builder</groupId>
     <artifactId>record-builder</artifactId>
     <packaging>pom</packaging>
-    <version>1.8.ea-SNAPSHOT</version>
+    <version>1.8.ea</version>
 
     <modules>
         <module>record-builder-core</module>
@@ -71,7 +71,7 @@
         <url>https://github.com/randgalt/record-builder</url>
         <connection>scm:git:https://github.com/randgalt/record-builder.git</connection>
         <developerConnection>scm:git:git@github.com:randgalt/record-builder.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>record-builder-1.8.ea</tag>
     </scm>
 
     <issueManagement>
