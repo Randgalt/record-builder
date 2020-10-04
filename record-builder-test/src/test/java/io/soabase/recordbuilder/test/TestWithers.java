@@ -46,4 +46,17 @@ class TestWithers {
         Assertions.assertEquals(20, r3.i());
         Assertions.assertEquals("changed", r3.s());
     }
+
+    @Test
+    void testWitherBuilderConsumer() {
+        var r1 = new SimpleGenericRecord<>(10, "ten");
+        var r2 = r1.with(r -> r.i(15));
+        var r3 = r1.with(r -> r.s("twenty").i(20));
+        Assertions.assertEquals(10, r1.i());
+        Assertions.assertEquals("ten", r1.s());
+        Assertions.assertEquals(15, r2.i());
+        Assertions.assertEquals("ten", r2.s());
+        Assertions.assertEquals(20, r3.i());
+        Assertions.assertEquals("twenty", r3.s());
+    }
 }
