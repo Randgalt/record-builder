@@ -57,8 +57,11 @@ var r1 = new NameAndAge("foo", 123);
 var r2 = r1.withName("bar");
 var r3 = r2.withAge(456);
 
-// access the builder as well:
+// access the builder as well
 var r4 = r3.with().age(101).name("baz").build();
+
+// alternate method of accessing the builder (note: no need to call "build()")
+var r5 = r3.with(b -> b.age(200).name("whatever"));
 ```
 
 _Hat tip to [Benji Weber](https://benjiweber.co.uk/blog/2020/09/19/fun-with-java-records/) for the Withers idea._
