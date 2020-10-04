@@ -173,6 +173,16 @@ public class NameAndAgeBuilder {
         }
 
         /**
+         * Return a new record built from the builder passed to the given consumer
+         */
+        default NameAndAge with(Consumer<NameAndAgeBuilder> consumer) {
+            var r = (NameAndAge)(Object)this;
+            NameAndAgeBuilder builder = NameAndAgeBuilder.builder(r);
+            consumer.accept(builder);
+            return builder.build();
+        }
+
+        /**
          * Return a new instance of {@code NameAndAge} with a new value for {@code name}
          */
         default NameAndAge withName(String name) {
