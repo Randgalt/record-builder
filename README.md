@@ -216,7 +216,7 @@ This will generate a record ala:
 ```java
 @RecordBuilder
 public record NameAndAgeRecord(String name, int age) implements 
-    NameAndAge, NameAndAgeBuilder.With {}
+    NameAndAge, NameAndAgeRecordBuilder.With {}
 ```
 
 Note that the generated record is annotated with `@RecordBuilder` so a record
