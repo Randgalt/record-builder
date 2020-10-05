@@ -21,7 +21,7 @@ _Details:_
 - [Record From Interface Details](#RecordInterface-Example)
 - [Generation Via Includes](#generation-via-includes)
 - [Usage](#usage)
-- [Customizing(#customizing)
+- [Customizing](#customizing)
 
 ## RecordBuilder Example
 
