@@ -18,39 +18,46 @@ package io.soabase.recordbuilder.processor;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
+import io.soabase.recordbuilder.core.RecordBuilder;
 import io.soabase.recordbuilder.core.RecordBuilderMetaData;
 import io.soabase.recordbuilder.core.RecordInterface;
-
-import javax.annotation.processing.*;
+import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.Filer;
+import javax.annotation.processing.Generated;
+import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.RECORD_BUILDER;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.RECORD_INTERFACE;
-
-@SupportedAnnotationTypes({RECORD_BUILDER, RECORD_INTERFACE})
 public class RecordBuilderProcessor extends AbstractProcessor {
-    public static final String RECORD_BUILDER = "io.soabase.recordbuilder.core.RecordBuilder";
-    public static final String RECORD_INTERFACE = "io.soabase.recordbuilder.core.RecordInterface";
+    private static final String RECORD_BUILDER = RecordBuilder.class.getName();
+    private static final String RECORD_BUILDER_INCLUDE = RecordBuilder.Include.class.getName().replace('$', '.');
+    private static final String RECORD_INTERFACE = RecordInterface.class.getName();
+    private static final String RECORD_INTERFACE_INCLUDE = RecordInterface.Include.class.getName().replace('$', '.');
 
-    static final AnnotationSpec generatedRecordBuilderAnnotation = AnnotationSpec.builder(Generated.class).addMember("value", "$S", RECORD_BUILDER).build();
-    static final AnnotationSpec generatedRecordInterfaceAnnotation = AnnotationSpec.builder(Generated.class).addMember("value", "$S", RECORD_INTERFACE).build();
+    static final AnnotationSpec generatedRecordBuilderAnnotation = AnnotationSpec.builder(Generated.class).addMember("value", "$S", RecordBuilder.class.getName()).build();
+    static final AnnotationSpec generatedRecordInterfaceAnnotation = AnnotationSpec.builder(Generated.class).addMember("value", "$S", RecordInterface.class.getName()).build();
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        annotations.forEach(annotation -> roundEnv.getElementsAnnotatedWith(annotation)
-                .forEach(element -> process(annotation, element))
-        );
+        annotations.forEach(annotation -> roundEnv.getElementsAnnotatedWith(annotation).forEach(element -> process(annotation, element)));
         return true;
     }
-    
+
+    @Override
+    public Set<String> getSupportedAnnotationTypes() {
+        return Set.of(RECORD_BUILDER, RECORD_BUILDER_INCLUDE, RECORD_INTERFACE, RECORD_INTERFACE_INCLUDE);
+    }
+
     @Override
     public SourceVersion getSupportedSourceVersion() {
         // we don't directly return RELEASE_14 as that may 
@@ -63,37 +70,102 @@ public class RecordBuilderProcessor extends AbstractProcessor {
     private void process(TypeElement annotation, Element element) {
         var metaData = new RecordBuilderMetaDataLoader(processingEnv, s -> processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, s)).getMetaData();
 
-        if (annotation.getQualifiedName().toString().equals(RECORD_BUILDER)) {
-            processRecordBuilder((TypeElement) element, metaData);
-        } else if (annotation.getQualifiedName().toString().equals(RECORD_INTERFACE)) {
-            processRecordInterface((TypeElement) element, element.getAnnotation(RecordInterface.class), metaData);
-        } else {
+        String annotationClass = annotation.getQualifiedName().toString();
+        if ( annotationClass.equals(RECORD_BUILDER) )
+        {
+            processRecordBuilder((TypeElement)element, metaData, Optional.empty());
+        }
+        else if ( annotationClass.equals(RECORD_INTERFACE) )
+        {
+            processRecordInterface((TypeElement)element, element.getAnnotation(RecordInterface.class).addRecordBuilder(), metaData, Optional.empty());
+        }
+        else if ( annotationClass.equals(RECORD_BUILDER_INCLUDE) || annotationClass.equals(RECORD_INTERFACE_INCLUDE) )
+        {
+            processIncludes(element, metaData, annotationClass);
+        }
+        else
+        {
             throw new RuntimeException("Unknown annotation: " + annotation);
         }
     }
 
-    private void processRecordInterface(TypeElement element, RecordInterface recordInterface, RecordBuilderMetaData metaData) {
-        if (!element.getKind().isInterface()) {
+    private void processIncludes(Element element, RecordBuilderMetaData metaData, String annotationClass) {
+        var annotationMirrorOpt = ElementUtils.findAnnotationMirror(processingEnv, element, annotationClass);
+        if ( annotationMirrorOpt.isEmpty() )
+        {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Could not get annotation mirror for: " + annotationClass, element);
+        }
+        else
+        {
+            var values = processingEnv.getElementUtils().getElementValuesWithDefaults(annotationMirrorOpt.get());
+            var classes = ElementUtils.getAnnotationValue(values, "value");
+            if ( classes.isEmpty() )
+            {
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Could not get annotation value for: " + annotationClass, element);
+            }
+            else
+            {
+                var packagePattern = ElementUtils.getStringAttribute(ElementUtils.getAnnotationValue(values, "packagePattern").orElse(null), "*");
+                var classesMirrors = ElementUtils.getClassesAttribute(classes.get());
+                for ( TypeMirror mirror : classesMirrors )
+                {
+                    TypeElement typeElement = (TypeElement)processingEnv.getTypeUtils().asElement(mirror);
+                    if ( typeElement == null )
+                    {
+                        processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Could not get element for: " + mirror, element);
+                    }
+                    else
+                    {
+                        var packageName = buildPackageName(packagePattern, element, typeElement);
+                        if ( annotationClass.equals(RECORD_INTERFACE_INCLUDE) )
+                        {
+                            var addRecordBuilderOpt = ElementUtils.getAnnotationValue(values, "addRecordBuilder");
+                            var addRecordBuilder = addRecordBuilderOpt.map(ElementUtils::getBooleanAttribute).orElse(true);
+                            processRecordInterface(typeElement, addRecordBuilder, metaData, Optional.of(packageName));
+                        }
+                        else
+                        {
+                            processRecordBuilder(typeElement, metaData, Optional.of(packageName));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private String buildPackageName(String packagePattern, Element builderElement, TypeElement includedClass) {
+        String replaced = packagePattern.replace("*", ((PackageElement)includedClass.getEnclosingElement()).getQualifiedName().toString());
+        if (builderElement instanceof PackageElement) {
+            return replaced.replace("@", ((PackageElement)builderElement).getQualifiedName().toString());
+        }
+        return replaced.replace("@", ((PackageElement)builderElement.getEnclosingElement()).getQualifiedName().toString());
+    }
+
+    private void processRecordInterface(TypeElement element, boolean addRecordBuilder, RecordBuilderMetaData metaData, Optional<String> packageName) {
+        if ( !element.getKind().isInterface() )
+        {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "RecordInterface only valid for interfaces.", element);
             return;
         }
-        var internalProcessor = new InternalRecordInterfaceProcessor(processingEnv, element, recordInterface, metaData);
-        if (!internalProcessor.isValid()) {
+        var internalProcessor = new InternalRecordInterfaceProcessor(processingEnv, element, addRecordBuilder, metaData, packageName);
+        if ( !internalProcessor.isValid() )
+        {
             return;
         }
         writeRecordInterfaceJavaFile(element, internalProcessor.packageName(), internalProcessor.recordClassType(), internalProcessor.recordType(), metaData, internalProcessor::toRecord);
     }
 
-    private void processRecordBuilder(TypeElement record, RecordBuilderMetaData metaData) {
+    private void processRecordBuilder(TypeElement record, RecordBuilderMetaData metaData, Optional<String> packageName) {
         // we use string based name comparison for the element kind,
         // as the ElementKind.RECORD enum doesn't exist on JRE releases
         // older than Java 14, and we don't want to throw unexpected
         // NoSuchFieldErrors
-        if (!"RECORD".equals(record.getKind().name())) {
+        if ( !"RECORD".equals(record.getKind().name()) )
+        {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "RecordBuilder only valid for records.", record);
             return;
         }
-        var internalProcessor = new InternalRecordBuilderProcessor(record, metaData);
+        var internalProcessor = new InternalRecordBuilderProcessor(record, metaData, packageName);
         writeRecordBuilderJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(), internalProcessor.builderType(), metaData);
     }
 
@@ -105,7 +177,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         {
             String fullyQualifiedName = packageName.isEmpty() ? builderClassType.name() : (packageName + "." + builderClassType.name());
             JavaFileObject sourceFile = filer.createSourceFile(fullyQualifiedName);
-            try ( Writer writer = sourceFile.openWriter() )
+            try (Writer writer = sourceFile.openWriter())
             {
                 javaFile.writeTo(writer);
             }
@@ -128,7 +200,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         {
             String fullyQualifiedName = packageName.isEmpty() ? classType.name() : (packageName + "." + classType.name());
             JavaFileObject sourceFile = filer.createSourceFile(fullyQualifiedName);
-            try ( Writer writer = sourceFile.openWriter() )
+            try (Writer writer = sourceFile.openWriter())
             {
                 writer.write(recordSourceCode);
             }
@@ -140,11 +212,10 @@ public class RecordBuilderProcessor extends AbstractProcessor {
     }
 
     private JavaFile javaFileBuilder(String packageName, TypeSpec type, RecordBuilderMetaData metaData) {
-        var javaFileBuilder = JavaFile.builder(packageName, type)
-                .skipJavaLangImports(true)
-                .indent(metaData.fileIndent());
+        var javaFileBuilder = JavaFile.builder(packageName, type).skipJavaLangImports(true).indent(metaData.fileIndent());
         var comment = metaData.fileComment();
-        if ((comment != null) && !comment.isEmpty()) {
+        if ( (comment != null) && !comment.isEmpty() )
+        {
             javaFileBuilder.addFileComment(comment);
         }
         return javaFileBuilder.build();
@@ -152,7 +223,8 @@ public class RecordBuilderProcessor extends AbstractProcessor {
 
     private void handleWriteError(TypeElement element, IOException e) {
         String message = "Could not create source file";
-        if (e.getMessage() != null) {
+        if ( e.getMessage() != null )
+        {
             message = message + ": " + e.getMessage();
         }
         processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, message, element);

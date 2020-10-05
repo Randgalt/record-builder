@@ -23,4 +23,19 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
 public @interface RecordBuilder {
+    @Target({ElementType.TYPE, ElementType.PACKAGE})
+    @Retention(RetentionPolicy.SOURCE)
+    @interface Include {
+        Class<?>[] value();
+
+        /**
+         * Pattern used to generate the package for the generated class. The value
+         * is the literal package name however two replacement values can be used. '@'
+         * is replaced with the package of the Include annotation. '*' is replaced with
+         * the package of the included class.
+         *
+         * @return package pattern
+         */
+        String packagePattern() default "@";
+    }
 }

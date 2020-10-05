@@ -231,6 +231,31 @@ Notes:
 - Methods with default implementations are used in the generation unless they are annotated with `@IgnoreDefaultMethod`
 - If you do not want a record builder generated, annotate your interface as `@RecordInterface(addRecordBuilder = false)`
 
+## Generation Via Includes
+
+An alternate method of generation is to use the Include variants of the annotations. These variants
+act on lists of specified classes. This allows the source classes to be pristine or even come from
+libraries where you are not able to annotate the source. 
+
+E.g.
+
+```
+import some.library.code.ImportedRecord
+import some.library.code.ImportedInterface
+
+@RecordBuilder.Include({
+    ImportedRecord.class    // generates a record builder for ImportedRecord  
+})
+@RecordInterface.Include({
+    ImportedInterface.class // generates a record interface for ImportedInterface 
+})
+public void Placeholder {
+}
+```
+
+The target package for generation is the same as the package that contains the "Include"
+annotation. Use `packagePattern` to change this (see Javadoc for details).  
+
 ## Usage
 
 ### Maven

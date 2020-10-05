@@ -33,6 +33,7 @@ import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -53,11 +54,11 @@ class InternalRecordBuilderProcessor
     private final TypeSpec builderType;
     private final TypeSpec.Builder builder;
 
-    InternalRecordBuilderProcessor(TypeElement record, RecordBuilderMetaData metaData)
+    InternalRecordBuilderProcessor(TypeElement record, RecordBuilderMetaData metaData, Optional<String> packageNameOpt)
     {
         this.metaData = metaData;
         recordClassType = ElementUtils.getClassType(record, record.getTypeParameters());
-        packageName = ElementUtils.getPackageName(record);
+        packageName = packageNameOpt.orElseGet(() -> ElementUtils.getPackageName(record));
         builderClassType = ElementUtils.getClassType(packageName, getBuilderName(record, metaData, recordClassType, metaData.suffix()), record.getTypeParameters());
         typeVariables = record.getTypeParameters().stream().map(TypeVariableName::get).collect(Collectors.toList());
         recordComponents = record.getRecordComponents().stream().map(ElementUtils::getClassType).collect(Collectors.toList());
