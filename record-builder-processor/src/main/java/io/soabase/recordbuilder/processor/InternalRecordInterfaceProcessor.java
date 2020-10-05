@@ -66,7 +66,9 @@ class InternalRecordInterfaceProcessor {
                 .addTypeVariables(typeVariables);
 
         if (recordInterface.addRecordBuilder()) {
+            ClassType builderClassType = ElementUtils.getClassType(packageName, getBuilderName(iface, metaData, recordClassType, metaData.suffix()) + "." + metaData.withClassName(), iface.getTypeParameters());
             builder.addAnnotation(RecordBuilder.class);
+            builder.addSuperinterface(builderClassType.typeName());
         }
 
         recordType = builder.build();
