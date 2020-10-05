@@ -20,14 +20,63 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeVariableName;
 import io.soabase.recordbuilder.core.RecordBuilderMetaData;
-
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.AnnotationValue;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.RecordComponentElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
+import javax.lang.model.type.TypeMirror;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class ElementUtils {
+    public static Optional<? extends AnnotationMirror> findAnnotationMirror(ProcessingEnvironment processingEnv, Element element, String annotationClass) {
+        return processingEnv.getElementUtils().getAllAnnotationMirrors(element).stream()
+            .filter(e -> e.getAnnotationType().toString().equals(annotationClass))
+            .findFirst();
+    }
+
+    public static Optional<? extends AnnotationValue> getAnnotationValue(Map<? extends ExecutableElement, ? extends AnnotationValue> values, String name) {
+        return values.entrySet()
+            .stream()
+            .filter(e -> e.getKey().getSimpleName().toString().equals(name))
+            .map(Map.Entry::getValue)
+            .findFirst();
+    }
+
+    @SuppressWarnings("unchecked")
+    public static List<TypeMirror> getClassesAttribute(AnnotationValue attribute)
+    {
+        List<? extends AnnotationValue> values = (attribute != null) ? (List<? extends AnnotationValue>)attribute.getValue() : Collections.emptyList();
+        return values.stream().map(v -> (TypeMirror)v.getValue()).collect(Collectors.toList());
+    }
+
+    public static boolean getBooleanAttribute(AnnotationValue attribute)
+    {
+        Object value = (attribute != null) ? attribute.getValue() : null;
+        if ( value != null )
+        {
+            return Boolean.parseBoolean(String.valueOf(value));
+        }
+        return false;
+    }
+
+    public static String getStringAttribute(AnnotationValue attribute, String defaultValue)
+    {
+        Object value = (attribute != null) ? attribute.getValue() : null;
+        if ( value != null )
+        {
+            return String.valueOf(value);
+        }
+        return defaultValue;
+    }
+
     public static String getPackageName(TypeElement typeElement) {
         while (typeElement.getNestingKind().isNested()) {
             Element enclosingElement = typeElement.getEnclosingElement();

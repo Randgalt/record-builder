@@ -15,12 +15,14 @@
  */
 package io.soabase.recordbuilder.processor;
 
-import com.squareup.javapoet.*;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.TypeVariableName;
+import io.soabase.recordbuilder.core.IgnoreDefaultMethod;
 import io.soabase.recordbuilder.core.RecordBuilder;
 import io.soabase.recordbuilder.core.RecordBuilderMetaData;
-import io.soabase.recordbuilder.core.RecordInterface;
-import io.soabase.recordbuilder.core.IgnoreDefaultMethod;
-
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
@@ -28,7 +30,13 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeKind;
 import javax.tools.Diagnostic;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -46,9 +54,9 @@ class InternalRecordInterfaceProcessor {
 
     private static final String FAKE_METHOD_NAME = "__FAKE__";
 
-    InternalRecordInterfaceProcessor(ProcessingEnvironment processingEnv, TypeElement iface, RecordInterface recordInterface, RecordBuilderMetaData metaData) {
+    InternalRecordInterfaceProcessor(ProcessingEnvironment processingEnv, TypeElement iface, boolean addRecordBuilder, RecordBuilderMetaData metaData, Optional<String> packageNameOpt) {
         this.processingEnv = processingEnv;
-        packageName = ElementUtils.getPackageName(iface);
+        packageName = packageNameOpt.orElseGet(() -> ElementUtils.getPackageName(iface));
         recordComponents = getRecordComponents(iface);
         this.iface = iface;
 
@@ -65,7 +73,7 @@ class InternalRecordInterfaceProcessor {
                 .addAnnotation(generatedRecordInterfaceAnnotation)
                 .addTypeVariables(typeVariables);
 
-        if (recordInterface.addRecordBuilder()) {
+        if (addRecordBuilder) {
             ClassType builderClassType = ElementUtils.getClassType(packageName, getBuilderName(iface, metaData, recordClassType, metaData.suffix()) + "." + metaData.withClassName(), iface.getTypeParameters());
             builder.addAnnotation(RecordBuilder.class);
             builder.addSuperinterface(builderClassType.typeName());
