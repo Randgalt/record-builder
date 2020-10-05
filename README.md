@@ -20,6 +20,8 @@ _Details:_
 - [RecordBuilder Full Definition](#Builder-Class-Definition)
 - [Record From Interface Details](#RecordInterface-Example)
 - [Generation Via Includes](#generation-via-includes)
+- [Usage](#usage)
+- [Customizing(#customizing)
 
 ## RecordBuilder Example
 
