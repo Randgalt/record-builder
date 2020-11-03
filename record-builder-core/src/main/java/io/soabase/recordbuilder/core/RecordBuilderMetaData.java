@@ -79,6 +79,15 @@ public interface RecordBuilderMetaData {
     }
 
     /**
+     * The name to use for the downcast method
+     *
+     * @return downcast method
+     */
+    default String downCastMethodName() {
+        return "_downcast";
+    }
+
+    /**
      * The name to use for the method that returns the record components as a stream
      *
      * @return build method
