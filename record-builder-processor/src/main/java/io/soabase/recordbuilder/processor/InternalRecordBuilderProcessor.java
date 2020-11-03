@@ -82,6 +82,7 @@ class InternalRecordBuilderProcessor
             add1SetterMethod(component);
             add1GetterMethod(component);
         });
+        addStaticDowncastMethod();
         builderType = builder.build();
     }
 
@@ -135,7 +136,7 @@ class InternalRecordBuilderProcessor
             }
          */
         var codeBlockBuilder = CodeBlock.builder()
-                .add("var r = ($T)(Object)this;\n", recordClassType.typeName())
+                .add("$T r = $L(this);\n", recordClassType.typeName(), metaData.downCastMethodName())
                 .add("$T builder = $L.$L(r);\n", builderClassType.typeName(), builderClassType.name(), metaData.copyMethodName())
                 .add("consumer.accept(builder);\n")
                 .add("return builder.build();\n");
@@ -163,7 +164,7 @@ class InternalRecordBuilderProcessor
             }
          */
         var codeBlockBuilder = CodeBlock.builder()
-                .add("var r = ($T)(Object)this;\n", recordClassType.typeName())
+                .add("$T r = $L(this);\n", recordClassType.typeName(), metaData.downCastMethodName())
                 .add("return $L.$L(r);", builderClassType.name(), metaData.copyMethodName());
         var methodSpec = MethodSpec.methodBuilder(metaData.withClassMethodPrefix())
                 .addAnnotation(generatedRecordBuilderAnnotation)
@@ -186,7 +187,7 @@ class InternalRecordBuilderProcessor
             }
          */
         var codeBlockBuilder = CodeBlock.builder()
-                .add("var r = ($T)(Object)this;\n", recordClassType.typeName())
+                .add("$T r = $L(this);\n", recordClassType.typeName(), metaData.downCastMethodName())
                 .add("return new $T(", recordClassType.typeName());
         IntStream.range(0, recordComponents.size()).forEach(parameterIndex -> {
             if (parameterIndex > 0) {
@@ -458,6 +459,29 @@ class InternalRecordBuilderProcessor
                 .returns(mapEntryType)
                 .addStatement(codeBuilder.build())
                 .build();
+        builder.addMethod(methodSpec);
+    }
+
+    private void addStaticDowncastMethod()
+    {
+        /*
+            Adds a method that downcasts to the record type
+
+            private static MyRecord _downcast(Object this) {
+                return (MyRecord)this;
+            }
+         */
+        var codeBlockBuilder = CodeBlock.builder()
+            .add("return ($T)obj;\n", recordClassType.typeName());
+        var methodSpec = MethodSpec.methodBuilder(metaData.downCastMethodName())
+            .addAnnotation(generatedRecordBuilderAnnotation)
+            .addJavadoc("Downcast to {@code $L}\n", recordClassType.name())
+            .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
+            .addParameter(Object.class, "obj")
+            .addTypeVariables(typeVariables)
+            .returns(recordClassType.typeName())
+            .addCode(codeBlockBuilder.build())
+            .build();
         builder.addMethod(methodSpec);
     }
 

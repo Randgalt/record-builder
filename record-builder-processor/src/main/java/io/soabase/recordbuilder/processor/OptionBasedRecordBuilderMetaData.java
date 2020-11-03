@@ -46,6 +46,11 @@ public class OptionBasedRecordBuilderMetaData implements RecordBuilderMetaData {
     public static final String OPTION_BUILD_METHOD_NAME = "buildMethodName";
 
     /**
+     * @see #downCastMethodName()
+     */
+    public static final String OPTION_DOWN_CAST_METHOD_NAME = "downCastMethodName";
+
+    /**
      * @see #componentsMethodName()
      */
     public static final String OPTION_COMPONENTS_METHOD_NAME = "componentsMethodName";
@@ -80,6 +85,7 @@ public class OptionBasedRecordBuilderMetaData implements RecordBuilderMetaData {
     private final String copyMethodName;
     private final String builderMethodName;
     private final String buildMethodName;
+    private final String downCastMethodName;
     private final String componentsMethodName;
     private final String withClassName;
     private final String withClassMethodPrefix;
@@ -93,6 +99,7 @@ public class OptionBasedRecordBuilderMetaData implements RecordBuilderMetaData {
         builderMethodName = options.getOrDefault(OPTION_BUILDER_METHOD_NAME, DEFAULT.builderMethodName());
         copyMethodName = options.getOrDefault(OPTION_COPY_METHOD_NAME, DEFAULT.copyMethodName());
         buildMethodName = options.getOrDefault(OPTION_BUILD_METHOD_NAME, DEFAULT.buildMethodName());
+        downCastMethodName = options.getOrDefault(OPTION_DOWN_CAST_METHOD_NAME, DEFAULT.downCastMethodName());
         componentsMethodName = options.getOrDefault(OPTION_COMPONENTS_METHOD_NAME, DEFAULT.componentsMethodName());
         withClassName = options.getOrDefault(OPTION_WITH_CLASS_NAME, DEFAULT.withClassName());
         withClassMethodPrefix = options.getOrDefault(OPTION_WITH_CLASS_METHOD_PREFIX, DEFAULT.withClassMethodPrefix());
@@ -124,6 +131,11 @@ public class OptionBasedRecordBuilderMetaData implements RecordBuilderMetaData {
     @Override
     public String buildMethodName() {
         return buildMethodName;
+    }
+
+    @Override
+    public String downCastMethodName() {
+        return downCastMethodName;
     }
 
     @Override
