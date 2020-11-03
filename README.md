@@ -164,6 +164,13 @@ public class NameAndAgeBuilder {
     }
 
     /**
+     * Downcast to {@code NameAndAge}
+     */
+    private static NameAndAge _downcast(Object obj) {
+        return (NameAndAge)obj;
+    }
+
+/**
      * Add withers to {@code NameAndAge}
      */
     public interface With {
@@ -171,7 +178,7 @@ public class NameAndAgeBuilder {
          * Return a new record builder using the current values
          */
         default NameAndAgeBuilder with() {
-            var r = (NameAndAge)(Object)this;
+            NameAndAge r = _downcast(this);
             return NameAndAgeBuilder.builder(r);
         }
 
@@ -179,7 +186,7 @@ public class NameAndAgeBuilder {
          * Return a new record built from the builder passed to the given consumer
          */
         default NameAndAge with(Consumer<NameAndAgeBuilder> consumer) {
-            var r = (NameAndAge)(Object)this;
+            NameAndAge r = _downcast(this);
             NameAndAgeBuilder builder = NameAndAgeBuilder.builder(r);
             consumer.accept(builder);
             return builder.build();
@@ -189,7 +196,7 @@ public class NameAndAgeBuilder {
          * Return a new instance of {@code NameAndAge} with a new value for {@code name}
          */
         default NameAndAge withName(String name) {
-            var r = (NameAndAge)(Object)this;
+            NameAndAge r = _downcast(this);
             return new NameAndAge(name, r.age());
         }
 
@@ -197,7 +204,7 @@ public class NameAndAgeBuilder {
          * Return a new instance of {@code NameAndAge} with a new value for {@code age}
          */
         default NameAndAge withAge(int age) {
-            var r = (NameAndAge)(Object)this;
+            NameAndAge r = _downcast(this);
             return new NameAndAge(r.name(), age);
         }
     }
