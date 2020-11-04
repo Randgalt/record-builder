@@ -171,7 +171,7 @@ public class NameAndAgeBuilder {
             return (NameAndAge)obj;
         }
         catch (ClassCastException dummy) {
-            throw new RuntimeException("NameAndAgeBuilder.With can only be implemented by NameAndAge");
+            throw new RuntimeException("NameAndAgeBuilder.With can only be implemented for NameAndAge");
         }
     }
 
