@@ -472,7 +472,16 @@ class InternalRecordBuilderProcessor
             }
          */
         var codeBlockBuilder = CodeBlock.builder()
-            .add("return ($T)obj;\n", recordClassType.typeName());
+            .add("try {\n")
+            .indent()
+            .add("return ($T)obj;\n", recordClassType.typeName())
+            .unindent()
+            .add("}\n")
+            .add("catch (ClassCastException dummy) {\n")
+            .indent()
+            .add("throw new RuntimeException($S);\n", recordClassType.name() + "." + metaData.withClassName() + " can only be implemented for " + builderClassType.name())
+            .unindent()
+            .add("}");
         var methodSpec = MethodSpec.methodBuilder(metaData.downCastMethodName())
             .addAnnotation(generatedRecordBuilderAnnotation)
             .addJavadoc("Downcast to {@code $L}\n", recordClassType.name())

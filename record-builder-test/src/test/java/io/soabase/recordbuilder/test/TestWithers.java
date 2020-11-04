@@ -59,4 +59,11 @@ class TestWithers {
         Assertions.assertEquals(20, r3.i());
         Assertions.assertEquals("twenty", r3.s());
     }
+
+    private static class BadSubclass implements PersonRecordBuilder.With {}
+
+    @Test
+    void testBadWithSubclass() {
+        Assertions.assertThrows(RuntimeException.class, () -> new BadSubclass().withAge(10));
+    }
 }
