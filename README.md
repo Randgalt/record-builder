@@ -167,7 +167,12 @@ public class NameAndAgeBuilder {
      * Downcast to {@code NameAndAge}
      */
     private static NameAndAge _downcast(Object obj) {
-        return (NameAndAge)obj;
+        try {
+            return (NameAndAge)obj;
+        }
+        catch (ClassCastException dummy) {
+            throw new RuntimeException("NameAndAgeBuilder.With can only be implemented by SpecializedPersonRecordBuilder");
+        }
     }
 
 /**
