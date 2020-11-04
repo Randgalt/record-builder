@@ -479,7 +479,7 @@ class InternalRecordBuilderProcessor
             .add("}\n")
             .add("catch (ClassCastException dummy) {\n")
             .indent()
-            .add("throw new RuntimeException($S);\n", recordClassType.name() + "." + metaData.withClassName() + " can only be implemented for " + builderClassType.name())
+            .add("throw new RuntimeException($S);\n", builderClassType.name() + "." + metaData.withClassName() + " can only be implemented for " + recordClassType.name())
             .unindent()
             .add("}");
         var methodSpec = MethodSpec.methodBuilder(metaData.downCastMethodName())
