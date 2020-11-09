@@ -34,16 +34,16 @@ This will generate a builder class that can be used ala:
 
 ```java
 // build from components
-var n1 = NameAndAgeBuilder.builder().name(aName).age(anAge).build();
+NameAndAge n1 = NameAndAgeBuilder.builder().name(aName).age(anAge).build();
 
 // generate a copy with a changed value
-var n2 = NameAndAgeBuilder.builder(n1).age(newAge).build(); // name is the same as the name in n1
+NameAndAge n2 = NameAndAgeBuilder.builder(n1).age(newAge).build(); // name is the same as the name in n1
 
 // pass to other methods to set components
 var builder = new NameAndAgeBuilder();
 setName(builder);
 setAge(builder);
-var n3 = builder.build();
+NameAndAge n3 = builder.build();
 ```
 
 ## Wither Example
@@ -56,15 +56,15 @@ public record NameAndAge(String name, int age) implements NameAndAgeBuilder.With
 In addition to creating a builder, your record is enhanced by "wither" methods ala:
 
 ```java
-var r1 = new NameAndAge("foo", 123);
-var r2 = r1.withName("bar");
-var r3 = r2.withAge(456);
+NameAndAge r1 = new NameAndAge("foo", 123);
+NameAndAge r2 = r1.withName("bar");
+NameAndAge r3 = r2.withAge(456);
 
 // access the builder as well
-var r4 = r3.with().age(101).name("baz").build();
+NameAndAge r4 = r3.with().age(101).name("baz").build();
 
 // alternate method of accessing the builder (note: no need to call "build()")
-var r5 = r4.with(b -> b.age(200).name("whatever"));
+NameAndAge r5 = r4.with(b -> b.age(200).name("whatever"));
 ```
 
 _Hat tip to [Benji Weber](https://benjiweber.co.uk/blog/2020/09/19/fun-with-java-records/) for the Withers idea._
