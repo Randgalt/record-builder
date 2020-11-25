@@ -69,7 +69,9 @@ class InternalRecordBuilderProcessor
                 .addTypeVariables(typeVariables);
         addWithNestedClass();
         addDefaultConstructor();
-        addAllArgsConstructor();
+        if (recordComponents.size() > 0) {
+            addAllArgsConstructor();
+        }
         addStaticDefaultBuilderMethod();
         addStaticCopyBuilderMethod();
         addStaticComponentsMethod();
