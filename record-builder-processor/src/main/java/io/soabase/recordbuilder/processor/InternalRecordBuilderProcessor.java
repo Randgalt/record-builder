@@ -188,9 +188,11 @@ class InternalRecordBuilderProcessor
                 return new MyRecord(name, r.age());
             }
          */
-        var codeBlockBuilder = CodeBlock.builder()
-                .add("$T r = $L(this);\n", recordClassType.typeName(), metaData.downCastMethodName())
-                .add("return new $T(", recordClassType.typeName());
+        var codeBlockBuilder = CodeBlock.builder();
+        if (recordComponents.size() > 1) {
+            codeBlockBuilder.add("$T r = $L(this);\n", recordClassType.typeName(), metaData.downCastMethodName());
+        }
+        codeBlockBuilder.add("return new $T(", recordClassType.typeName());
         IntStream.range(0, recordComponents.size()).forEach(parameterIndex -> {
             if (parameterIndex > 0) {
                 codeBlockBuilder.add(", ");
