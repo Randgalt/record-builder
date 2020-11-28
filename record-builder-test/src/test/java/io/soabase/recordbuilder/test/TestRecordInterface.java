@@ -20,6 +20,9 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 
+import static io.soabase.recordbuilder.test.SimpleGenericRecordBuilder.SimpleGenericRecord;
+import static io.soabase.recordbuilder.test.SimpleRecordBuilder.SimpleRecord;
+
 public class TestRecordInterface
 {
     @Test
@@ -31,5 +34,18 @@ public class TestRecordInterface
         Assertions.assertEquals(Instant.MAX, r1.tomorrow());
         Assertions.assertEquals(Instant.MIN, r2.time());
         Assertions.assertEquals(Instant.MIN, r2.tomorrow());
+    }
+
+    @Test
+    public void testStaticConstructor()
+    {
+        var simple = SimpleRecord(10,"hey");
+        Assertions.assertEquals(simple.i(), 10);
+        Assertions.assertEquals(simple.s(), "hey");
+
+        var now = Instant.now();
+        var generic = SimpleGenericRecord(101, now);
+        Assertions.assertEquals(generic.i(), 101);
+        Assertions.assertEquals(generic.s(), now);
     }
 }

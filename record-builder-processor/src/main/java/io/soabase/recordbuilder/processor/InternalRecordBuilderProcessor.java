@@ -69,6 +69,7 @@ class InternalRecordBuilderProcessor
                 .addTypeVariables(typeVariables);
         addWithNestedClass();
         addDefaultConstructor();
+        addStaticBuilder();
         if (recordComponents.size() > 0) {
             addAllArgsConstructor();
         }
@@ -235,6 +236,27 @@ class InternalRecordBuilderProcessor
         builder.addMethod(constructor);
     }
 
+    private void addStaticBuilder()
+    {
+        /*
+            Adds an static builder similar to:
+
+            public static MyRecord(int p1, T p2, ...) {
+                return new MyRecord(p1, p2, ...);
+            }
+         */
+        CodeBlock codeBlock = buildCodeBlock();
+        var builder = MethodSpec.methodBuilder(recordClassType.name())
+                .addJavadoc("Static constructor/builder. Can be used instead of new $L(...)\n", recordClassType.name())
+                .addTypeVariables(typeVariables)
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .addAnnotation(generatedRecordBuilderAnnotation)
+                .returns(recordClassType.typeName())
+                .addStatement(codeBlock);
+        recordComponents.forEach(component -> builder.addParameter(component.typeName(), component.name()));
+        this.builder.addMethod(builder.build());
+    }
+
     private void addAllArgsConstructor()
     {
         /*
@@ -362,6 +384,22 @@ class InternalRecordBuilderProcessor
                 return new MyRecord(p1, p2, ...);
             }
          */
+        CodeBlock codeBlock = buildCodeBlock();
+        var methodSpec = MethodSpec.methodBuilder(metaData.buildMethodName())
+                .addJavadoc("Return a new record instance with all fields set to the current values in this builder\n")
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(generatedRecordBuilderAnnotation)
+                .returns(recordClassType.typeName())
+                .addStatement(codeBlock)
+                .build();
+        builder.addMethod(methodSpec);
+    }
+
+    private CodeBlock buildCodeBlock() {
+        /*
+            Builds the code block for allocating the record from its parts
+        */
+
         var codeBuilder = CodeBlock.builder().add("return new $T(", recordClassType.typeName());
         IntStream.range(0, recordComponents.size()).forEach(index -> {
             if (index > 0) {
@@ -370,15 +408,7 @@ class InternalRecordBuilderProcessor
             codeBuilder.add("$L", recordComponents.get(index).name());
         });
         codeBuilder.add(")");
-
-        var methodSpec = MethodSpec.methodBuilder(metaData.buildMethodName())
-                .addJavadoc("Return a new record instance with all fields set to the current values in this builder\n")
-                .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(generatedRecordBuilderAnnotation)
-                .returns(recordClassType.typeName())
-                .addStatement(codeBuilder.build())
-                .build();
-        builder.addMethod(methodSpec);
+        return codeBuilder.build();
     }
 
     private void addStaticCopyBuilderMethod()
