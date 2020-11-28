@@ -44,6 +44,11 @@ var builder = new NameAndAgeBuilder();
 setName(builder);
 setAge(builder);
 NameAndAge n3 = builder.build();
+
+// use the generated static constructor/builder
+import static NameAndAgeBuilder.NameAndAge;
+...
+var n4 = NameAndAge("hey", 42);
 ```
 
 ## Wither Example
@@ -85,6 +90,13 @@ public class NameAndAgeBuilder {
     private NameAndAgeBuilder(String name, int age) {
         this.name = name;
         this.age = age;
+    }
+
+    /**
+     * Static constructor/builder. Can be used instead of new NameAndAge(...)
+     */
+    public static NameAndAge NameAndAge(String name, int age) {
+        return new NameAndAge(name, age);
     }
 
     /**
