@@ -117,15 +117,18 @@ public class RecordBuilderProcessor extends AbstractProcessor {
                     else
                     {
                         var packageName = buildPackageName(packagePattern, element, typeElement);
-                        if ( annotationClass.equals(RECORD_INTERFACE_INCLUDE) )
+                        if (packageName != null)
                         {
-                            var addRecordBuilderOpt = ElementUtils.getAnnotationValue(values, "addRecordBuilder");
-                            var addRecordBuilder = addRecordBuilderOpt.map(ElementUtils::getBooleanAttribute).orElse(true);
-                            processRecordInterface(typeElement, addRecordBuilder, metaData, Optional.of(packageName));
-                        }
-                        else
-                        {
-                            processRecordBuilder(typeElement, metaData, Optional.of(packageName));
+                            if ( annotationClass.equals(RECORD_INTERFACE_INCLUDE) )
+                            {
+                                var addRecordBuilderOpt = ElementUtils.getAnnotationValue(values, "addRecordBuilder");
+                                var addRecordBuilder = addRecordBuilderOpt.map(ElementUtils::getBooleanAttribute).orElse(true);
+                                processRecordInterface(typeElement, addRecordBuilder, metaData, Optional.of(packageName));
+                            }
+                            else
+                            {
+                                processRecordBuilder(typeElement, metaData, Optional.of(packageName));
+                            }
                         }
                     }
                 }
@@ -134,11 +137,26 @@ public class RecordBuilderProcessor extends AbstractProcessor {
     }
 
     private String buildPackageName(String packagePattern, Element builderElement, TypeElement includedClass) {
-        String replaced = packagePattern.replace("*", ((PackageElement)includedClass.getEnclosingElement()).getQualifiedName().toString());
+        PackageElement includedClassPackage = findPackageElement(includedClass, includedClass);
+        if (includedClassPackage == null) {
+            return null;
+        }
+        String replaced = packagePattern.replace("*", includedClassPackage.getQualifiedName().toString());
         if (builderElement instanceof PackageElement) {
             return replaced.replace("@", ((PackageElement)builderElement).getQualifiedName().toString());
         }
         return replaced.replace("@", ((PackageElement)builderElement.getEnclosingElement()).getQualifiedName().toString());
+    }
+
+    private PackageElement findPackageElement(Element actualElement, Element includedClass) {
+        if (includedClass == null) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Element has not package", actualElement);
+            return null;
+        }
+        if (includedClass.getEnclosingElement() instanceof PackageElement) {
+            return (PackageElement)includedClass.getEnclosingElement();
+        }
+        return findPackageElement(actualElement, includedClass.getEnclosingElement());
     }
 
     private void processRecordInterface(TypeElement element, boolean addRecordBuilder, RecordBuilderMetaData metaData, Optional<String> packageName) {
