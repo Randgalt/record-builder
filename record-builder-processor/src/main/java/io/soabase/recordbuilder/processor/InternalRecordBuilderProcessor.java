@@ -53,6 +53,7 @@ class InternalRecordBuilderProcessor
     private final List<ClassType> recordComponents;
     private final TypeSpec builderType;
     private final TypeSpec.Builder builder;
+    private final String uniqueVarName;
 
     InternalRecordBuilderProcessor(TypeElement record, RecordBuilderMetaData metaData, Optional<String> packageNameOpt)
     {
@@ -62,6 +63,7 @@ class InternalRecordBuilderProcessor
         builderClassType = ElementUtils.getClassType(packageName, getBuilderName(record, metaData, recordClassType, metaData.suffix()), record.getTypeParameters());
         typeVariables = record.getTypeParameters().stream().map(TypeVariableName::get).collect(Collectors.toList());
         recordComponents = record.getRecordComponents().stream().map(ElementUtils::getClassType).collect(Collectors.toList());
+        uniqueVarName = getUniqueVarName();
 
         builder = TypeSpec.classBuilder(builderClassType.name())
                 .addModifiers(Modifier.PUBLIC)
@@ -139,8 +141,8 @@ class InternalRecordBuilderProcessor
             }
          */
         var codeBlockBuilder = CodeBlock.builder()
-                .add("$T r = $L(this);\n", recordClassType.typeName(), metaData.downCastMethodName())
-                .add("$T builder = $L.$L(r);\n", builderClassType.typeName(), builderClassType.name(), metaData.copyMethodName())
+                .add("$T $L = $L(this);\n", recordClassType.typeName(), uniqueVarName, metaData.downCastMethodName())
+                .add("$T builder = $L.$L($L);\n", builderClassType.typeName(), builderClassType.name(), metaData.copyMethodName(), uniqueVarName)
                 .add("consumer.accept(builder);\n")
                 .add("return builder.build();\n");
         var consumerType = ParameterizedTypeName.get(ClassName.get(Consumer.class), builderClassType.typeName());
@@ -167,8 +169,8 @@ class InternalRecordBuilderProcessor
             }
          */
         var codeBlockBuilder = CodeBlock.builder()
-                .add("$T r = $L(this);\n", recordClassType.typeName(), metaData.downCastMethodName())
-                .add("return $L.$L(r);", builderClassType.name(), metaData.copyMethodName());
+                .add("$T $L = $L(this);\n", recordClassType.typeName(), uniqueVarName, metaData.downCastMethodName())
+                .add("return $L.$L($L);", builderClassType.name(), metaData.copyMethodName(), uniqueVarName);
         var methodSpec = MethodSpec.methodBuilder(metaData.withClassMethodPrefix())
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Return a new record builder using the current values")
@@ -177,6 +179,20 @@ class InternalRecordBuilderProcessor
                 .addCode(codeBlockBuilder.build())
                 .build();
         classBuilder.addMethod(methodSpec);
+    }
+
+    private String getUniqueVarName()
+    {
+        return getUniqueVarName("");
+    }
+
+    private String getUniqueVarName(String prefix)
+    {
+        var name = prefix + "r";
+        var alreadyExists = recordComponents.stream()
+            .map(ClassType::name)
+            .anyMatch(n -> n.equals(name));
+        return alreadyExists ? getUniqueVarName(prefix + "_") : name;
     }
 
     private void add1WithMethod(TypeSpec.Builder classBuilder, ClassType component, int index)
@@ -191,7 +207,7 @@ class InternalRecordBuilderProcessor
          */
         var codeBlockBuilder = CodeBlock.builder();
         if (recordComponents.size() > 1) {
-            codeBlockBuilder.add("$T r = $L(this);\n", recordClassType.typeName(), metaData.downCastMethodName());
+            codeBlockBuilder.add("$T $L = $L(this);\n", recordClassType.typeName(), uniqueVarName, metaData.downCastMethodName());
         }
         codeBlockBuilder.add("return new $T(", recordClassType.typeName());
         IntStream.range(0, recordComponents.size()).forEach(parameterIndex -> {
@@ -203,7 +219,7 @@ class InternalRecordBuilderProcessor
                 codeBlockBuilder.add(parameterComponent.name());
             }
             else {
-                codeBlockBuilder.add("r.$L()", parameterComponent.name());
+                codeBlockBuilder.add("$L.$L()", uniqueVarName, parameterComponent.name());
             }
         });
         codeBlockBuilder.add(");");
@@ -352,14 +368,14 @@ class InternalRecordBuilderProcessor
          */
         var codeBuilder = CodeBlock.builder();
         codeBuilder.add("return (this == o) || (");
-        codeBuilder.add("(o instanceof $L b)", builderClassType.name());
+        codeBuilder.add("(o instanceof $L $L)", builderClassType.name(), uniqueVarName);
         recordComponents.forEach(recordComponent -> {
             String name = recordComponent.name();
             if (recordComponent.typeName().isPrimitive()) {
-                codeBuilder.add("\n&& ($L == b.$L)", name, name);
+                codeBuilder.add("\n&& ($L == $L.$L)", name, uniqueVarName, name);
             }
             else {
-                codeBuilder.add("\n&& $T.equals($L, b.$L)", Objects.class, name, name);
+                codeBuilder.add("\n&& $T.equals($L, $L.$L)", Objects.class, name, uniqueVarName, name);
             }
         });
         codeBuilder.add(")");
