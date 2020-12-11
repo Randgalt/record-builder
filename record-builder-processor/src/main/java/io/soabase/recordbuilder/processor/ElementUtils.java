@@ -86,8 +86,9 @@ public class ElementUtils {
                 break;
             }
         }
-        String name = typeElement.getEnclosingElement().toString();
-        return !name.equals("unnamed package") ? name : "";
+        String name = typeElement.getQualifiedName().toString();
+        int index = name.lastIndexOf(".");
+        return (index > -1) ? name.substring(0, index) : "";
     }
 
     public static ClassType getClassType(String packageName, String simpleName, List<? extends TypeParameterElement> typeParameters) {
