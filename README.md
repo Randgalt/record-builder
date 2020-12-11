@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/Randgalt/record-builder.svg?branch=master)](https://travis-ci.org/Randgalt/record-builder)
+[![Build Status](https://github.com/Randgalt/record-builder/workflows/Java%20CI%20with%20Maven/badge.svg)](https://github.com/Randgalt/record-builder/actions)
 [![Maven Central](https://img.shields.io/maven-central/v/io.soabase.record-builder/record-builder.svg)](https://search.maven.org/search?q=g:io.soabase.record-builder%20a:record-builder)
 
 # RecordBuilder - Early Access
