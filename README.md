@@ -294,6 +294,7 @@ annotation. Use `packagePattern` to change this (see Javadoc for details).
     <groupId>io.soabase.record-builder</groupId>
     <artifactId>record-builder-core</artifactId>
     <version>set-version-here</version>
+    <scope>provided</scope>
 </dependency>
 
 ```
@@ -340,7 +341,7 @@ Add the following to your build.gradle file:
 ```
 dependencies {
     annotationProcessor 'io.soabase.record-builder:record-builder-processor:$version-goes-here'
-    implementation 'io.soabase.record-builder:record-builder-core:$version-goes-here'
+    compileOnly 'io.soabase.record-builder:record-builder-core:$version-goes-here'
 }
 
 tasks.withType(JavaCompile) {
