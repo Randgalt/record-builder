@@ -134,15 +134,13 @@ class InternalRecordBuilderProcessor
             Adds a method that returns a pre-filled copy builder similar to:
 
             default MyRecord with(Consumer<MyRecordBuilder> consumer) {
-                MyRecord r = (MyRecord)(Object)this;
-                MyRecordBuilder builder MyRecordBuilder.builder(r);
+                MyRecordBuilder builder = with();
                 consumer.accept(builder);
                 return builder.build();
             }
          */
         var codeBlockBuilder = CodeBlock.builder()
-                .add("$T $L = $L(this);\n", recordClassType.typeName(), uniqueVarName, metaData.downCastMethodName())
-                .add("$T builder = $L.$L($L);\n", builderClassType.typeName(), builderClassType.name(), metaData.copyMethodName(), uniqueVarName)
+                .add("$T builder = with();\n", builderClassType.typeName())
                 .add("consumer.accept(builder);\n")
                 .add("return builder.build();\n");
         var consumerType = ParameterizedTypeName.get(ClassName.get(Consumer.class), builderClassType.typeName());
@@ -164,7 +162,7 @@ class InternalRecordBuilderProcessor
             Adds a method that returns a pre-filled copy builder similar to:
 
             default MyRecordBuilder with() {
-                MyRecord r = (MyRecord)(Object)this;
+                MyRecord r = _downcast(this);
                 return MyRecordBuilder.builder(r);
             }
          */
@@ -201,7 +199,7 @@ class InternalRecordBuilderProcessor
             Adds a with method for the component similar to:
 
             default MyRecord withName(String name) {
-                MyRecord r = (MyRecord)(Object)this;
+                MyRecord r = _downcast(this);
                 return new MyRecord(name, r.age());
             }
          */
@@ -529,7 +527,7 @@ class InternalRecordBuilderProcessor
             .add("}\n")
             .add("catch (ClassCastException dummy) {\n")
             .indent()
-            .add("throw new RuntimeException($S);\n", builderClassType.name() + "." + metaData.withClassName() + " can only be implemented for " + recordClassType.name())
+            .add("throw new RuntimeException($S);\n", builderClassType.name() + "." + metaData.withClassName() + " can only be implemented by " + recordClassType.name())
             .unindent()
             .add("}");
         var methodSpec = MethodSpec.methodBuilder(metaData.downCastMethodName())

@@ -203,8 +203,7 @@ public class NameAndAgeBuilder {
          * Return a new record built from the builder passed to the given consumer
          */
         default NameAndAge with(Consumer<NameAndAgeBuilder> consumer) {
-            NameAndAge r = _downcast(this);
-            NameAndAgeBuilder builder = NameAndAgeBuilder.builder(r);
+            NameAndAgeBuilder builder = with();
             consumer.accept(builder);
             return builder.build();
         }
