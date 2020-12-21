@@ -294,6 +294,7 @@ annotation. Use `packagePattern` to change this (see Javadoc for details).
     <groupId>io.soabase.record-builder</groupId>
     <artifactId>record-builder-core</artifactId>
     <version>set-version-here</version>
+    <scope>provided</scope>
 </dependency>
 
 ```
