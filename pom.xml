@@ -5,7 +5,7 @@
     <groupId>io.soabase.record-builder</groupId>
     <artifactId>record-builder</artifactId>
     <packaging>pom</packaging>
-    <version>1.15.ea-SNAPSHOT</version>
+    <version>1.16-SNAPSHOT</version>
 
     <modules>
         <module>record-builder-core</module>
@@ -18,7 +18,7 @@
         <project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <jdk-version>15</jdk-version>
+        <jdk-version>16</jdk-version>
 
         <maven-compiler-plugin-version>3.8.1</maven-compiler-plugin-version>
         <maven-source-plugin-version>3.2.0</maven-source-plugin-version>
@@ -123,9 +123,6 @@
                     <version>${maven-compiler-plugin-version}</version>
                     <configuration>
                         <release>${jdk-version}</release>
-                        <compilerArgs>
-                            <arg>--enable-preview</arg>
-                        </compilerArgs>
                     </configuration>
                 </plugin>
 
@@ -277,9 +274,6 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin-version}</version>
-                    <configuration>
-                        <argLine>--enable-preview</argLine>
-                    </configuration>
                 </plugin>
             </plugins>
         </pluginManagement>
