@@ -1,13 +1,13 @@
 [![Build Status](https://github.com/Randgalt/record-builder/workflows/Java%20CI%20with%20Maven/badge.svg)](https://github.com/Randgalt/record-builder/actions)
 [![Maven Central](https://img.shields.io/maven-central/v/io.soabase.record-builder/record-builder.svg)](https://search.maven.org/search?q=g:io.soabase.record-builder%20a:record-builder)
 
-# RecordBuilder - Early Access
+# RecordBuilder
 
 ## What is RecordBuilder
 
-Java 15 introduced [Records](https://cr.openjdk.java.net/~briangoetz/amber/datum.html) as a preview feature. Since Java 9, 
-features in Java are being released in stages. While the Java 15 version of records is fantastic, it's currently missing important features 
-for data classes: a builder and "with"ers. This project is an annotation processor that creates:
+Java 16 introduces [Records](https://openjdk.java.net/jeps/395). While this version of records is fantastic, 
+it's currently missing some important features normally found in data classes: a builder 
+and "with"ers. This project is an annotation processor that creates:
  
 - a companion builder class for Java records
 - an interface that adds "with" copy methods
@@ -286,7 +286,7 @@ annotation. Use `packagePattern` to change this (see Javadoc for details).
 
 ### Maven
 
-1\. Add the dependency that contains the `@RecordBuilder` annotation.
+1) Add the dependency that contains the `@RecordBuilder` annotation.
 
 ```
 <dependency>
@@ -298,7 +298,7 @@ annotation. Use `packagePattern` to change this (see Javadoc for details).
 
 ```
 
-2\. Enable the annotation processing for the Maven Compiler Plugin:
+2) Enable the annotation processing for the Maven Compiler Plugin:
 
 ```
 <plugin>
@@ -318,20 +318,10 @@ annotation. Use `packagePattern` to change this (see Javadoc for details).
         </annotationProcessors>
 
         
-        <!-- "release" and "enable-preview" are required while records are preview features -->
-        <release>15</release>
-        <compilerArgs>
-            <arg>--enable-preview</arg>
-        </compilerArgs>
-
         ... any other options here ...
     </configuration>
 </plugin>
 ```
-
-3\. Enable Preview for Maven
-
-Create a file in your project's root named `.mvn/jvm.config`. The file should have 1 line with the value: `--enable-preview`. (see: https://stackoverflow.com/questions/58023240)
 
 ### Gradle
 
@@ -342,30 +332,11 @@ dependencies {
     annotationProcessor 'io.soabase.record-builder:record-builder-processor:$version-goes-here'
     compileOnly 'io.soabase.record-builder:record-builder-core:$version-goes-here'
 }
-
-tasks.withType(JavaCompile) {
-    options.fork = true
-    options.forkOptions.jvmArgs += '--enable-preview'
-    options.compilerArgs += '--enable-preview'
-}
-tasks.withType(Test) {
-    jvmArgs += "--enable-preview"
-}
 ```
 
 ### IDE
 
 Depending on your IDE you are likely to need to enable Annotation Processing in your IDE settings.
-
-## Enable Preview
-
-Note: records are a preview feature only. You'll need take a number of steps in order to try RecordBuilder:
-
-- Install and make active Java 15 or later
-- Make sure your development tool is using Java 15 or later and is configured to enable preview features (for Maven I've documented how to do this here: [https://stackoverflow.com/a/59363152/2048051](https://stackoverflow.com/a/59363152/2048051))
-- Bear in mind that this is not yet meant for production and there are numerous bugs in the tools and JDKs.
-
-Note: I've seen some very odd compilation bugs with the current Java 15 and Maven. If you get internal Javac errors I suggest rebuilding with `mvn clean package` and/or `mvn clean install`.
 
 ## Customizing
 
