@@ -256,6 +256,8 @@ Notes:
   - ...cannot have type parameters
 - Methods with default implementations are used in the generation unless they are annotated with `@IgnoreDefaultMethod`
 - If you do not want a record builder generated, annotate your interface as `@RecordInterface(addRecordBuilder = false)`
+- If your interface is a JavaBean (e.g. `getThing()`, `isThing()`) the "get" and "is" prefixes are
+stripped and forwarding methods are added.
 
 ## Generation Via Includes
 
