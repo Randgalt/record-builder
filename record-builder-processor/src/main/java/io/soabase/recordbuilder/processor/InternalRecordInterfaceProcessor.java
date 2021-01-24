@@ -48,11 +48,16 @@ class InternalRecordInterfaceProcessor {
     private final ProcessingEnvironment processingEnv;
     private final String packageName;
     private final TypeSpec recordType;
-    private final List<ExecutableElement> recordComponents;
+    private final List<Component> recordComponents;
     private final TypeElement iface;
     private final ClassType recordClassType;
+    private final List<String> alternateMethods;
 
     private static final String FAKE_METHOD_NAME = "__FAKE__";
+
+    private static final Set<String> javaBeanPrefixes = Set.of("get", "is");
+
+    private record Component(ExecutableElement element, Optional<String> alternateName){}
 
     InternalRecordInterfaceProcessor(ProcessingEnvironment processingEnv, TypeElement iface, boolean addRecordBuilder, RecordBuilderMetaData metaData, Optional<String> packageNameOpt) {
         this.processingEnv = processingEnv;
@@ -78,6 +83,8 @@ class InternalRecordInterfaceProcessor {
             builder.addAnnotation(RecordBuilder.class);
             builder.addSuperinterface(builderClassType.typeName());
         }
+
+        alternateMethods = buildAlternateMethods(recordComponents);
 
         recordType = builder.build();
     }
@@ -126,22 +133,43 @@ class InternalRecordInterfaceProcessor {
         String declaration = matcher.group(1).trim().replace("class", "record");
         String implementsSection = matcher.group(2).trim();
         String argumentList = matcher.group(5).trim();
-        return declaration + argumentList + " " + implementsSection + " {}";
+
+        StringBuilder fixedRecord = new StringBuilder(declaration).append(argumentList).append(' ').append(implementsSection).append(" {");
+        alternateMethods.forEach(method -> fixedRecord.append('\n').append(method));
+        fixedRecord.append('}');
+        return fixedRecord.toString();
     }
 
     private MethodSpec generateArgumentList()
     {
         MethodSpec.Builder builder = MethodSpec.methodBuilder(FAKE_METHOD_NAME);
-        recordComponents.forEach(element -> {
-            ParameterSpec parameterSpec = ParameterSpec.builder(ClassName.get(element.getReturnType()), element.getSimpleName().toString()).build();
-            builder.addTypeVariables(element.getTypeParameters().stream().map(TypeVariableName::get).collect(Collectors.toList()));
+        recordComponents.forEach(component -> {
+            String name = component.alternateName.orElseGet(() -> component.element.getSimpleName().toString());
+            ParameterSpec parameterSpec = ParameterSpec.builder(ClassName.get(component.element.getReturnType()), name).build();
+            builder.addTypeVariables(component.element.getTypeParameters().stream().map(TypeVariableName::get).collect(Collectors.toList()));
             builder.addParameter(parameterSpec);
         });
         return builder.build();
     }
 
-    private List<ExecutableElement> getRecordComponents(TypeElement iface) {
-        List<ExecutableElement> components = new ArrayList<>();
+    private List<String> buildAlternateMethods(List<Component> recordComponents) {
+        return recordComponents.stream()
+            .filter(component -> component.alternateName.isPresent())
+            .map(component -> {
+                var method = MethodSpec.methodBuilder(component.element.getSimpleName().toString())
+                    .addAnnotation(Override.class)
+                    .addAnnotation(generatedRecordInterfaceAnnotation)
+                    .returns(ClassName.get(component.element.getReturnType()))
+                    .addModifiers(Modifier.PUBLIC)
+                    .addCode("return $L();", component.alternateName.get())
+                    .build();
+                return method.toString();
+            })
+            .collect(Collectors.toList());
+    }
+
+    private List<Component> getRecordComponents(TypeElement iface) {
+        List<Component> components = new ArrayList<>();
         try {
             getRecordComponents(iface, components, new HashSet<>(), new HashSet<>());
             if (components.isEmpty()) {
@@ -153,15 +181,15 @@ class InternalRecordInterfaceProcessor {
         }
         return components;
     }
-
     private static class IllegalInterface extends RuntimeException
     {
         public IllegalInterface(String message) {
             super(message);
         }
+
     }
 
-    private void getRecordComponents(TypeElement iface, Collection<? super ExecutableElement> components, Set<String> visitedSet, Set<String> usedNames) {
+    private void getRecordComponents(TypeElement iface, Collection<Component> components, Set<String> visitedSet, Set<String> usedNames) {
         if (!visitedSet.add(iface.getQualifiedName().toString())) {
             return;
         }
@@ -184,10 +212,22 @@ class InternalRecordInterfaceProcessor {
                     }
                 })
                 .filter(element -> usedNames.add(element.getSimpleName().toString()))
+                .map(element -> new Component(element, stripBeanPrefix(element.getSimpleName().toString())))
                 .collect(Collectors.toCollection(() -> components));
         iface.getInterfaces().forEach(parentIface -> {
             TypeElement parentIfaceElement = (TypeElement) processingEnv.getTypeUtils().asElement(parentIface);
             getRecordComponents(parentIfaceElement, components, visitedSet, usedNames);
         });
+    }
+
+    private Optional<String> stripBeanPrefix(String name)
+    {
+        return javaBeanPrefixes.stream()
+            .filter(prefix -> name.startsWith(prefix) && (name.length() > prefix.length()))
+            .findFirst()
+            .map(prefix -> {
+                var stripped = name.substring(prefix.length());
+                return Character.toLowerCase(stripped.charAt(0)) + stripped.substring(1);
+            });
     }
 }
