@@ -1,5 +1,6 @@
 [![Build Status](https://github.com/Randgalt/record-builder/workflows/Java%20CI%20with%20Maven/badge.svg)](https://github.com/Randgalt/record-builder/actions)
-[![Maven Central](https://img.shields.io/maven-central/v/io.soabase.record-builder/record-builder.svg)](https://search.maven.org/search?q=g:io.soabase.record-builder%20a:record-builder)
+[![Maven Central - Java 16](https://img.shields.io/maven-central/v/io.soabase.record-builder/record-builder-core.svg?label=Maven+Central+Java+16)](https://search.maven.org/search?q=g:io.soabase.record-builder%20a:record-builder-core)
+[![Maven Central - Java 15](https://img.shields.io/maven-central/v/io.soabase.record-builder/record-builder-core-java15.svg?label=Maven+Central+Java+15)](https://search.maven.org/search?q=g:io.soabase.record-builder%20a:record-builder-core-java15)
 
 # RecordBuilder
 
