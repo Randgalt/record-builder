@@ -22,6 +22,7 @@ _Details:_
 - [Generation Via Includes](#generation-via-includes)
 - [Usage](#usage)
 - [Customizing](#customizing)
+- [Java 15 Versions](#java-15-versions)
 
 ## RecordBuilder Example
 
@@ -361,3 +362,79 @@ Alternatively, you can provide values for each individual meta data (or combinat
 - `javac ... -AfileComment=foo`
 - `javac ... -AfileIndent=foo`
 - `javac ... -AprefixEnclosingClassNames=foo`
+
+## Java 15 Versions
+
+Artifacts compiled wth Java 15 are available. The artifact IDs for these are:
+
+- core: `record-builder-core-java15`
+- processor: `record-builder-processor-java15`
+
+Note: records are a preview feature only in Java 15. You'll need take a number of steps in order to try RecordBuilder:
+
+- Install and make active Java 15 or later
+- Make sure your development tool is using Java 15 or later and is configured to enable preview features (for Maven I've documented how to do this here: [https://stackoverflow.com/a/59363152/2048051](https://stackoverflow.com/a/59363152/2048051))
+- Bear in mind that this is not yet meant for production and there are numerous bugs in the tools and JDKs.
+
+Note: I've seen some very odd compilation bugs with the current Java 15 and Maven. If you get internal Javac errors I suggest rebuilding with `mvn clean package` and/or `mvn clean install`.
+
+You will need to enable preview in your build tools:
+
+### Maven
+
+```
+<dependencies>
+    <dependency>
+        <groupId>io.soabase.record-builder</groupId>
+        <artifactId>record-builder-core-java15</artifactId>
+        <version>set-version-here</version>
+    </dependency>
+</dependencies>
+
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-compiler-plugin</artifactId>
+    <version>set-version-here</version>
+    <configuration>
+        <annotationProcessorPaths>
+            <annotationProcessorPath>
+                <groupId>io.soabase.record-builder</groupId>
+                <artifactId>record-builder-processor-java15</artifactId>
+                <version>set-version-here</version>
+            </annotationProcessorPath>
+        </annotationProcessorPaths>
+        <annotationProcessors>
+            <annotationProcessor>io.soabase.recordbuilder.processor.RecordBuilderProcessor</annotationProcessor>
+        </annotationProcessors>
+
+        
+        <!-- "release" and "enable-preview" are required while records are preview features -->
+        <release>15</release>
+        <compilerArgs>
+            <arg>--enable-preview</arg>
+        </compilerArgs>
+
+        ... any other options here ...
+    </configuration>
+</plugin>
+```
+
+Create a file in your project's root named `.mvn/jvm.config`. The file should have 1 line with the value: `--enable-preview`. (see: https://stackoverflow.com/questions/58023240)
+
+### Gradle
+
+```
+dependencies {
+    annotationProcessor 'io.soabase.record-builder:record-builder-processor-java15:$version-goes-here'
+    compileOnly 'io.soabase.record-builder:record-builder-core-java15:$version-goes-here'
+}
+
+tasks.withType(JavaCompile) {
+    options.fork = true
+    options.forkOptions.jvmArgs += '--enable-preview'
+    options.compilerArgs += '--enable-preview'
+}
+tasks.withType(Test) {
+    jvmArgs += "--enable-preview"
+}
+```
