@@ -7,12 +7,6 @@
     <packaging>pom</packaging>
     <version>1.17-SNAPSHOT</version>
 
-    <modules>
-        <module>record-builder-core</module>
-        <module>record-builder-processor</module>
-        <module>record-builder-test</module>
-    </modules>
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
@@ -103,6 +97,12 @@
             <dependency>
                 <groupId>io.soabase.record-builder</groupId>
                 <artifactId>record-builder-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.soabase.record-builder</groupId>
+                <artifactId>record-builder-core-java15</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -313,6 +313,19 @@
 
     <profiles>
         <profile>
+            <id>main</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+
+            <modules>
+                <module>record-builder-core</module>
+                <module>record-builder-processor</module>
+                <module>record-builder-test</module>
+            </modules>
+        </profile>
+
+        <profile>
             <id>oss</id>
             <build>
                 <plugins>
@@ -335,6 +348,19 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+
+        <profile>
+            <id>java15</id>
+
+            <properties>
+                <jdk-version>15</jdk-version>
+            </properties>
+
+            <modules>
+                <module>record-builder-core-java15</module>
+                <module>record-builder-processor-java15</module>
+            </modules>
         </profile>
     </profiles>
 </project>
