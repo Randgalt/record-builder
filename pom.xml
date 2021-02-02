@@ -5,7 +5,7 @@
     <groupId>io.soabase.record-builder</groupId>
     <artifactId>record-builder</artifactId>
     <packaging>pom</packaging>
-    <version>1.18-SNAPSHOT</version>
+    <version>1.18-java15</version>
 
     <modules>
         <module>record-builder-core</module>
@@ -18,7 +18,7 @@
         <project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <enable-preview/>
+        <enable-preview />
 
         <jdk-version>16</jdk-version>
 
@@ -73,7 +73,7 @@
         <url>https://github.com/randgalt/record-builder</url>
         <connection>scm:git:https://github.com/randgalt/record-builder.git</connection>
         <developerConnection>scm:git:git@github.com:randgalt/record-builder.git</developerConnection>
-        <tag>record-builder-1.16</tag>
+        <tag>record-builder-1.18-java15</tag>
     </scm>
 
     <issueManagement>
