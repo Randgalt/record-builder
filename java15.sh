@@ -18,3 +18,5 @@
 
 jenv local 15
 javahome
+mkdir -p .mvn/
+echo "--enable-preview" > .mvn/jvm.config
