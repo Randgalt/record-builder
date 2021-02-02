@@ -20,5 +20,9 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 15
+    - name: Create Maven Directory
+      run: mkdir -p .mvn/
+    - name: Create Maven JVM file
+      run: echo "--enable-preview" > .mvn/jvm.config
     - name: Build with Maven
       run: mvn -P java15 -B package --file pom.xml

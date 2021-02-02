@@ -365,10 +365,8 @@ Alternatively, you can provide values for each individual meta data (or combinat
 
 ## Java 15 Versions
 
-Artifacts compiled wth Java 15 are available. The artifact IDs for these are:
-
-- core: `record-builder-core-java15`
-- processor: `record-builder-processor-java15`
+Artifacts compiled wth Java 15 are available. They are the same versions
+as the Java 16 versions with `-java15` appended.
 
 Note: records are a preview feature only in Java 15. You'll need take a number of steps in order to try RecordBuilder:
 
@@ -386,21 +384,21 @@ You will need to enable preview in your build tools:
 <dependencies>
     <dependency>
         <groupId>io.soabase.record-builder</groupId>
-        <artifactId>record-builder-core-java15</artifactId>
-        <version>set-version-here</version>
+        <artifactId>record-builder-core</artifactId>
+        <version>record-builder-version-java15</version>
     </dependency>
 </dependencies>
 
 <plugin>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-compiler-plugin</artifactId>
-    <version>set-version-here</version>
+    <version>maven-compiler-version</version>
     <configuration>
         <annotationProcessorPaths>
             <annotationProcessorPath>
                 <groupId>io.soabase.record-builder</groupId>
-                <artifactId>record-builder-processor-java15</artifactId>
-                <version>set-version-here</version>
+                <artifactId>record-builder-processor</artifactId>
+                <version>record-builder-version-java15</version>
             </annotationProcessorPath>
         </annotationProcessorPaths>
         <annotationProcessors>
@@ -425,8 +423,8 @@ Create a file in your project's root named `.mvn/jvm.config`. The file should ha
 
 ```
 dependencies {
-    annotationProcessor 'io.soabase.record-builder:record-builder-processor-java15:$version-goes-here'
-    compileOnly 'io.soabase.record-builder:record-builder-core-java15:$version-goes-here'
+    annotationProcessor 'io.soabase.record-builder:record-builder-processor:$record-builder-version-java15'
+    compileOnly 'io.soabase.record-builder:record-builder-core:$record-builder-version-java15'
 }
 
 tasks.withType(JavaCompile) {
