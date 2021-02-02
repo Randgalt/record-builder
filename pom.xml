@@ -7,10 +7,18 @@
     <packaging>pom</packaging>
     <version>1.18-SNAPSHOT</version>
 
+    <modules>
+        <module>record-builder-core</module>
+        <module>record-builder-processor</module>
+        <module>record-builder-test</module>
+    </modules>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <enable-preview/>
 
         <jdk-version>16</jdk-version>
 
@@ -65,7 +73,7 @@
         <url>https://github.com/randgalt/record-builder</url>
         <connection>scm:git:https://github.com/randgalt/record-builder.git</connection>
         <developerConnection>scm:git:git@github.com:randgalt/record-builder.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>record-builder-1.16</tag>
     </scm>
 
     <issueManagement>
@@ -101,12 +109,6 @@
             </dependency>
 
             <dependency>
-                <groupId>io.soabase.record-builder</groupId>
-                <artifactId>record-builder-core-java15</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter</artifactId>
                 <version>${junit-jupiter-version}</version>
@@ -123,6 +125,9 @@
                     <version>${maven-compiler-plugin-version}</version>
                     <configuration>
                         <release>${jdk-version}</release>
+                        <compilerArgs>
+                            <arg>${enable-preview}</arg>
+                        </compilerArgs>
                     </configuration>
                 </plugin>
 
@@ -274,6 +279,9 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin-version}</version>
+                    <configuration>
+                        <argLine>${enable-preview}</argLine>
+                    </configuration>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -313,19 +321,6 @@
 
     <profiles>
         <profile>
-            <id>main</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-
-            <modules>
-                <module>record-builder-core</module>
-                <module>record-builder-processor</module>
-                <module>record-builder-test</module>
-            </modules>
-        </profile>
-
-        <profile>
             <id>oss</id>
             <build>
                 <plugins>
@@ -352,15 +347,10 @@
 
         <profile>
             <id>java15</id>
-
             <properties>
                 <jdk-version>15</jdk-version>
+                <enable-preview>--enable-preview</enable-preview>
             </properties>
-
-            <modules>
-                <module>record-builder-core-java15</module>
-                <module>record-builder-processor-java15</module>
-            </modules>
         </profile>
     </profiles>
 </project>

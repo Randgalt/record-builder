@@ -18,3 +18,4 @@
 
 jenv local 16-ea
 javahome
+rm -fr .mvn

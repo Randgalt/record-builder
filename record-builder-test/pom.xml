@@ -43,6 +43,10 @@
                     <annotationProcessors>
                         <annotationProcessor>io.soabase.recordbuilder.processor.RecordBuilderProcessor</annotationProcessor>
                     </annotationProcessors>
+                    <release>${jdk-version}</release>
+                    <compilerArgs>
+                        <arg>${enable-preview}</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
 
