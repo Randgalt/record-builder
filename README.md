@@ -78,8 +78,8 @@ NameAndAge r5 = r4.with(b -> {
        b.name("Teen " + b.name());
    } else {
        b.name("whatever"));
-   });
-}
+   }
+});
 ```
 
 _Hat tip to [Benji Weber](https://benjiweber.co.uk/blog/2020/09/19/fun-with-java-records/) for the Withers idea._
