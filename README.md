@@ -71,6 +71,15 @@ NameAndAge r4 = r3.with().age(101).name("baz").build();
 
 // alternate method of accessing the builder (note: no need to call "build()")
 NameAndAge r5 = r4.with(b -> b.age(200).name("whatever"));
+
+// perform some logic in addition to changing values
+NameAndAge r5 = r4.with(b -> {
+   if (b.age() > 13) {
+       b.name("Teen " + b.name());
+   } else {
+       b.name("whatever"));
+   }
+}
 ```
 
 _Hat tip to [Benji Weber](https://benjiweber.co.uk/blog/2020/09/19/fun-with-java-records/) for the Withers idea._
