@@ -78,7 +78,7 @@ NameAndAge r5 = r4.with(b -> {
        b.name("Teen " + b.name());
    } else {
        b.name("whatever"));
-   }
+   });
 }
 ```
 
