@@ -277,7 +277,7 @@ libraries where you are not able to annotate the source.
 
 E.g.
 
-```
+```java
 import some.library.code.ImportedRecord
 import some.library.code.ImportedInterface
 
@@ -300,7 +300,7 @@ annotation. Use `packagePattern` to change this (see Javadoc for details).
 
 1) Add the dependency that contains the `@RecordBuilder` annotation.
 
-```
+```xml
 <dependency>
     <groupId>io.soabase.record-builder</groupId>
     <artifactId>record-builder-core</artifactId>
@@ -312,7 +312,7 @@ annotation. Use `packagePattern` to change this (see Javadoc for details).
 
 2) Enable the annotation processing for the Maven Compiler Plugin:
 
-```
+```xml
 <plugin>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-compiler-plugin</artifactId>
@@ -339,7 +339,7 @@ annotation. Use `packagePattern` to change this (see Javadoc for details).
 
 Add the following to your build.gradle file:
 
-```
+```groovy
 dependencies {
     annotationProcessor 'io.soabase.record-builder:record-builder-processor:$version-goes-here'
     compileOnly 'io.soabase.record-builder:record-builder-core:$version-goes-here'
@@ -389,7 +389,7 @@ You will need to enable preview in your build tools:
 
 ### Maven
 
-```
+```xml
 <dependencies>
     <dependency>
         <groupId>io.soabase.record-builder</groupId>
@@ -430,7 +430,7 @@ Create a file in your project's root named `.mvn/jvm.config`. The file should ha
 
 ### Gradle
 
-```
+```groovy
 dependencies {
     annotationProcessor 'io.soabase.record-builder:record-builder-processor:$record-builder-version-java15'
     compileOnly 'io.soabase.record-builder:record-builder-core:$record-builder-version-java15'
