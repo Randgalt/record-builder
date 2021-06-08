@@ -11,6 +11,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>javax.validation</groupId>
+            <artifactId>validation-api</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>io.soabase.record-builder</groupId>
             <artifactId>record-builder-core</artifactId>
             <scope>provided</scope>

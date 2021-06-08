@@ -24,6 +24,7 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.AnnotationValue;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.RecordComponentElement;
 import javax.lang.model.element.TypeElement;
@@ -107,8 +108,8 @@ public class ElementUtils {
         return new ClassType(ParameterizedTypeName.get(builderClassName, typeNames), builderClassName.simpleName());
     }
 
-    public static ClassType getClassType(RecordComponentElement recordComponent) {
-        return new ClassType(TypeName.get(recordComponent.asType()), recordComponent.getSimpleName().toString());
+    public static RecordClassType getRecordClassType(RecordComponentElement recordComponent, List<? extends AnnotationMirror> accessorAnnotations, List<? extends AnnotationMirror> canonicalConstructorAnnotations) {
+        return new RecordClassType(TypeName.get(recordComponent.asType()), recordComponent.getSimpleName().toString(), accessorAnnotations, canonicalConstructorAnnotations);
     }
 
     public static String getWithMethodName(ClassType component, String prefix) {
@@ -123,6 +124,23 @@ public class ElementUtils {
         // generate the class name
         var baseName = classType.name() + suffix;
         return metaData.prefixEnclosingClassNames() ? (getBuilderNamePrefix(element.getEnclosingElement()) + baseName) : baseName;
+    }
+
+    public static Optional<? extends Element> findCanonicalConstructor(TypeElement record) {
+        if ( record.getKind() != ElementKind.RECORD ) {
+            return Optional.empty();
+        }
+
+        // based on https://github.com/openjdk/jdk/pull/3556/files#diff-a6270f4b50989abe733607c69038b2036306d13f77276af005d023b7fc57f1a2R2368
+        var componentList = record.getRecordComponents().stream().map(e -> e.asType().toString()).collect(Collectors.toList());
+        return record.getEnclosedElements().stream()
+            .filter(element -> element.getKind() == ElementKind.CONSTRUCTOR)
+            .filter(element -> {
+                var parameters = ((ExecutableElement)element).getParameters();
+                var parametersList = parameters.stream().map(e -> e.asType().toString()).collect(Collectors.toList());
+                return componentList.equals(parametersList);
+            })
+            .findFirst();
     }
 
     private static String getBuilderNamePrefix(Element element) {
