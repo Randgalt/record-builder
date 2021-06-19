@@ -21,7 +21,7 @@ _Details:_
 - [Record From Interface Details](#RecordInterface-Example)
 - [Generation Via Includes](#generation-via-includes)
 - [Usage](#usage)
-- [Customizing](#customizing)
+- [Customizing](customizing.md)
 - [Java 15 Versions](#java-15-versions)
 
 ## RecordBuilder Example
@@ -352,30 +352,13 @@ Depending on your IDE you are likely to need to enable Annotation Processing in 
 
 ## Customizing
 
-The names of the generated methods, etc. are determined by [RecordBuilderMetaData](https://github.com/Randgalt/record-builder/blob/master/record-builder-core/src/main/java/io/soabase/recordbuilder/core/RecordBuilderMetaData.java). If you want to use your own meta data instance:
-
-- Create a class that implements RecordBuilderMetaData
-- When compiling, make sure that the compiled class is in the processor path
-- Add a "metaDataClass" compiler option with the class name. E.g. `javac ... -AmetaDataClass=foo.bar.MyMetaData`
-
-Alternatively, you can provide values for each individual meta data (or combinations):
-
-- `javac ... -Asuffix=foo`
-- `javac ... -AinterfaceSuffix=foo`
-- `javac ... -AcopyMethodName=foo`
-- `javac ... -AbuilderMethodName=foo`
-- `javac ... -AbuildMethodName=foo`
-- `javac ... -AcomponentsMethodName=foo`
-- `javac ... -AwithClassName=foo`
-- `javac ... -AwithClassMethodPrefix=foo`
-- `javac ... -AfileComment=foo`
-- `javac ... -AfileIndent=foo`
-- `javac ... -AprefixEnclosingClassNames=foo`
+RecordBuilder can be customized to your needs and you can even create your
+own custom RecordBuilder annotations. See [Customizing RecordBuilder](customizing.md)
+for details.
 
 ## Java 15 Versions
 
-Artifacts compiled wth Java 15 are available. They are the same versions
-as the Java 16 versions with `-java15` appended.
+Artifacts compiled wth Java 15 are available. These versions have `-java15` appended.
 
 Note: records are a preview feature only in Java 15. You'll need take a number of steps in order to try RecordBuilder:
 

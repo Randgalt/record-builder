@@ -24,11 +24,9 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeVariableName;
-import io.soabase.recordbuilder.core.RecordBuilderMetaData;
-
+import io.soabase.recordbuilder.core.RecordBuilder;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
-
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +43,7 @@ import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generate
 
 class InternalRecordBuilderProcessor
 {
-    private final RecordBuilderMetaData metaData;
+    private final RecordBuilder.Options metaData;
     private final ClassType recordClassType;
     private final String packageName;
     private final ClassType builderClassType;
@@ -55,9 +53,9 @@ class InternalRecordBuilderProcessor
     private final TypeSpec.Builder builder;
     private final String uniqueVarName;
 
-    InternalRecordBuilderProcessor(TypeElement record, RecordBuilderMetaData metaData, Optional<String> packageNameOpt)
+    InternalRecordBuilderProcessor(TypeElement record, RecordBuilder.Options metaData, Optional<String> packageNameOpt)
     {
-        this.metaData = metaData;
+        this.metaData = getMetaData(record, metaData);
         recordClassType = ElementUtils.getClassType(record, record.getTypeParameters());
         packageName = packageNameOpt.orElseGet(() -> ElementUtils.getPackageName(record));
         builderClassType = ElementUtils.getClassType(packageName, getBuilderName(record, metaData, recordClassType, metaData.suffix()), record.getTypeParameters());
@@ -104,6 +102,11 @@ class InternalRecordBuilderProcessor
     TypeSpec builderType()
     {
         return builderType;
+    }
+
+    private RecordBuilder.Options getMetaData(TypeElement record, RecordBuilder.Options metaData) {
+        var recordSpecificMetaData = record.getAnnotation(RecordBuilder.Options.class);
+        return (recordSpecificMetaData != null) ?recordSpecificMetaData : metaData;
     }
 
     private void addWithNestedClass()
