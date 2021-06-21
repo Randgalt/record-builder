@@ -11,6 +11,7 @@
         <module>record-builder-core</module>
         <module>record-builder-processor</module>
         <module>record-builder-test</module>
+        <module>record-builder-validator</module>
     </modules>
 
     <properties>
@@ -39,6 +40,8 @@
         <junit-jupiter-version>5.5.2</junit-jupiter-version>
         <asm-version>7.2</asm-version>
         <validation-api-version>2.0.1.Final</validation-api-version>
+        <hibernate-validator-version>6.0.16.Final</hibernate-validator-version>
+        <javax-el-version>3.0.1-b09</javax-el-version>
     </properties>
 
     <name>Record Builder</name>
@@ -111,6 +114,12 @@
             </dependency>
 
             <dependency>
+                <groupId>io.soabase.record-builder</groupId>
+                <artifactId>record-builder-validator</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter</artifactId>
                 <version>${junit-jupiter-version}</version>
@@ -120,6 +129,18 @@
                 <groupId>javax.validation</groupId>
                 <artifactId>validation-api</artifactId>
                 <version>${validation-api-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.hibernate.validator</groupId>
+                <artifactId>hibernate-validator</artifactId>
+                <version>${hibernate-validator-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.glassfish</groupId>
+                <artifactId>javax.el</artifactId>
+                <version>${javax-el-version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

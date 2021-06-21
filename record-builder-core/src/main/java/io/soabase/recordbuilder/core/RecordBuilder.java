@@ -130,6 +130,17 @@ public @interface RecordBuilder {
          * means "not null"
          */
         String interpretNotNullsPattern() default "(?i)((notnull)|(nonnull)|(nonull))";
+
+        /**
+         * <p>Pass built records through the Java Validation API if it's available in the classpath.</p>
+         *
+         * <p>IMPORTANT:
+         * if this option is enabled you must include the {@code record-builder-validator} dependency in addition
+         * to {@code record-builder-core}. {@code record-builder-validator} is implemented completely via reflection and
+         * does not require other dependencies. Alternatively, you can define your own class with the package {@code package io.soabase.recordbuilder.validator;}
+         * named {@code RecordBuilderValidator} which has a public static method: {@code public static <T> T validate(T o)}.</p>
+         */
+        boolean useValidationApi() default false;
     }
 
     @Retention(RetentionPolicy.SOURCE)
