@@ -15,11 +15,7 @@
  */
 package io.soabase.recordbuilder.core;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Inherited;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
@@ -122,6 +118,18 @@ public @interface RecordBuilder {
          * {@code Optional.empty()}
          */
         boolean emptyDefaultForOptional() default true;
+
+        /**
+         * Add not-null checks for record components annotated with any annotation named either "NotNull",
+         * "NoNull", or "NonNull" (see {@link #interpretNotNullsPattern()} for the actual regex matching pattern).
+         */
+        boolean interpretNotNulls() default false;
+
+        /**
+         * If {@link #interpretNotNulls()} is true, this is the regex pattern used to determine if an annotation name
+         * means "not null"
+         */
+        String interpretNotNullsPattern() default "(?i)((notnull)|(nonnull)|(nonull))";
     }
 
     @Retention(RetentionPolicy.SOURCE)
