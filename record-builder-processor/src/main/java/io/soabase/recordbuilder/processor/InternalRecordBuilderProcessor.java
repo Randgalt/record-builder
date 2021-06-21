@@ -21,6 +21,7 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 import javax.lang.model.element.*;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -39,6 +40,7 @@ class InternalRecordBuilderProcessor {
     private final TypeSpec builderType;
     private final TypeSpec.Builder builder;
     private final String uniqueVarName;
+    private final Pattern notNullPattern;
 
     private static final TypeName optionalType = TypeName.get(Optional.class);
     private static final TypeName optionalIntType = TypeName.get(OptionalInt.class);
@@ -53,6 +55,7 @@ class InternalRecordBuilderProcessor {
         typeVariables = record.getTypeParameters().stream().map(TypeVariableName::get).collect(Collectors.toList());
         recordComponents = buildRecordComponents(record);
         uniqueVarName = getUniqueVarName();
+        notNullPattern = Pattern.compile(metaData.interpretNotNullsPattern());
 
         builder = TypeSpec.classBuilder(builderClassType.name())
                 .addModifiers(Modifier.PUBLIC)
@@ -262,13 +265,27 @@ class InternalRecordBuilderProcessor {
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .returns(recordClassType.typeName())
-                .addStatement(codeBlock);
+                .addCode(codeBlock);
         recordComponents.forEach(component -> {
             var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
             component.getCanonicalConstructorAnnotations().forEach(annotationMirror -> parameterSpecBuilder.addAnnotation(AnnotationSpec.get(annotationMirror)));
             builder.addParameter(parameterSpecBuilder.build());
         });
         this.builder.addMethod(builder.build());
+    }
+
+    private void addNullCheckCodeBlock(CodeBlock.Builder builder) {
+        if (metaData.interpretNotNulls()) {
+            recordComponents.stream()
+                    .filter(component -> !component.typeName().isPrimitive())
+                    .filter(this::isNullAnnotated)
+                    .forEach(component -> builder.addStatement("$T.requireNonNull($L, $S)", Objects.class, component.name(), component.name() + " is required"));
+        }
+    }
+
+    private boolean isNullAnnotated(RecordClassType component) {
+        return component.getCanonicalConstructorAnnotations().stream()
+                .anyMatch(annotation -> notNullPattern.matcher(annotation.getAnnotationType().asElement().getSimpleName().toString()).matches());
     }
 
     private void addAllArgsConstructor() {
@@ -398,7 +415,7 @@ class InternalRecordBuilderProcessor {
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .returns(recordClassType.typeName())
-                .addStatement(codeBlock)
+                .addCode(codeBlock)
                 .build();
         builder.addMethod(methodSpec);
     }
@@ -408,14 +425,16 @@ class InternalRecordBuilderProcessor {
             Builds the code block for allocating the record from its parts
         */
 
-        var codeBuilder = CodeBlock.builder().add("return new $T(", recordClassType.typeName());
+        var codeBuilder = CodeBlock.builder();
+        addNullCheckCodeBlock(codeBuilder);
+        codeBuilder.add("$[return new $T(", recordClassType.typeName());
         IntStream.range(0, recordComponents.size()).forEach(index -> {
             if (index > 0) {
                 codeBuilder.add(", ");
             }
             codeBuilder.add("$L", recordComponents.get(index).name());
         });
-        codeBuilder.add(")");
+        codeBuilder.add(");$]");
         return codeBuilder.build();
     }
 
