@@ -46,6 +46,7 @@ class InternalRecordBuilderProcessor {
     private static final TypeName optionalIntType = TypeName.get(OptionalInt.class);
     private static final TypeName optionalLongType = TypeName.get(OptionalLong.class);
     private static final TypeName optionalDoubleType = TypeName.get(OptionalDouble.class);
+    private static final TypeName validatorTypeName = ClassName.get("io.soabase.recordbuilder.validator", "RecordBuilderValidator");
 
     InternalRecordBuilderProcessor(TypeElement record, RecordBuilder.Options metaData, Optional<String> packageNameOpt) {
         this.metaData = getMetaData(record, metaData);
@@ -427,14 +428,22 @@ class InternalRecordBuilderProcessor {
 
         var codeBuilder = CodeBlock.builder();
         addNullCheckCodeBlock(codeBuilder);
-        codeBuilder.add("$[return new $T(", recordClassType.typeName());
+        codeBuilder.add("$[return ");
+        if (metaData.useValidationApi()) {
+            codeBuilder.add("$T.validate(", validatorTypeName);
+        }
+        codeBuilder.add("new $T(", recordClassType.typeName());
         IntStream.range(0, recordComponents.size()).forEach(index -> {
             if (index > 0) {
                 codeBuilder.add(", ");
             }
             codeBuilder.add("$L", recordComponents.get(index).name());
         });
-        codeBuilder.add(");$]");
+        codeBuilder.add(")");
+        if (metaData.useValidationApi()) {
+            codeBuilder.add(")");
+        }
+        codeBuilder.add(";$]");
         return codeBuilder.build();
     }
 
