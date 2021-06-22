@@ -124,6 +124,11 @@ public @interface RecordBuilder {
          * means "not null"
          */
         String interpretNotNullsPattern() default "(?i)((notnull)|(nonnull)|(nonull))";
+
+        /**
+         * Pass built records through the Java Validation API if it's available in the classpath
+         */
+        boolean useValidationApi() default false;
     }
 
     @Retention(RetentionPolicy.SOURCE)

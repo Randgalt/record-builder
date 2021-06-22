@@ -17,6 +17,7 @@ package io.soabase.recordbuilder.processor;
 
 import com.squareup.javapoet.*;
 import io.soabase.recordbuilder.core.RecordBuilder;
+import io.soabase.recordbuilder.core.RecordBuilderValidator;
 
 import javax.lang.model.element.*;
 import java.util.*;
@@ -422,14 +423,22 @@ class InternalRecordBuilderProcessor {
 
         var codeBuilder = CodeBlock.builder();
         addNullCheckCodeBlock(codeBuilder);
-        codeBuilder.add("$[return new $T(", recordClassType.typeName());
+        codeBuilder.add("$[return ");
+        if (metaData.useValidationApi()) {
+            codeBuilder.add("$T.validate(", RecordBuilderValidator.class);
+        }
+        codeBuilder.add("new $T(", recordClassType.typeName());
         IntStream.range(0, recordComponents.size()).forEach(index -> {
             if (index > 0) {
                 codeBuilder.add(", ");
             }
             codeBuilder.add("$L", recordComponents.get(index).name());
         });
-        codeBuilder.add(");$]");
+        codeBuilder.add(")");
+        if (metaData.useValidationApi()) {
+            codeBuilder.add(")");
+        }
+        codeBuilder.add(";$]");
         return codeBuilder.build();
     }
 

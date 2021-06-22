@@ -19,8 +19,11 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 
 import javax.validation.constraints.NotNull;
 
-@RecordBuilder.Options(interpretNotNulls = true)
+@RecordBuilder.Options(interpretNotNulls = true, useValidationApi = true)
 @RecordBuilder
 public record RequiredRecord(@NotNull String hey, @NotNull int i)
 {
+    public static void main(String[] args) {
+        RequiredRecordBuilder.RequiredRecord("one", 2);
+    }
 }
