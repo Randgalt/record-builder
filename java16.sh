@@ -16,6 +16,6 @@
 #
 
 
-jenv local 16-ea
+jenv local 16
 javahome
 rm -fr .mvn

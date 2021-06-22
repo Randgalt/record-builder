@@ -15,25 +15,11 @@
  */
 package io.soabase.recordbuilder.processor;
 
-import com.squareup.javapoet.AnnotationSpec;
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.CodeBlock;
-import com.squareup.javapoet.FieldSpec;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.ParameterSpec;
-import com.squareup.javapoet.ParameterizedTypeName;
-import com.squareup.javapoet.TypeName;
-import com.squareup.javapoet.TypeSpec;
-import com.squareup.javapoet.TypeVariableName;
+import com.squareup.javapoet.*;
 import io.soabase.recordbuilder.core.RecordBuilder;
 
 import javax.lang.model.element.*;
-
-import java.util.AbstractMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -43,8 +29,7 @@ import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
 import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
 
-class InternalRecordBuilderProcessor
-{
+class InternalRecordBuilderProcessor {
     private final RecordBuilder.Options metaData;
     private final ClassType recordClassType;
     private final String packageName;
@@ -55,8 +40,12 @@ class InternalRecordBuilderProcessor
     private final TypeSpec.Builder builder;
     private final String uniqueVarName;
 
-    InternalRecordBuilderProcessor(TypeElement record, RecordBuilder.Options metaData, Optional<String> packageNameOpt)
-    {
+    private static final TypeName optionalType = TypeName.get(Optional.class);
+    private static final TypeName optionalIntType = TypeName.get(OptionalInt.class);
+    private static final TypeName optionalLongType = TypeName.get(OptionalLong.class);
+    private static final TypeName optionalDoubleType = TypeName.get(OptionalDouble.class);
+
+    InternalRecordBuilderProcessor(TypeElement record, RecordBuilder.Options metaData, Optional<String> packageNameOpt) {
         this.metaData = getMetaData(record, metaData);
         recordClassType = ElementUtils.getClassType(record, record.getTypeParameters());
         packageName = packageNameOpt.orElseGet(() -> ElementUtils.getPackageName(record));
@@ -91,23 +80,19 @@ class InternalRecordBuilderProcessor
         builderType = builder.build();
     }
 
-    String packageName()
-    {
+    String packageName() {
         return packageName;
     }
 
-    ClassType builderClassType()
-    {
+    ClassType builderClassType() {
         return builderClassType;
     }
 
-    TypeSpec builderType()
-    {
+    TypeSpec builderType() {
         return builderType;
     }
 
-    private List<RecordClassType> buildRecordComponents(TypeElement record)
-    {
+    private List<RecordClassType> buildRecordComponents(TypeElement record) {
         var accessorAnnotations = record.getRecordComponents().stream().map(e -> e.getAccessor().getAnnotationMirrors()).collect(Collectors.toList());
         var canonicalConstructorAnnotations = ElementUtils.findCanonicalConstructor(record).map(constructor -> ((ExecutableElement) constructor).getParameters().stream().map(Element::getAnnotationMirrors).collect(Collectors.toList())).orElse(List.of());
         var recordComponents = record.getRecordComponents();
@@ -120,14 +105,12 @@ class InternalRecordBuilderProcessor
                 .collect(Collectors.toList());
     }
 
-    private RecordBuilder.Options getMetaData(TypeElement record, RecordBuilder.Options metaData)
-    {
+    private RecordBuilder.Options getMetaData(TypeElement record, RecordBuilder.Options metaData) {
         var recordSpecificMetaData = record.getAnnotation(RecordBuilder.Options.class);
         return (recordSpecificMetaData != null) ? recordSpecificMetaData : metaData;
     }
 
-    private void addWithNestedClass()
-    {
+    private void addWithNestedClass() {
         /*
             Adds a nested interface that adds withers similar to:
 
@@ -148,8 +131,7 @@ class InternalRecordBuilderProcessor
         builder.addType(classBuilder.build());
     }
 
-    private void addWithSuppliedBuilderMethod(TypeSpec.Builder classBuilder)
-    {
+    private void addWithSuppliedBuilderMethod(TypeSpec.Builder classBuilder) {
         /*
             Adds a method that returns a pre-filled copy builder similar to:
 
@@ -176,8 +158,7 @@ class InternalRecordBuilderProcessor
         classBuilder.addMethod(methodSpec);
     }
 
-    private void addWithBuilderMethod(TypeSpec.Builder classBuilder)
-    {
+    private void addWithBuilderMethod(TypeSpec.Builder classBuilder) {
         /*
             Adds a method that returns a pre-filled copy builder similar to:
 
@@ -199,13 +180,11 @@ class InternalRecordBuilderProcessor
         classBuilder.addMethod(methodSpec);
     }
 
-    private String getUniqueVarName()
-    {
+    private String getUniqueVarName() {
         return getUniqueVarName("");
     }
 
-    private String getUniqueVarName(String prefix)
-    {
+    private String getUniqueVarName(String prefix) {
         var name = prefix + "r";
         var alreadyExists = recordComponents.stream()
                 .map(ClassType::name)
@@ -213,8 +192,7 @@ class InternalRecordBuilderProcessor
         return alreadyExists ? getUniqueVarName(prefix + "_") : name;
     }
 
-    private void add1WithMethod(TypeSpec.Builder classBuilder, RecordClassType component, int index)
-    {
+    private void add1WithMethod(TypeSpec.Builder classBuilder, RecordClassType component, int index) {
         /*
             Adds a with method for the component similar to:
 
@@ -235,8 +213,7 @@ class InternalRecordBuilderProcessor
             ClassType parameterComponent = recordComponents.get(parameterIndex);
             if (parameterIndex == index) {
                 codeBlockBuilder.add(parameterComponent.name());
-            }
-            else {
+            } else {
                 codeBlockBuilder.add("$L.$L()", uniqueVarName, parameterComponent.name());
             }
         });
@@ -256,8 +233,7 @@ class InternalRecordBuilderProcessor
         classBuilder.addMethod(methodSpec);
     }
 
-    private void addDefaultConstructor()
-    {
+    private void addDefaultConstructor() {
         /*
             Adds a default constructor similar to:
 
@@ -271,8 +247,7 @@ class InternalRecordBuilderProcessor
         builder.addMethod(constructor);
     }
 
-    private void addStaticBuilder()
-    {
+    private void addStaticBuilder() {
         /*
             Adds an static builder similar to:
 
@@ -296,8 +271,7 @@ class InternalRecordBuilderProcessor
         this.builder.addMethod(builder.build());
     }
 
-    private void addAllArgsConstructor()
-    {
+    private void addAllArgsConstructor() {
         /*
             Adds an all-args constructor similar to:
 
@@ -318,8 +292,7 @@ class InternalRecordBuilderProcessor
         builder.addMethod(constructorBuilder.build());
     }
 
-    private void addToStringMethod()
-    {
+    private void addToStringMethod() {
         /*
             add a toString() method similar to:
 
@@ -348,8 +321,7 @@ class InternalRecordBuilderProcessor
         builder.addMethod(methodSpec);
     }
 
-    private void addHashCodeMethod()
-    {
+    private void addHashCodeMethod() {
         /*
             add a hashCode() method similar to:
 
@@ -377,8 +349,7 @@ class InternalRecordBuilderProcessor
         builder.addMethod(methodSpec);
     }
 
-    private void addEqualsMethod()
-    {
+    private void addEqualsMethod() {
         /*
             add an equals() method similar to:
 
@@ -396,8 +367,7 @@ class InternalRecordBuilderProcessor
             String name = recordComponent.name();
             if (recordComponent.typeName().isPrimitive()) {
                 codeBuilder.add("\n&& ($L == $L.$L)", name, uniqueVarName, name);
-            }
-            else {
+            } else {
                 codeBuilder.add("\n&& $T.equals($L, $L.$L)", Objects.class, name, uniqueVarName, name);
             }
         });
@@ -414,8 +384,7 @@ class InternalRecordBuilderProcessor
         builder.addMethod(methodSpec);
     }
 
-    private void addBuildMethod()
-    {
+    private void addBuildMethod() {
         /*
             Adds the build method that generates the record similar to:
 
@@ -434,8 +403,7 @@ class InternalRecordBuilderProcessor
         builder.addMethod(methodSpec);
     }
 
-    private CodeBlock buildCodeBlock()
-    {
+    private CodeBlock buildCodeBlock() {
         /*
             Builds the code block for allocating the record from its parts
         */
@@ -451,8 +419,7 @@ class InternalRecordBuilderProcessor
         return codeBuilder.build();
     }
 
-    private void addStaticCopyBuilderMethod()
-    {
+    private void addStaticCopyBuilderMethod() {
         /*
             Adds a copy builder method that pre-fills the builder with existing values similar to:
 
@@ -481,8 +448,7 @@ class InternalRecordBuilderProcessor
         builder.addMethod(methodSpec);
     }
 
-    private void addStaticDefaultBuilderMethod()
-    {
+    private void addStaticDefaultBuilderMethod() {
         /*
             Adds a the default builder method similar to:
 
@@ -501,8 +467,7 @@ class InternalRecordBuilderProcessor
         builder.addMethod(methodSpec);
     }
 
-    private void addStaticComponentsMethod()
-    {
+    private void addStaticComponentsMethod() {
         /*
             Adds a static method that converts a record instance into a stream of its component parts
 
@@ -536,8 +501,7 @@ class InternalRecordBuilderProcessor
         builder.addMethod(methodSpec);
     }
 
-    private void addStaticDowncastMethod()
-    {
+    private void addStaticDowncastMethod() {
         /*
             Adds a method that downcasts to the record type
 
@@ -568,19 +532,40 @@ class InternalRecordBuilderProcessor
         builder.addMethod(methodSpec);
     }
 
-    private void add1Field(ClassType component)
-    {
+    private void add1Field(ClassType component) {
         /*
             For a single record component, add a field similar to:
 
             private T p;
          */
-        var fieldSpec = FieldSpec.builder(component.typeName(), component.name(), Modifier.PRIVATE).build();
-        builder.addField(fieldSpec);
+        var fieldSpecBuilder = FieldSpec.builder(component.typeName(), component.name(), Modifier.PRIVATE);
+        if (metaData.emptyDefaultForOptional()) {
+            TypeName thisOptionalType = null;
+            if (isOptional(component)) {
+                thisOptionalType = optionalType;
+            } else if (component.typeName().equals(optionalIntType)) {
+                thisOptionalType = optionalIntType;
+            } else if (component.typeName().equals(optionalLongType)) {
+                thisOptionalType = optionalLongType;
+            } else if (component.typeName().equals(optionalDoubleType)) {
+                thisOptionalType = optionalDoubleType;
+            }
+            if (thisOptionalType != null) {
+                var codeBlock = CodeBlock.builder().add("$T.empty()", thisOptionalType).build();
+                fieldSpecBuilder.initializer(codeBlock);
+            }
+        }
+        builder.addField(fieldSpecBuilder.build());
     }
 
-    private void add1GetterMethod(RecordClassType component)
-    {
+    private boolean isOptional(ClassType component) {
+        if (component.typeName().equals(optionalType)) {
+            return true;
+        }
+        return (component.typeName() instanceof ParameterizedTypeName) && ((ParameterizedTypeName) component.typeName()).rawType.equals(optionalType);
+    }
+
+    private void add1GetterMethod(RecordClassType component) {
         /*
             For a single record component, add a getter similar to:
 
@@ -598,8 +583,7 @@ class InternalRecordBuilderProcessor
         builder.addMethod(methodSpecBuilder.build());
     }
 
-    private void add1SetterMethod(RecordClassType component)
-    {
+    private void add1SetterMethod(RecordClassType component) {
         /*
             For a single record component, add a setter similar to:
 
@@ -623,3 +607,4 @@ class InternalRecordBuilderProcessor
         builder.addMethod(methodSpec);
     }
 }
+
