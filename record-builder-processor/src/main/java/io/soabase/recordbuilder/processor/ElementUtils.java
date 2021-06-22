@@ -19,7 +19,7 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeVariableName;
-import io.soabase.recordbuilder.core.RecordBuilderMetaData;
+import io.soabase.recordbuilder.core.RecordBuilder;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.AnnotationValue;
@@ -119,7 +119,7 @@ public class ElementUtils {
         return prefix + Character.toUpperCase(name.charAt(0)) + name.substring(1);
     }
 
-    public static String getBuilderName(TypeElement element, RecordBuilderMetaData metaData, ClassType classType, String suffix) {
+    public static String getBuilderName(TypeElement element, RecordBuilder.Options metaData, ClassType classType, String suffix) {
         // generate the class name
         var baseName = classType.name() + suffix;
         return metaData.prefixEnclosingClassNames() ? (getBuilderNamePrefix(element.getEnclosingElement()) + baseName) : baseName;

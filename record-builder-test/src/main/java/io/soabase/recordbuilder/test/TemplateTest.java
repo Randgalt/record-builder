@@ -15,9 +15,9 @@
  */
 package io.soabase.recordbuilder.test;
 
-import io.soabase.recordbuilder.core.RecordBuilder;
+import java.time.Instant;
 
-@RecordBuilder
-@RecordBuilder.Options(prefixEnclosingClassNames = false)
-public record SimpleRecord(int i, String s) {
+@MyTemplate
+public record TemplateTest(String text, Instant date) implements TemplateTestBuilder.Com
+{
 }

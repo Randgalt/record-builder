@@ -22,7 +22,6 @@ import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeVariableName;
 import io.soabase.recordbuilder.core.IgnoreDefaultMethod;
 import io.soabase.recordbuilder.core.RecordBuilder;
-import io.soabase.recordbuilder.core.RecordBuilderMetaData;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
@@ -59,7 +58,7 @@ class InternalRecordInterfaceProcessor {
 
     private record Component(ExecutableElement element, Optional<String> alternateName){}
 
-    InternalRecordInterfaceProcessor(ProcessingEnvironment processingEnv, TypeElement iface, boolean addRecordBuilder, RecordBuilderMetaData metaData, Optional<String> packageNameOpt) {
+    InternalRecordInterfaceProcessor(ProcessingEnvironment processingEnv, TypeElement iface, boolean addRecordBuilder, RecordBuilder.Options metaData, Optional<String> packageNameOpt) {
         this.processingEnv = processingEnv;
         packageName = packageNameOpt.orElseGet(() -> ElementUtils.getPackageName(iface));
         recordComponents = getRecordComponents(iface);
