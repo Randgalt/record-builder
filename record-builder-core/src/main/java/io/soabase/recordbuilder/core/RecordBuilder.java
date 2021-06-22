@@ -116,6 +116,12 @@ public @interface RecordBuilder {
          * @return true/false
          */
         boolean inheritComponentAnnotations() default true;
+
+        /**
+         * Set the default value of {@code Optional} record components to
+         * {@code Optional.empty()}
+         */
+        boolean emptyDefaultForOptional() default true;
     }
 
     @Retention(RetentionPolicy.SOURCE)
