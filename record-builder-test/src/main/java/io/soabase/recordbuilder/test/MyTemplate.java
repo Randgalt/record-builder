@@ -17,7 +17,10 @@ package io.soabase.recordbuilder.test;
 
 import io.soabase.recordbuilder.core.RecordBuilder;
 
-@RecordBuilder
-@RecordBuilder.Options(prefixEnclosingClassNames = false)
-public record SimpleRecord(int i, String s) {
+@RecordBuilder.Template(options = @RecordBuilder.Options(
+        fileComment = "This is a test",
+        withClassName = "Com"
+))
+public @interface MyTemplate
+{
 }
