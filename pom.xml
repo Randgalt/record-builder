@@ -33,6 +33,7 @@
         <maven-shade-plugin-version>3.2.1</maven-shade-plugin-version>
         <maven-release-plugin-version>2.5.3</maven-release-plugin-version>
         <maven-surefire-plugin-version>3.0.0-M5</maven-surefire-plugin-version>
+        <maven-jar-plugin-version>3.2.0</maven-jar-plugin-version>
 
         <javapoet-version>1.12.1</javapoet-version>
         <junit-jupiter-version>5.5.2</junit-jupiter-version>
@@ -289,6 +290,12 @@
                     <configuration>
                         <argLine>${enable-preview}</argLine>
                     </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${maven-jar-plugin-version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
