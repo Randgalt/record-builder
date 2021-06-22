@@ -108,6 +108,14 @@ public @interface RecordBuilder {
          * be prefixed to the builder name if this returns true.
          */
         boolean prefixEnclosingClassNames() default true;
+
+        /**
+         * If true, any annotations (if applicable) on record components are copied
+         * to the builder methods
+         *
+         * @return true/false
+         */
+        boolean inheritComponentAnnotations() default true;
     }
 
     @Retention(RetentionPolicy.SOURCE)
