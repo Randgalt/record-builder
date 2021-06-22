@@ -37,6 +37,7 @@
         <javapoet-version>1.12.1</javapoet-version>
         <junit-jupiter-version>5.5.2</junit-jupiter-version>
         <asm-version>7.2</asm-version>
+        <validation-api-version>2.0.1.Final</validation-api-version>
     </properties>
 
     <name>Record Builder</name>
@@ -112,6 +113,12 @@
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter</artifactId>
                 <version>${junit-jupiter-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>javax.validation</groupId>
+                <artifactId>validation-api</artifactId>
+                <version>${validation-api-version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
