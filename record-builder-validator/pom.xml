@@ -11,6 +11,10 @@
 
     <artifactId>record-builder-validator</artifactId>
 
+    <properties>
+        <license-file-path>${project.parent.basedir}/src/etc/header.txt</license-file-path>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
