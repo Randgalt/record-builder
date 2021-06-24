@@ -15,11 +15,17 @@
  */
 package io.soabase.recordbuilder.test;
 
-import io.soabase.recordbuilder.core.RecordBuilder;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-import javax.validation.constraints.NotNull;
+import java.time.Instant;
 
-@RecordBuilder.Options(interpretNotNulls = true)
-@RecordBuilder
-public record RequiredRecord(@NotNull String hey, @NotNull int i) {
+class TestTemplate {
+    @Test
+    void testTemplate() {
+        var t = TemplateTestBuilder.TemplateTest("one", Instant.MIN);
+        var w = t.withText("other");
+        Assertions.assertEquals("one", t.text());
+        Assertions.assertEquals("other", w.text());
+    }
 }
