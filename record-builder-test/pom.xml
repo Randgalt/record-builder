@@ -9,6 +9,10 @@
 
     <artifactId>record-builder-test</artifactId>
 
+    <properties>
+        <license-file-path>${project.parent.basedir}/src/etc/header.txt</license-file-path>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>javax.validation</groupId>

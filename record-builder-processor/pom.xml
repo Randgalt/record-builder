@@ -9,6 +9,10 @@
 
     <artifactId>record-builder-processor</artifactId>
 
+    <properties>
+        <license-file-path>${project.parent.basedir}/src/etc/header.txt</license-file-path>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.squareup</groupId>

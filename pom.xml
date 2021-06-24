@@ -36,6 +36,8 @@
         <maven-surefire-plugin-version>3.0.0-M5</maven-surefire-plugin-version>
         <maven-jar-plugin-version>3.2.0</maven-jar-plugin-version>
 
+        <license-file-path>src/etc/header.txt</license-file-path>
+
         <javapoet-version>1.12.1</javapoet-version>
         <junit-jupiter-version>5.5.2</junit-jupiter-version>
         <asm-version>7.2</asm-version>
@@ -188,7 +190,7 @@
                     <artifactId>maven-license-plugin</artifactId>
                     <version>${maven-license-plugin-version}</version>
                     <configuration>
-                        <header>src/etc/header.txt</header>
+                        <header>${license-file-path}</header>
                         <excludes>
                             <exclude>**/*.apt</exclude>
                             <exclude>**/*.md</exclude>
@@ -214,6 +216,8 @@
                             <exclude>**/jvm.config</exclude>
                             <exclude>**/.java-version</exclude>
                             <exclude>**/.travis.yml</exclude>
+                            <exclude>**/gradlew</exclude>
+                            <exclude>**/.github/**</exclude>
                         </excludes>
                         <strictCheck>true</strictCheck>
                     </configuration>
@@ -318,6 +322,12 @@
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>${maven-jar-plugin-version}</version>
                 </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-gpg-plugin</artifactId>
+                    <version>${maven-gpg-plugin-version}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -361,7 +371,6 @@
                 <plugins>
                     <plugin>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>${maven-gpg-plugin-version}</version>
                         <configuration>
                             <passphrase>${gpg.passphrase}</passphrase>
                             <useAgent>true</useAgent>
