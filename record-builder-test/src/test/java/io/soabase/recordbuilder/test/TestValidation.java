@@ -15,11 +15,19 @@
  */
 package io.soabase.recordbuilder.test;
 
-import io.soabase.recordbuilder.core.RecordBuilder;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-import javax.validation.constraints.NotNull;
+import javax.validation.ValidationException;
 
-@RecordBuilder.Options(interpretNotNulls = true)
-@RecordBuilder
-public record RequiredRecord(@NotNull String hey, @NotNull int i) {
+class TestValidation {
+    @Test
+    void testNotNulls() {
+        Assertions.assertThrows(NullPointerException.class, () -> RequiredRecordBuilder.builder().build());
+    }
+
+    @Test
+    void testValidation() {
+        Assertions.assertThrows(ValidationException.class, () -> RequiredRecord2Builder.builder().build());
+    }
 }
