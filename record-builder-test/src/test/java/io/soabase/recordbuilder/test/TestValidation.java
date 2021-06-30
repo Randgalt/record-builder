@@ -30,4 +30,16 @@ class TestValidation {
     void testValidation() {
         Assertions.assertThrows(ValidationException.class, () -> RequiredRecord2Builder.builder().build());
     }
+
+    @Test
+    void testNotNullsWithNewProperty() {
+        var valid = RequiredRecordBuilder.builder().hey("hey").i(1).build();
+        Assertions.assertThrows(NullPointerException.class, () -> valid.withHey(null));
+    }
+
+    @Test
+    void testValidationWithNewProperty() {
+        var valid = RequiredRecord2Builder.builder().hey("hey").i(1).build();
+        Assertions.assertThrows(ValidationException.class, () -> valid.withHey(null));
+    }
 }

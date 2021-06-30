@@ -206,10 +206,15 @@ class InternalRecordBuilderProcessor {
             }
          */
         var codeBlockBuilder = CodeBlock.builder();
+        addNullCheckCodeBlock(codeBlockBuilder, index);
         if (recordComponents.size() > 1) {
             codeBlockBuilder.add("$T $L = $L(this);\n", recordClassType.typeName(), uniqueVarName, metaData.downCastMethodName());
         }
-        codeBlockBuilder.add("return new $T(", recordClassType.typeName());
+        codeBlockBuilder.add("$[return ");
+        if (metaData.useValidationApi()) {
+            codeBlockBuilder.add("$T.validate(", validatorTypeName);
+        }
+        codeBlockBuilder.add("new $T(", recordClassType.typeName());
         IntStream.range(0, recordComponents.size()).forEach(parameterIndex -> {
             if (parameterIndex > 0) {
                 codeBlockBuilder.add(", ");
@@ -221,7 +226,11 @@ class InternalRecordBuilderProcessor {
                 codeBlockBuilder.add("$L.$L()", uniqueVarName, parameterComponent.name());
             }
         });
-        codeBlockBuilder.add(");");
+        codeBlockBuilder.add(")");
+        if (metaData.useValidationApi()) {
+            codeBlockBuilder.add(")");
+        }
+        codeBlockBuilder.add(";$]");
 
         var methodName = getWithMethodName(component, metaData.withClassMethodPrefix());
         var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
@@ -277,10 +286,18 @@ class InternalRecordBuilderProcessor {
 
     private void addNullCheckCodeBlock(CodeBlock.Builder builder) {
         if (metaData.interpretNotNulls()) {
-            recordComponents.stream()
-                    .filter(component -> !component.typeName().isPrimitive())
-                    .filter(this::isNullAnnotated)
-                    .forEach(component -> builder.addStatement("$T.requireNonNull($L, $S)", Objects.class, component.name(), component.name() + " is required"));
+            for (int i = 0; i < recordComponents.size(); ++i) {
+                addNullCheckCodeBlock(builder, i);
+            }
+        }
+    }
+
+    private void addNullCheckCodeBlock(CodeBlock.Builder builder, int index) {
+        if (metaData.interpretNotNulls()) {
+            var component = recordComponents.get(index);
+            if (!component.typeName().isPrimitive() && isNullAnnotated(component)) {
+                builder.addStatement("$T.requireNonNull($L, $S)", Objects.class, component.name(), component.name() + " is required");
+            }
         }
     }
 
@@ -590,7 +607,7 @@ class InternalRecordBuilderProcessor {
         if (component.typeName().equals(optionalType)) {
             return true;
         }
-        return (component.typeName() instanceof ParameterizedTypeName) && ((ParameterizedTypeName) component.typeName()).rawType.equals(optionalType);
+        return (component.typeName() instanceof ParameterizedTypeName parameterizedTypeName) && parameterizedTypeName.rawType.equals(optionalType);
     }
 
     private void add1GetterMethod(RecordClassType component) {
