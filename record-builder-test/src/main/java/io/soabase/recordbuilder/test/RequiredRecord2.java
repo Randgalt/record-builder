@@ -21,5 +21,5 @@ import javax.validation.constraints.NotNull;
 
 @RecordBuilder.Options(useValidationApi = true)
 @RecordBuilder
-public record RequiredRecord2(@NotNull String hey, @NotNull int i) {
+public record RequiredRecord2(@NotNull String hey, @NotNull int i) implements RequiredRecord2Builder.With {
 }
