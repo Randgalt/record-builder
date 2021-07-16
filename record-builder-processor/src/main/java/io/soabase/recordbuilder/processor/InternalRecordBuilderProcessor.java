@@ -80,7 +80,6 @@ class InternalRecordBuilderProcessor {
             add1SetterMethod(component);
             add1GetterMethod(component);
         });
-        addStaticDowncastMethod();
         builderType = builder.build();
     }
 
@@ -129,6 +128,7 @@ class InternalRecordBuilderProcessor {
                 .addJavadoc("Add withers to {@code $L}\n", recordClassType.name())
                 .addModifiers(Modifier.PUBLIC)
                 .addTypeVariables(typeVariables);
+        recordComponents.forEach(component -> addWithGetterMethod(classBuilder, component));
         addWithBuilderMethod(classBuilder);
         addWithSuppliedBuilderMethod(classBuilder);
         IntStream.range(0, recordComponents.size()).forEach(index -> add1WithMethod(classBuilder, recordComponents.get(index), index));
@@ -167,13 +167,13 @@ class InternalRecordBuilderProcessor {
             Adds a method that returns a pre-filled copy builder similar to:
 
             default MyRecordBuilder with() {
-                MyRecord r = _downcast(this);
                 return MyRecordBuilder.builder(r);
             }
          */
         var codeBlockBuilder = CodeBlock.builder()
-                .add("$T $L = $L(this);\n", recordClassType.typeName(), uniqueVarName, metaData.downCastMethodName())
-                .add("return $L.$L($L);", builderClassType.name(), metaData.copyMethodName(), uniqueVarName);
+                .add("return new $L(", builderClassType.name());
+        addComponentCallsAsArguments(-1, codeBlockBuilder);
+        codeBlockBuilder.add(");");
         var methodSpec = MethodSpec.methodBuilder(metaData.withClassMethodPrefix())
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Return a new record builder using the current values")
@@ -201,31 +201,17 @@ class InternalRecordBuilderProcessor {
             Adds a with method for the component similar to:
 
             default MyRecord withName(String name) {
-                MyRecord r = _downcast(this);
                 return new MyRecord(name, r.age());
             }
          */
         var codeBlockBuilder = CodeBlock.builder();
         addNullCheckCodeBlock(codeBlockBuilder, index);
-        if (recordComponents.size() > 1) {
-            codeBlockBuilder.add("$T $L = $L(this);\n", recordClassType.typeName(), uniqueVarName, metaData.downCastMethodName());
-        }
         codeBlockBuilder.add("$[return ");
         if (metaData.useValidationApi()) {
             codeBlockBuilder.add("$T.validate(", validatorTypeName);
         }
         codeBlockBuilder.add("new $T(", recordClassType.typeName());
-        IntStream.range(0, recordComponents.size()).forEach(parameterIndex -> {
-            if (parameterIndex > 0) {
-                codeBlockBuilder.add(", ");
-            }
-            ClassType parameterComponent = recordComponents.get(parameterIndex);
-            if (parameterIndex == index) {
-                codeBlockBuilder.add(parameterComponent.name());
-            } else {
-                codeBlockBuilder.add("$L.$L()", uniqueVarName, parameterComponent.name());
-            }
-        });
+        addComponentCallsAsArguments(index, codeBlockBuilder);
         codeBlockBuilder.add(")");
         if (metaData.useValidationApi()) {
             codeBlockBuilder.add(")");
@@ -244,6 +230,20 @@ class InternalRecordBuilderProcessor {
                 .returns(recordClassType.typeName())
                 .build();
         classBuilder.addMethod(methodSpec);
+    }
+
+    private void addComponentCallsAsArguments(int index, CodeBlock.Builder codeBlockBuilder) {
+        IntStream.range(0, recordComponents.size()).forEach(parameterIndex -> {
+            if (parameterIndex > 0) {
+                codeBlockBuilder.add(", ");
+            }
+            ClassType parameterComponent = recordComponents.get(parameterIndex);
+            if (parameterIndex == index) {
+                codeBlockBuilder.add(parameterComponent.name());
+            } else {
+                codeBlockBuilder.add("$L()", parameterComponent.name());
+            }
+        });
     }
 
     private void addDefaultConstructor() {
@@ -546,37 +546,6 @@ class InternalRecordBuilderProcessor {
         builder.addMethod(methodSpec);
     }
 
-    private void addStaticDowncastMethod() {
-        /*
-            Adds a method that downcasts to the record type
-
-            private static MyRecord _downcast(Object this) {
-                return (MyRecord)this;
-            }
-         */
-        var codeBlockBuilder = CodeBlock.builder()
-                .add("try {\n")
-                .indent()
-                .add("return ($T)obj;\n", recordClassType.typeName())
-                .unindent()
-                .add("}\n")
-                .add("catch (ClassCastException dummy) {\n")
-                .indent()
-                .add("throw new RuntimeException($S);\n", builderClassType.name() + "." + metaData.withClassName() + " can only be implemented by " + recordClassType.name())
-                .unindent()
-                .add("}");
-        var methodSpec = MethodSpec.methodBuilder(metaData.downCastMethodName())
-                .addAnnotation(generatedRecordBuilderAnnotation)
-                .addJavadoc("Downcast to {@code $L}\n", recordClassType.name())
-                .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
-                .addParameter(Object.class, "obj")
-                .addTypeVariables(typeVariables)
-                .returns(recordClassType.typeName())
-                .addCode(codeBlockBuilder.build())
-                .build();
-        builder.addMethod(methodSpec);
-    }
-
     private void add1Field(ClassType component) {
         /*
             For a single record component, add a field similar to:
@@ -608,6 +577,21 @@ class InternalRecordBuilderProcessor {
             return true;
         }
         return (component.typeName() instanceof ParameterizedTypeName parameterizedTypeName) && parameterizedTypeName.rawType.equals(optionalType);
+    }
+
+    private void addWithGetterMethod(TypeSpec.Builder classBuilder, RecordClassType component) {
+        /*
+            For a single record component, add a getter similar to:
+
+            T p();
+         */
+        var methodSpecBuilder = MethodSpec.methodBuilder(component.name())
+                .addJavadoc("Return the current value for the {@code $L} record component in the builder\n", component.name())
+                .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
+                .addAnnotation(generatedRecordBuilderAnnotation)
+                .returns(component.typeName());
+        component.getAccessorAnnotations().forEach(annotationMirror -> methodSpecBuilder.addAnnotation(AnnotationSpec.get(annotationMirror)));
+        classBuilder.addMethod(methodSpecBuilder.build());
     }
 
     private void add1GetterMethod(RecordClassType component) {

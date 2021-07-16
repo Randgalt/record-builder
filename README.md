@@ -184,29 +184,26 @@ public class NameAndAgeBuilder {
                 && Objects.equals(name, b.name)
                 && (age == b.age));
     }
-
-    /**
-     * Downcast to {@code NameAndAge}
-     */
-    private static NameAndAge _downcast(Object obj) {
-        try {
-            return (NameAndAge)obj;
-        }
-        catch (ClassCastException dummy) {
-            throw new RuntimeException("NameAndAgeBuilder.With can only be implemented for NameAndAge");
-        }
-    }
-
+    
     /**
      * Add withers to {@code NameAndAge}
      */
     public interface With {
         /**
+         * Return the current value for the {@code name} record component in the builder
+         */
+        String name();
+
+        /**
+         * Return the current value for the {@code age} record component in the builder
+         */
+        int age();
+
+        /**
          * Return a new record builder using the current values
          */
         default NameAndAgeBuilder with() {
-            NameAndAge r = _downcast(this);
-            return NameAndAgeBuilder.builder(r);
+            return new NameAndAgeBuilder(name(), age());
         }
 
         /**
@@ -222,16 +219,14 @@ public class NameAndAgeBuilder {
          * Return a new instance of {@code NameAndAge} with a new value for {@code name}
          */
         default NameAndAge withName(String name) {
-            NameAndAge r = _downcast(this);
-            return new NameAndAge(name, r.age());
+            return new NameAndAge(name, age());
         }
 
         /**
          * Return a new instance of {@code NameAndAge} with a new value for {@code age}
          */
         default NameAndAge withAge(int age) {
-            NameAndAge r = _downcast(this);
-            return new NameAndAge(r.name(), age);
+            return new NameAndAge(name(), age);
         }
     }
 }
