@@ -70,11 +70,6 @@ public @interface RecordBuilder {
         String buildMethodName() default "build";
 
         /**
-         * The name to use for the downcast method
-         */
-        String downCastMethodName() default "_downcast";
-
-        /**
          * The name to use for the method that returns the record components as a stream
          */
         String componentsMethodName() default "stream";
