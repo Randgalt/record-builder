@@ -42,6 +42,7 @@ class InternalRecordBuilderProcessor {
     private final String uniqueVarName;
     private final Pattern notNullPattern;
 
+    private static final TypeName overrideType = TypeName.get(Override.class);
     private static final TypeName optionalType = TypeName.get(Optional.class);
     private static final TypeName optionalIntType = TypeName.get(OptionalInt.class);
     private static final TypeName optionalLongType = TypeName.get(OptionalLong.class);
@@ -220,7 +221,7 @@ class InternalRecordBuilderProcessor {
 
         var methodName = getWithMethodName(component, metaData.withClassMethodPrefix());
         var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
-        component.getCanonicalConstructorAnnotations().forEach(annotationMirror -> parameterSpecBuilder.addAnnotation(AnnotationSpec.get(annotationMirror)));
+        addConstructorAnnotations(component, parameterSpecBuilder);
         var methodSpec = MethodSpec.methodBuilder(methodName)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Return a new instance of {@code $L} with a new value for {@code $L}\n", recordClassType.name(), component.name())
@@ -278,7 +279,7 @@ class InternalRecordBuilderProcessor {
                 .addCode(codeBlock);
         recordComponents.forEach(component -> {
             var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
-            component.getCanonicalConstructorAnnotations().forEach(annotationMirror -> parameterSpecBuilder.addAnnotation(AnnotationSpec.get(annotationMirror)));
+            addConstructorAnnotations(component, parameterSpecBuilder);
             builder.addParameter(parameterSpecBuilder.build());
         });
         this.builder.addMethod(builder.build());
@@ -590,8 +591,32 @@ class InternalRecordBuilderProcessor {
                 .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .returns(component.typeName());
-        component.getAccessorAnnotations().forEach(annotationMirror -> methodSpecBuilder.addAnnotation(AnnotationSpec.get(annotationMirror)));
+        addAccessorAnnotations(component, methodSpecBuilder);
         classBuilder.addMethod(methodSpecBuilder.build());
+    }
+
+    private boolean filterOutOverride(AnnotationSpec annotationSpec) {
+        return !annotationSpec.type.equals(overrideType);
+    }
+
+    private void addConstructorAnnotations(RecordClassType component, ParameterSpec.Builder parameterSpecBuilder) {
+        if (metaData.inheritComponentAnnotations()) {
+            component.getCanonicalConstructorAnnotations()
+                    .stream()
+                    .map(AnnotationSpec::get)
+                    .filter(this::filterOutOverride)
+                    .forEach(parameterSpecBuilder::addAnnotation);
+        }
+    }
+
+    private void addAccessorAnnotations(RecordClassType component, MethodSpec.Builder methodSpecBuilder) {
+        if (metaData.inheritComponentAnnotations()) {
+            component.getAccessorAnnotations()
+                    .stream()
+                    .map(AnnotationSpec::get)
+                    .filter(this::filterOutOverride)
+                    .forEach(methodSpecBuilder::addAnnotation);
+        }
     }
 
     private void add1GetterMethod(RecordClassType component) {
@@ -608,7 +633,7 @@ class InternalRecordBuilderProcessor {
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .returns(component.typeName())
                 .addStatement("return $L", component.name());
-        component.getAccessorAnnotations().forEach(annotationMirror -> methodSpecBuilder.addAnnotation(AnnotationSpec.get(annotationMirror)));
+        addAccessorAnnotations(component, methodSpecBuilder);
         builder.addMethod(methodSpecBuilder.build());
     }
 
@@ -622,7 +647,7 @@ class InternalRecordBuilderProcessor {
             }
          */
         var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
-        component.getCanonicalConstructorAnnotations().forEach(annotationMirror -> parameterSpecBuilder.addAnnotation(AnnotationSpec.get(annotationMirror)));
+        addConstructorAnnotations(component, parameterSpecBuilder);
 
         var methodSpec = MethodSpec.methodBuilder(component.name())
                 .addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name())
