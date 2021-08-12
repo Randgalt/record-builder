@@ -26,6 +26,12 @@ import java.lang.reflect.AnnotatedElement;
 
 class TestAnnotated {
     @Test
+    void testInheritComponentAnnotationsFalse() throws NoSuchMethodException {
+        var method = IgnoreAnnotatedBuilder.class.getMethod("s");
+        Assertions.assertNull(method.getAnnotation(NotNull.class));
+    }
+
+    @Test
     void testStaticConstructor() throws NoSuchMethodException {
         var method = AnnotatedBuilder.class.getMethod("Annotated", String.class, Integer.TYPE, Double.TYPE);
         var parameters = method.getParameters();
