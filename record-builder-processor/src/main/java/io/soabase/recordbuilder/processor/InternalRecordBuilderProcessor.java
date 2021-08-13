@@ -18,6 +18,7 @@ package io.soabase.recordbuilder.processor;
 import com.squareup.javapoet.*;
 import io.soabase.recordbuilder.core.RecordBuilder;
 
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import java.util.*;
 import java.util.function.Consumer;
@@ -41,14 +42,17 @@ class InternalRecordBuilderProcessor {
     private final TypeSpec.Builder builder;
     private final String uniqueVarName;
     private final Pattern notNullPattern;
+    private final CollectionBuilderUtils collectionBuilderUtils;
 
     private static final TypeName optionalType = TypeName.get(Optional.class);
     private static final TypeName optionalIntType = TypeName.get(OptionalInt.class);
     private static final TypeName optionalLongType = TypeName.get(OptionalLong.class);
     private static final TypeName optionalDoubleType = TypeName.get(OptionalDouble.class);
     private static final TypeName validatorTypeName = ClassName.get("io.soabase.recordbuilder.validator", "RecordBuilderValidator");
+    private final ProcessingEnvironment processingEnv;
 
-    InternalRecordBuilderProcessor(TypeElement record, RecordBuilder.Options metaData, Optional<String> packageNameOpt) {
+    InternalRecordBuilderProcessor(ProcessingEnvironment processingEnv, TypeElement record, RecordBuilder.Options metaData, Optional<String> packageNameOpt) {
+        this.processingEnv = processingEnv;
         this.metaData = getMetaData(record, metaData);
         recordClassType = ElementUtils.getClassType(record, record.getTypeParameters());
         packageName = packageNameOpt.orElseGet(() -> ElementUtils.getPackageName(record));
@@ -57,6 +61,7 @@ class InternalRecordBuilderProcessor {
         recordComponents = buildRecordComponents(record);
         uniqueVarName = getUniqueVarName();
         notNullPattern = Pattern.compile(metaData.interpretNotNullsPattern());
+        collectionBuilderUtils = new CollectionBuilderUtils(recordComponents, this.metaData.useImmutableCollections());
 
         builder = TypeSpec.classBuilder(builderClassType.name())
                 .addModifiers(Modifier.PUBLIC)
@@ -80,6 +85,7 @@ class InternalRecordBuilderProcessor {
             add1SetterMethod(component);
             add1GetterMethod(component);
         });
+        collectionBuilderUtils.addShims(builder);
         builderType = builder.build();
     }
 
@@ -103,7 +109,7 @@ class InternalRecordBuilderProcessor {
                 .mapToObj(index -> {
                     var thisAccessorAnnotations = (accessorAnnotations.size() > index) ? accessorAnnotations.get(index) : List.<AnnotationMirror>of();
                     var thisCanonicalConstructorAnnotations = (canonicalConstructorAnnotations.size() > index) ? canonicalConstructorAnnotations.get(index) : List.<AnnotationMirror>of();
-                    return ElementUtils.getRecordClassType(recordComponents.get(index), thisAccessorAnnotations, thisCanonicalConstructorAnnotations);
+                    return ElementUtils.getRecordClassType(processingEnv, recordComponents.get(index), thisAccessorAnnotations, thisCanonicalConstructorAnnotations);
                 })
                 .collect(Collectors.toList());
     }
@@ -237,9 +243,9 @@ class InternalRecordBuilderProcessor {
             if (parameterIndex > 0) {
                 codeBlockBuilder.add(", ");
             }
-            ClassType parameterComponent = recordComponents.get(parameterIndex);
+            RecordClassType parameterComponent = recordComponents.get(parameterIndex);
             if (parameterIndex == index) {
-                codeBlockBuilder.add(parameterComponent.name());
+                collectionBuilderUtils.add(codeBlockBuilder, parameterComponent);
             } else {
                 codeBlockBuilder.add("$L()", parameterComponent.name());
             }
@@ -454,7 +460,7 @@ class InternalRecordBuilderProcessor {
             if (index > 0) {
                 codeBuilder.add(", ");
             }
-            codeBuilder.add("$L", recordComponents.get(index).name());
+            collectionBuilderUtils.add(codeBuilder, recordComponents.get(index));
         });
         codeBuilder.add(")");
         if (metaData.useValidationApi()) {
