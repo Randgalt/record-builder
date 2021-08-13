@@ -181,7 +181,7 @@ public class RecordBuilderProcessor
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "RecordBuilder only valid for records.", record);
             return;
         }
-        var internalProcessor = new InternalRecordBuilderProcessor(record, metaData, packageName);
+        var internalProcessor = new InternalRecordBuilderProcessor(processingEnv, record, metaData, packageName);
         writeRecordBuilderJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(), internalProcessor.builderType(), metaData);
     }
 
