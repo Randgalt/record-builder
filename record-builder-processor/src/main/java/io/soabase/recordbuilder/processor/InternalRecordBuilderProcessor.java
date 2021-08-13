@@ -54,9 +54,10 @@ class InternalRecordBuilderProcessor {
 
     InternalRecordBuilderProcessor(ProcessingEnvironment processingEnv, TypeElement record, RecordBuilder.Options metaData, Optional<String> packageNameOpt) {
         this.processingEnv = processingEnv;
+        var recordActualPackage = ElementUtils.getPackageName(record);
         this.metaData = getMetaData(record, metaData);
         recordClassType = ElementUtils.getClassType(record, record.getTypeParameters());
-        packageName = packageNameOpt.orElseGet(() -> ElementUtils.getPackageName(record));
+        packageName = packageNameOpt.orElse(recordActualPackage);
         builderClassType = ElementUtils.getClassType(packageName, getBuilderName(record, metaData, recordClassType, metaData.suffix()), record.getTypeParameters());
         typeVariables = record.getTypeParameters().stream().map(TypeVariableName::get).collect(Collectors.toList());
         recordComponents = buildRecordComponents(record);
@@ -65,9 +66,9 @@ class InternalRecordBuilderProcessor {
         collectionBuilderUtils = new CollectionBuilderUtils(recordComponents, this.metaData.useImmutableCollections());
 
         builder = TypeSpec.classBuilder(builderClassType.name())
-                .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addTypeVariables(typeVariables);
+        addVisibility(recordActualPackage.equals(packageName), record.getModifiers());
         addWithNestedClass();
         addDefaultConstructor();
         addStaticBuilder();
@@ -100,6 +101,18 @@ class InternalRecordBuilderProcessor {
 
     TypeSpec builderType() {
         return builderType;
+    }
+
+    private void addVisibility(boolean builderIsInRecordPackage, Set<Modifier> modifiers) {
+        if (builderIsInRecordPackage) {
+            if (modifiers.contains(Modifier.PUBLIC) || modifiers.contains(Modifier.PRIVATE) || modifiers.contains(Modifier.PROTECTED)) {
+                builder.addModifiers(Modifier.PUBLIC);  // builders are top level classes - can only be public or package-private
+            }
+            // is package-private
+        }
+        else {
+            builder.addModifiers(Modifier.PUBLIC);
+        }
     }
 
     private List<RecordClassType> buildRecordComponents(TypeElement record) {
