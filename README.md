@@ -21,7 +21,7 @@ _Details:_
 - [Record From Interface Details](#RecordInterface-Example)
 - [Generation Via Includes](#generation-via-includes)
 - [Usage](#usage)
-- [Customizing](customizing.md)
+- [Customizing](customizing.md) (e.g. add immutable collections, etc.)
 - [Java 15 Versions](#java-15-versions)
 
 ## RecordBuilder Example
