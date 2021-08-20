@@ -122,7 +122,7 @@ class CollectionBuilderUtils {
         var code = CodeBlock.builder()
                 .add("if (o instanceof Set) {\n")
                 .indent()
-                .addStatement("return (o != null) ? $T.copyOf(o) : $T.of()", setType, setType)
+                .addStatement("return $T.copyOf(o)", setType)
                 .unindent()
                 .addStatement("}")
                 .addStatement("return (o != null) ? $T.copyOf(o) : $T.of()", listType, listType)
