@@ -84,3 +84,6 @@ public @interface MyCoRecordBuilder {
 
 Now, you can use `@MyCoRecordBuilder` instead of `@RecordBuilder` and the record
 will be built with options as specified.
+
+Note: the template mechanism also supports `@RecordInterface` templates via the `asRecordInterface` attribute.
+When it is set a `@RecordInterface` template is created instead.

@@ -15,6 +15,7 @@
  */
 package io.soabase.recordbuilder.test;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
@@ -23,6 +24,15 @@ import static io.soabase.recordbuilder.test.foo.PointBuilder.Point;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TestCollections {
+    @Test
+    void testRecordBuilderOptionsCopied() {
+        try {
+            assertNotNull(CollectionInterfaceRecordBuilder.class.getDeclaredMethod("__list", List.class));
+        } catch (NoSuchMethodException e) {
+            Assertions.fail(e);
+        }
+    }
+
     @Test
     void testCollectionRecordDefaultValues() {
         var defaultValues = CollectionRecordBuilder.builder().build();
