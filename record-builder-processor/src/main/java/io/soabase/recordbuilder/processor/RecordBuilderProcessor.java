@@ -77,12 +77,12 @@ public class RecordBuilderProcessor
     {
         String annotationClass = annotation.getQualifiedName().toString();
         if (annotationClass.equals(RECORD_BUILDER)) {
-            var metaData = RecordBuilderOptions.build(processingEnv.getOptions());
-            processRecordBuilder((TypeElement) element, metaData, Optional.empty());
+            var typeElement = (TypeElement) element;
+            processRecordBuilder(typeElement, getMetaData(typeElement), Optional.empty());
         }
         else if (annotationClass.equals(RECORD_INTERFACE)) {
-            var metaData = RecordBuilderOptions.build(processingEnv.getOptions());
-            processRecordInterface((TypeElement) element, element.getAnnotation(RecordInterface.class).addRecordBuilder(), metaData, Optional.empty());
+            var typeElement = (TypeElement) element;
+            processRecordInterface(typeElement, element.getAnnotation(RecordInterface.class).addRecordBuilder(), getMetaData(typeElement), Optional.empty(), false);
         }
         else if (annotationClass.equals(RECORD_BUILDER_INCLUDE) || annotationClass.equals(RECORD_INTERFACE_INCLUDE)) {
             var metaData = RecordBuilderOptions.build(processingEnv.getOptions());
@@ -90,9 +90,18 @@ public class RecordBuilderProcessor
         } else {
             var recordBuilderTemplate = annotation.getAnnotation(RecordBuilder.Template.class);
             if (recordBuilderTemplate != null) {
-                processRecordBuilder((TypeElement) element, recordBuilderTemplate.options(), Optional.empty());
+                if (recordBuilderTemplate.asRecordInterface()) {
+                    processRecordInterface((TypeElement) element, true, recordBuilderTemplate.options(), Optional.empty(), true);
+                } else {
+                    processRecordBuilder((TypeElement) element, recordBuilderTemplate.options(), Optional.empty());
+                }
             }
         }
+    }
+
+    private RecordBuilder.Options getMetaData(TypeElement typeElement) {
+        var recordSpecificMetaData = typeElement.getAnnotation(RecordBuilder.Options.class);
+        return (recordSpecificMetaData != null) ? recordSpecificMetaData : RecordBuilderOptions.build(processingEnv.getOptions());
     }
 
     private void processIncludes(Element element, RecordBuilder.Options metaData, String annotationClass)
@@ -121,7 +130,7 @@ public class RecordBuilderProcessor
                             if (annotationClass.equals(RECORD_INTERFACE_INCLUDE)) {
                                 var addRecordBuilderOpt = ElementUtils.getAnnotationValue(values, "addRecordBuilder");
                                 var addRecordBuilder = addRecordBuilderOpt.map(ElementUtils::getBooleanAttribute).orElse(true);
-                                processRecordInterface(typeElement, addRecordBuilder, metaData, Optional.of(packageName));
+                                processRecordInterface(typeElement, addRecordBuilder, metaData, Optional.of(packageName), false);
                             }
                             else {
                                 processRecordBuilder(typeElement, metaData, Optional.of(packageName));
@@ -158,13 +167,13 @@ public class RecordBuilderProcessor
         return findPackageElement(actualElement, includedClass.getEnclosingElement());
     }
 
-    private void processRecordInterface(TypeElement element, boolean addRecordBuilder, RecordBuilder.Options metaData, Optional<String> packageName)
+    private void processRecordInterface(TypeElement element, boolean addRecordBuilder, RecordBuilder.Options metaData, Optional<String> packageName, boolean fromTemplate)
     {
         if (!element.getKind().isInterface()) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "RecordInterface only valid for interfaces.", element);
             return;
         }
-        var internalProcessor = new InternalRecordInterfaceProcessor(processingEnv, element, addRecordBuilder, metaData, packageName);
+        var internalProcessor = new InternalRecordInterfaceProcessor(processingEnv, element, addRecordBuilder, metaData, packageName, fromTemplate);
         if (!internalProcessor.isValid()) {
             return;
         }
