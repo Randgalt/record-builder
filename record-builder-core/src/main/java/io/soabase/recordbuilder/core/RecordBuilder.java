@@ -151,5 +151,7 @@ public @interface RecordBuilder {
     @Inherited
     @interface Template {
         RecordBuilder.Options options();
+
+        boolean asRecordInterface() default false;
     }
 }

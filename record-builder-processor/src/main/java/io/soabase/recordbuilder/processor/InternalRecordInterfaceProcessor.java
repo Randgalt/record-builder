@@ -15,13 +15,10 @@
  */
 package io.soabase.recordbuilder.processor;
 
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.ParameterSpec;
-import com.squareup.javapoet.TypeSpec;
-import com.squareup.javapoet.TypeVariableName;
+import com.squareup.javapoet.*;
 import io.soabase.recordbuilder.core.IgnoreDefaultMethod;
 import io.soabase.recordbuilder.core.RecordBuilder;
+
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
@@ -29,13 +26,7 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeKind;
 import javax.tools.Diagnostic;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -56,9 +47,10 @@ class InternalRecordInterfaceProcessor {
 
     private static final Set<String> javaBeanPrefixes = Set.of("get", "is");
 
-    private record Component(ExecutableElement element, Optional<String> alternateName){}
+    private record Component(ExecutableElement element, Optional<String> alternateName) {
+    }
 
-    InternalRecordInterfaceProcessor(ProcessingEnvironment processingEnv, TypeElement iface, boolean addRecordBuilder, RecordBuilder.Options metaData, Optional<String> packageNameOpt) {
+    InternalRecordInterfaceProcessor(ProcessingEnvironment processingEnv, TypeElement iface, boolean addRecordBuilder, RecordBuilder.Options metaData, Optional<String> packageNameOpt, boolean fromTemplate) {
         this.processingEnv = processingEnv;
         packageName = packageNameOpt.orElseGet(() -> ElementUtils.getPackageName(iface));
         recordComponents = getRecordComponents(iface);
@@ -81,6 +73,14 @@ class InternalRecordInterfaceProcessor {
             ClassType builderClassType = ElementUtils.getClassType(packageName, getBuilderName(iface, metaData, recordClassType, metaData.suffix()) + "." + metaData.withClassName(), iface.getTypeParameters());
             builder.addAnnotation(RecordBuilder.class);
             builder.addSuperinterface(builderClassType.typeName());
+            if (fromTemplate) {
+                builder.addAnnotation(AnnotationSpec.get(metaData));
+            } else {
+                var options = iface.getAnnotation(RecordBuilder.Options.class);
+                if (options != null) {
+                    builder.addAnnotation(AnnotationSpec.get(options));
+                }
+            }
         }
 
         alternateMethods = buildAlternateMethods(recordComponents);
@@ -88,8 +88,7 @@ class InternalRecordInterfaceProcessor {
         recordType = builder.build();
     }
 
-    boolean isValid()
-    {
+    boolean isValid() {
         return !recordComponents.isEmpty();
     }
 
@@ -105,8 +104,7 @@ class InternalRecordInterfaceProcessor {
         return recordClassType;
     }
 
-    String toRecord(String classSource)
-    {
+    String toRecord(String classSource) {
         // javapoet does yet support records - so a class was created and we can reshape it
         // The class will look something like this:
         /*
@@ -139,8 +137,7 @@ class InternalRecordInterfaceProcessor {
         return fixedRecord.toString();
     }
 
-    private MethodSpec generateArgumentList()
-    {
+    private MethodSpec generateArgumentList() {
         MethodSpec.Builder builder = MethodSpec.methodBuilder(FAKE_METHOD_NAME);
         recordComponents.forEach(component -> {
             String name = component.alternateName.orElseGet(() -> component.element.getSimpleName().toString());
@@ -153,18 +150,18 @@ class InternalRecordInterfaceProcessor {
 
     private List<String> buildAlternateMethods(List<Component> recordComponents) {
         return recordComponents.stream()
-            .filter(component -> component.alternateName.isPresent())
-            .map(component -> {
-                var method = MethodSpec.methodBuilder(component.element.getSimpleName().toString())
-                    .addAnnotation(Override.class)
-                    .addAnnotation(generatedRecordInterfaceAnnotation)
-                    .returns(ClassName.get(component.element.getReturnType()))
-                    .addModifiers(Modifier.PUBLIC)
-                    .addCode("return $L();", component.alternateName.get())
-                    .build();
-                return method.toString();
-            })
-            .collect(Collectors.toList());
+                .filter(component -> component.alternateName.isPresent())
+                .map(component -> {
+                    var method = MethodSpec.methodBuilder(component.element.getSimpleName().toString())
+                            .addAnnotation(Override.class)
+                            .addAnnotation(generatedRecordInterfaceAnnotation)
+                            .returns(ClassName.get(component.element.getReturnType()))
+                            .addModifiers(Modifier.PUBLIC)
+                            .addCode("return $L();", component.alternateName.get())
+                            .build();
+                    return method.toString();
+                })
+                .collect(Collectors.toList());
     }
 
     private List<Component> getRecordComponents(TypeElement iface) {
@@ -180,8 +177,8 @@ class InternalRecordInterfaceProcessor {
         }
         return components;
     }
-    private static class IllegalInterface extends RuntimeException
-    {
+
+    private static class IllegalInterface extends RuntimeException {
         public IllegalInterface(String message) {
             super(message);
         }
@@ -219,14 +216,13 @@ class InternalRecordInterfaceProcessor {
         });
     }
 
-    private Optional<String> stripBeanPrefix(String name)
-    {
+    private Optional<String> stripBeanPrefix(String name) {
         return javaBeanPrefixes.stream()
-            .filter(prefix -> name.startsWith(prefix) && (name.length() > prefix.length()))
-            .findFirst()
-            .map(prefix -> {
-                var stripped = name.substring(prefix.length());
-                return Character.toLowerCase(stripped.charAt(0)) + stripped.substring(1);
-            });
+                .filter(prefix -> name.startsWith(prefix) && (name.length() > prefix.length()))
+                .findFirst()
+                .map(prefix -> {
+                    var stripped = name.substring(prefix.length());
+                    return Character.toLowerCase(stripped.charAt(0)) + stripped.substring(1);
+                });
     }
 }

@@ -55,7 +55,7 @@ class InternalRecordBuilderProcessor {
     InternalRecordBuilderProcessor(ProcessingEnvironment processingEnv, TypeElement record, RecordBuilder.Options metaData, Optional<String> packageNameOpt) {
         this.processingEnv = processingEnv;
         var recordActualPackage = ElementUtils.getPackageName(record);
-        this.metaData = getMetaData(record, metaData);
+        this.metaData = metaData;
         recordClassType = ElementUtils.getClassType(record, record.getTypeParameters());
         packageName = packageNameOpt.orElse(recordActualPackage);
         builderClassType = ElementUtils.getClassType(packageName, getBuilderName(record, metaData, recordClassType, metaData.suffix()), record.getTypeParameters());
@@ -126,11 +126,6 @@ class InternalRecordBuilderProcessor {
                     return ElementUtils.getRecordClassType(processingEnv, recordComponents.get(index), thisAccessorAnnotations, thisCanonicalConstructorAnnotations);
                 })
                 .collect(Collectors.toList());
-    }
-
-    private RecordBuilder.Options getMetaData(TypeElement record, RecordBuilder.Options metaData) {
-        var recordSpecificMetaData = record.getAnnotation(RecordBuilder.Options.class);
-        return (recordSpecificMetaData != null) ? recordSpecificMetaData : metaData;
     }
 
     private void addWithNestedClass() {
