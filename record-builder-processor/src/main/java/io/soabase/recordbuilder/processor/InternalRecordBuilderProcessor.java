@@ -532,10 +532,8 @@ class InternalRecordBuilderProcessor {
             Adds a static method that converts a record instance into a stream of its component parts
 
             public static Stream<Map.Entry<String, Object>> stream(MyRecord record) {
-                return Stream.of(
-                    new AbstractMap.SimpleEntry<>("p1", record.p1()),
-                    new AbstractMap.SimpleEntry<>("p2", record.p2())
-                );
+                return Stream.of(Map.entry("p1", record.p1()),
+                         Map.entry("p2", record.p2()));
             }
          */
         var codeBuilder = CodeBlock.builder().add("return $T.of(", Stream.class);
@@ -544,7 +542,7 @@ class InternalRecordBuilderProcessor {
                 codeBuilder.add(",\n ");
             }
             var name = recordComponents.get(index).name();
-            codeBuilder.add("new $T<>($S, record.$L())", AbstractMap.SimpleEntry.class, name, name);
+            codeBuilder.add("$T.entry($S, record.$L())", Map.class, name, name);
         });
         codeBuilder.add(")");
         var mapEntryTypeVariables = ParameterizedTypeName.get(Map.Entry.class, String.class, Object.class);

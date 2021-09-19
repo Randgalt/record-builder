@@ -164,8 +164,8 @@ public class NameAndAgeBuilder {
      * Return a stream of the record components as map entries keyed with the component name and the value as the component value
      */
     public static Stream<Map.Entry<String, Object>> stream(NameAndAge record) {
-        return Stream.of(new AbstractMap.SimpleEntry<>("name", record.name()),
-                 new AbstractMap.SimpleEntry<>("age", record.age()));
+        return Stream.of(Map.entry("name", record.name()),
+                 Map.entry("age", record.age()));
     }
 
     @Override
