@@ -19,6 +19,6 @@ jobs:
     - name: Set up JDK
       uses: actions/setup-java@v1
       with:
-        java-version: 16.0.0-ea
+        java-version: 16
     - name: Build with Maven
       run: mvn -B package --file pom.xml
