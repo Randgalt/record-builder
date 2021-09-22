@@ -25,12 +25,32 @@ public @interface RecordBuilder {
     @Retention(RetentionPolicy.SOURCE)
     @Inherited
     @interface Include {
-        Class<?>[] value();
+        /**
+         * @return list of classes to include
+         */
+        Class<?>[] value() default {};
+
+        /**
+         * Synonym for {@code value()}. When using the other attributes it maybe more clear to
+         * use {@code classes()} instead of {@code value()}. Note: both attributes are applied
+         * (i.e. a union of classes from both attributes).
+         *
+         * @return list of classes
+         */
+        Class<?>[] classes() default {};
+
+        /**
+         * Optional list of package names. All records in the packages will get processed as
+         * if they were listed as classes to include.
+         *
+         * @return list of package names
+         */
+        String[] packages() default {};
 
         /**
          * Pattern used to generate the package for the generated class. The value
          * is the literal package name however two replacement values can be used. '@'
-         * is replaced with the package of the Include annotation. '*' is replaced with
+         * is replaced with the package of the {@code Include} annotation. '*' is replaced with
          * the package of the included class.
          *
          * @return package pattern

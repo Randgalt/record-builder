@@ -286,6 +286,9 @@ public void Placeholder {
 }
 ```
 
+`@RecordBuilder.Include` also supports a `packages` attribute that includes all records
+in the listed packages.
+
 The target package for generation is the same as the package that contains the "Include"
 annotation. Use `packagePattern` to change this (see Javadoc for details).  
 

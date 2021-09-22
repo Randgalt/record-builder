@@ -29,10 +29,8 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Optional;
@@ -40,8 +38,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 public class RecordBuilderProcessor
-        extends AbstractProcessor
-{
+        extends AbstractProcessor {
     private static final String RECORD_BUILDER = RecordBuilder.class.getName();
     private static final String RECORD_BUILDER_INCLUDE = RecordBuilder.Include.class.getName().replace('$', '.');
     private static final String RECORD_INTERFACE = RecordInterface.class.getName();
@@ -51,21 +48,18 @@ public class RecordBuilderProcessor
     static final AnnotationSpec generatedRecordInterfaceAnnotation = AnnotationSpec.builder(Generated.class).addMember("value", "$S", RecordInterface.class.getName()).build();
 
     @Override
-    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv)
-    {
+    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         annotations.forEach(annotation -> roundEnv.getElementsAnnotatedWith(annotation).forEach(element -> process(annotation, element)));
         return false;
     }
 
     @Override
-    public Set<String> getSupportedAnnotationTypes()
-    {
+    public Set<String> getSupportedAnnotationTypes() {
         return Set.of("*");
     }
 
     @Override
-    public SourceVersion getSupportedSourceVersion()
-    {
+    public SourceVersion getSupportedSourceVersion() {
         // we don't directly return RELEASE_14 as that may 
         // not exist in prior releases
         // if we're running on an older release, returning latest()
@@ -73,18 +67,15 @@ public class RecordBuilderProcessor
         return SourceVersion.latest();
     }
 
-    private void process(TypeElement annotation, Element element)
-    {
+    private void process(TypeElement annotation, Element element) {
         String annotationClass = annotation.getQualifiedName().toString();
         if (annotationClass.equals(RECORD_BUILDER)) {
             var typeElement = (TypeElement) element;
             processRecordBuilder(typeElement, getMetaData(typeElement), Optional.empty());
-        }
-        else if (annotationClass.equals(RECORD_INTERFACE)) {
+        } else if (annotationClass.equals(RECORD_INTERFACE)) {
             var typeElement = (TypeElement) element;
             processRecordInterface(typeElement, element.getAnnotation(RecordInterface.class).addRecordBuilder(), getMetaData(typeElement), Optional.empty(), false);
-        }
-        else if (annotationClass.equals(RECORD_BUILDER_INCLUDE) || annotationClass.equals(RECORD_INTERFACE_INCLUDE)) {
+        } else if (annotationClass.equals(RECORD_BUILDER_INCLUDE) || annotationClass.equals(RECORD_INTERFACE_INCLUDE)) {
             var metaData = RecordBuilderOptions.build(processingEnv.getOptions());
             processIncludes(element, metaData, annotationClass);
         } else {
@@ -104,37 +95,24 @@ public class RecordBuilderProcessor
         return (recordSpecificMetaData != null) ? recordSpecificMetaData : RecordBuilderOptions.build(processingEnv.getOptions());
     }
 
-    private void processIncludes(Element element, RecordBuilder.Options metaData, String annotationClass)
-    {
+    private void processIncludes(Element element, RecordBuilder.Options metaData, String annotationClass) {
+        var isRecordBuilderInclude = annotationClass.equals(RECORD_BUILDER_INCLUDE);
         var annotationMirrorOpt = ElementUtils.findAnnotationMirror(processingEnv, element, annotationClass);
         if (annotationMirrorOpt.isEmpty()) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Could not get annotation mirror for: " + annotationClass, element);
-        }
-        else {
-            var values = processingEnv.getElementUtils().getElementValuesWithDefaults(annotationMirrorOpt.get());
-            var classes = ElementUtils.getAnnotationValue(values, "value");
-            if (classes.isEmpty()) {
-                processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Could not get annotation value for: " + annotationClass, element);
-            }
-            else {
-                var packagePattern = ElementUtils.getStringAttribute(ElementUtils.getAnnotationValue(values, "packagePattern").orElse(null), "*");
-                var classesMirrors = ElementUtils.getClassesAttribute(classes.get());
-                for (TypeMirror mirror : classesMirrors) {
-                    TypeElement typeElement = (TypeElement) processingEnv.getTypeUtils().asElement(mirror);
-                    if (typeElement == null) {
-                        processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Could not get element for: " + mirror, element);
-                    }
-                    else {
-                        var packageName = buildPackageName(packagePattern, element, typeElement);
-                        if (packageName != null) {
-                            if (annotationClass.equals(RECORD_INTERFACE_INCLUDE)) {
-                                var addRecordBuilderOpt = ElementUtils.getAnnotationValue(values, "addRecordBuilder");
-                                var addRecordBuilder = addRecordBuilderOpt.map(ElementUtils::getBooleanAttribute).orElse(true);
-                                processRecordInterface(typeElement, addRecordBuilder, metaData, Optional.of(packageName), false);
-                            }
-                            else {
-                                processRecordBuilder(typeElement, metaData, Optional.of(packageName));
-                            }
+        } else {
+            var includeHelper = new IncludeHelper(processingEnv, element, annotationMirrorOpt.get(), isRecordBuilderInclude);
+            if (includeHelper.isValid()) {
+                var packagePattern = ElementUtils.getStringAttribute(ElementUtils.getAnnotationValue(includeHelper.getAnnotationValues(), "packagePattern").orElse(null), "*");
+                for (var typeElement : includeHelper.getClassTypeElements()) {
+                    var packageName = buildPackageName(packagePattern, element, typeElement);
+                    if (packageName != null) {
+                        if (isRecordBuilderInclude) {
+                            processRecordBuilder(typeElement, metaData, Optional.of(packageName));
+                        } else {
+                            var addRecordBuilderOpt = ElementUtils.getAnnotationValue(includeHelper.getAnnotationValues(), "addRecordBuilder");
+                            var addRecordBuilder = addRecordBuilderOpt.map(ElementUtils::getBooleanAttribute).orElse(true);
+                            processRecordInterface(typeElement, addRecordBuilder, metaData, Optional.of(packageName), false);
                         }
                     }
                 }
@@ -142,8 +120,7 @@ public class RecordBuilderProcessor
         }
     }
 
-    private String buildPackageName(String packagePattern, Element builderElement, TypeElement includedClass)
-    {
+    private String buildPackageName(String packagePattern, Element builderElement, TypeElement includedClass) {
         PackageElement includedClassPackage = findPackageElement(includedClass, includedClass);
         if (includedClassPackage == null) {
             return null;
@@ -155,8 +132,7 @@ public class RecordBuilderProcessor
         return replaced.replace("@", ((PackageElement) builderElement.getEnclosingElement()).getQualifiedName().toString());
     }
 
-    private PackageElement findPackageElement(Element actualElement, Element includedClass)
-    {
+    private PackageElement findPackageElement(Element actualElement, Element includedClass) {
         if (includedClass == null) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Element has not package", actualElement);
             return null;
@@ -167,8 +143,7 @@ public class RecordBuilderProcessor
         return findPackageElement(actualElement, includedClass.getEnclosingElement());
     }
 
-    private void processRecordInterface(TypeElement element, boolean addRecordBuilder, RecordBuilder.Options metaData, Optional<String> packageName, boolean fromTemplate)
-    {
+    private void processRecordInterface(TypeElement element, boolean addRecordBuilder, RecordBuilder.Options metaData, Optional<String> packageName, boolean fromTemplate) {
         if (!element.getKind().isInterface()) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "RecordInterface only valid for interfaces.", element);
             return;
@@ -180,8 +155,7 @@ public class RecordBuilderProcessor
         writeRecordInterfaceJavaFile(element, internalProcessor.packageName(), internalProcessor.recordClassType(), internalProcessor.recordType(), metaData, internalProcessor::toRecord);
     }
 
-    private void processRecordBuilder(TypeElement record, RecordBuilder.Options metaData, Optional<String> packageName)
-    {
+    private void processRecordBuilder(TypeElement record, RecordBuilder.Options metaData, Optional<String> packageName) {
         // we use string based name comparison for the element kind,
         // as the ElementKind.RECORD enum doesn't exist on JRE releases
         // older than Java 14, and we don't want to throw unexpected
@@ -194,8 +168,7 @@ public class RecordBuilderProcessor
         writeRecordBuilderJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(), internalProcessor.builderType(), metaData);
     }
 
-    private void writeRecordBuilderJavaFile(TypeElement record, String packageName, ClassType builderClassType, TypeSpec builderType, RecordBuilder.Options metaData)
-    {
+    private void writeRecordBuilderJavaFile(TypeElement record, String packageName, ClassType builderClassType, TypeSpec builderType, RecordBuilder.Options metaData) {
         // produces the Java file
         JavaFile javaFile = javaFileBuilder(packageName, builderType, metaData);
         Filer filer = processingEnv.getFiler();
@@ -205,14 +178,12 @@ public class RecordBuilderProcessor
             try (Writer writer = sourceFile.openWriter()) {
                 javaFile.writeTo(writer);
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             handleWriteError(record, e);
         }
     }
 
-    private void writeRecordInterfaceJavaFile(TypeElement element, String packageName, ClassType classType, TypeSpec type, RecordBuilder.Options metaData, Function<String, String> toRecordProc)
-    {
+    private void writeRecordInterfaceJavaFile(TypeElement element, String packageName, ClassType classType, TypeSpec type, RecordBuilder.Options metaData, Function<String, String> toRecordProc) {
         JavaFile javaFile = javaFileBuilder(packageName, type, metaData);
 
         String classSourceCode = javaFile.toString();
@@ -226,14 +197,12 @@ public class RecordBuilderProcessor
             try (Writer writer = sourceFile.openWriter()) {
                 writer.write(recordSourceCode);
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             handleWriteError(element, e);
         }
     }
 
-    private JavaFile javaFileBuilder(String packageName, TypeSpec type, RecordBuilder.Options metaData)
-    {
+    private JavaFile javaFileBuilder(String packageName, TypeSpec type, RecordBuilder.Options metaData) {
         var javaFileBuilder = JavaFile.builder(packageName, type).skipJavaLangImports(true).indent(metaData.fileIndent());
         var comment = metaData.fileComment();
         if ((comment != null) && !comment.isEmpty()) {
@@ -242,8 +211,7 @@ public class RecordBuilderProcessor
         return javaFileBuilder.build();
     }
 
-    private void handleWriteError(TypeElement element, IOException e)
-    {
+    private void handleWriteError(TypeElement element, IOException e) {
         String message = "Could not create source file";
         if (e.getMessage() != null) {
             message = message + ": " + e.getMessage();

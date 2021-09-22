@@ -52,10 +52,17 @@ public class ElementUtils {
     }
 
     @SuppressWarnings("unchecked")
-    public static List<TypeMirror> getClassesAttribute(AnnotationValue attribute)
+    public static List<TypeMirror> getAttributeTypeMirrorList(AnnotationValue attribute)
     {
         List<? extends AnnotationValue> values = (attribute != null) ? (List<? extends AnnotationValue>)attribute.getValue() : Collections.emptyList();
         return values.stream().map(v -> (TypeMirror)v.getValue()).collect(Collectors.toList());
+    }
+
+    @SuppressWarnings("unchecked")
+    public static List<String> getAttributeStringList(AnnotationValue attribute)
+    {
+        List<? extends AnnotationValue> values = (attribute != null) ? (List<? extends AnnotationValue>)attribute.getValue() : Collections.emptyList();
+        return values.stream().map(v -> (String)v.getValue()).collect(Collectors.toList());
     }
 
     public static boolean getBooleanAttribute(AnnotationValue attribute)
