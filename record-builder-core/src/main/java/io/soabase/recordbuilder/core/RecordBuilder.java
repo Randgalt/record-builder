@@ -164,6 +164,19 @@ public @interface RecordBuilder {
          * (e.g. {@code List.copyOf(o)}) or an empty immutable collection if the component is {@code null}.
          */
         boolean useImmutableCollections() default false;
+
+        /**
+         * When enabled, collection types ({@code List}, {@code Set} and {@code Map}) are handled specially.
+         * The setters for these types now create an internal collection and items are added to that
+         * collection. Additionally, "adder" methods prefixed with {@link #singleItemBuilderPrefix()} are created
+         * to add single items to these collections.
+         */
+        boolean addSingleItemCollectionBuilders() default false;
+
+        /**
+         * The prefix for adder methods when {@link #addSingleItemCollectionBuilders()} is enabled
+         */
+        String singleItemBuilderPrefix() default "add";
     }
 
     @Retention(RetentionPolicy.CLASS)

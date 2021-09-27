@@ -13,21 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.soabase.recordbuilder.core;
+package io.soabase.recordbuilder.test;
 
-import java.lang.annotation.*;
+import io.soabase.recordbuilder.core.RecordBuilder;
 
-@RecordBuilder.Template(options = @RecordBuilder.Options(
-        interpretNotNulls = true,
-        useImmutableCollections = true,
-        addSingleItemCollectionBuilders = true
-))
-@Retention(RetentionPolicy.SOURCE)
-@Target(ElementType.TYPE)
-@Inherited
-/**
- * An alternate form of {@code @RecordBuilder} that has most
- * optional features turned on
- */
-public @interface RecordBuilderFull {
+import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+@RecordBuilder
+@RecordBuilder.Options(
+        addSingleItemCollectionBuilders = true,
+        useImmutableCollections = true
+)
+public record WildcardSingleItems<T>(List<? extends String> strings, Set<? extends List<? extends T>> sets, Map<? extends Instant, ? extends T> map, Collection<? extends T> collection) implements WildcardSingleItemsBuilder.With<T> {
 }
