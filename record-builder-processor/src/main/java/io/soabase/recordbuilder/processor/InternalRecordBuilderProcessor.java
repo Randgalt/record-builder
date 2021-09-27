@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.*;
 import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
 import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
@@ -63,7 +64,7 @@ class InternalRecordBuilderProcessor {
         recordComponents = buildRecordComponents(record);
         uniqueVarName = getUniqueVarName();
         notNullPattern = Pattern.compile(metaData.interpretNotNullsPattern());
-        collectionBuilderUtils = new CollectionBuilderUtils(recordComponents, this.metaData.useImmutableCollections());
+        collectionBuilderUtils = new CollectionBuilderUtils(recordComponents, this.metaData);
 
         builder = TypeSpec.classBuilder(builderClassType.name())
                 .addAnnotation(generatedRecordBuilderAnnotation)
@@ -86,6 +87,8 @@ class InternalRecordBuilderProcessor {
             add1Field(component);
             add1SetterMethod(component);
             add1GetterMethod(component);
+            var collectionMetaData = collectionBuilderUtils.singleItemsMetaData(component, EXCLUDE_WILDCARD_TYPES);
+            collectionMetaData.ifPresent(meta -> add1CollectionBuilders(meta, component));
         });
         collectionBuilderUtils.addShims(builder);
         builderType = builder.build();
@@ -109,8 +112,7 @@ class InternalRecordBuilderProcessor {
                 builder.addModifiers(Modifier.PUBLIC);  // builders are top level classes - can only be public or package-private
             }
             // is package-private
-        }
-        else {
+        } else {
             builder.addModifiers(Modifier.PUBLIC);
         }
     }
@@ -234,6 +236,7 @@ class InternalRecordBuilderProcessor {
         codeBlockBuilder.add(";$]");
 
         var methodName = getWithMethodName(component, metaData.withClassMethodPrefix());
+        var singleItemsMetaData = collectionBuilderUtils.singleItemsMetaData(component, STANDARD_FOR_SETTER);
         var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
         addConstructorAnnotations(component, parameterSpecBuilder);
         var methodSpec = MethodSpec.methodBuilder(methodName)
@@ -336,8 +339,9 @@ class InternalRecordBuilderProcessor {
                 .addAnnotation(generatedRecordBuilderAnnotation);
         recordComponents.forEach(component -> {
             constructorBuilder.addParameter(component.typeName(), component.name());
-            var codeBuilder = CodeBlock.builder().add("this.$L = $L", component.name(), component.name());
-            constructorBuilder.addStatement(codeBuilder.build());
+            var collectionMetaData = collectionBuilderUtils.singleItemsMetaData(component, STANDARD);
+            collectionMetaData.ifPresentOrElse(meta -> constructorBuilder.addStatement("this.$L = new $T<>($L)", component.name(), meta.singleItemCollectionClass(), component.name()),
+                    () -> constructorBuilder.addStatement("this.$L = $L", component.name(), component.name()));
         });
         builder.addMethod(constructorBuilder.build());
     }
@@ -631,6 +635,129 @@ class InternalRecordBuilderProcessor {
         }
     }
 
+    private String capitalize(String s) {
+        return (s.length() < 2) ? s.toUpperCase(Locale.ROOT) : (Character.toUpperCase(s.charAt(0)) + s.substring(1));
+    }
+
+    private void add1CollectionBuilders(CollectionBuilderUtils.SingleItemsMetaData meta, RecordClassType component) {
+        if (collectionBuilderUtils.isList(component) || collectionBuilderUtils.isSet(component)) {
+            add1ListBuilder(meta, component);
+        } else if (collectionBuilderUtils.isMap(component)) {
+            add1MapBuilder(meta, component);
+        }
+    }
+
+    private void add1MapBuilder(CollectionBuilderUtils.SingleItemsMetaData meta, RecordClassType component) {
+        /*
+            For a single map record component, add a methods similar to:
+
+            public T addP(K key, V value) {
+                if (this.p == null) {
+                    this.p = new HashMap<>();
+                }
+                this.p.put(key, value);
+                return this;
+            }
+
+            public T addP(Stream<? extends Map.Entry<K, V> i) {
+                if (p == null) {
+                    p = new HashMap<>();
+                }
+                i.forEach(this.p::put);
+                return this;
+            }
+
+            public T addP(Iterable<? extends Map.Entry<K, V> i) {
+                if (p == null) {
+                    p = new HashMap<>();
+                }
+                i.forEach(this.p::put);
+                return this;
+            }
+         */
+        for (var i = 0; i < 3; ++i) {
+            var codeBlockBuilder = CodeBlock.builder()
+                    .beginControlFlow("if (this.$L == null)", component.name())
+                    .addStatement("this.$L = new $T<>()", component.name(), HashMap.class)
+                    .endControlFlow();
+            var methodSpecBuilder = MethodSpec.methodBuilder(metaData.singleItemBuilderPrefix() + capitalize(component.name()))
+                    .addJavadoc("Add to the internally allocated {@code HashMap} for {@code $L}\n", component.name())
+                    .addModifiers(Modifier.PUBLIC)
+                    .addAnnotation(generatedRecordBuilderAnnotation)
+                    .returns(builderClassType.typeName());
+            if (i == 0) {
+                methodSpecBuilder.addParameter(meta.typeArguments().get(0), "key");
+                methodSpecBuilder.addParameter(meta.typeArguments().get(1), "value");
+                codeBlockBuilder.addStatement("this.$L.put(key, value)", component.name());
+            } else {
+                var parameterClass = ClassName.get((i == 1) ? Stream.class : Iterable.class);
+                var entryType = ParameterizedTypeName.get(ClassName.get(Map.Entry.class), WildcardTypeName.subtypeOf(meta.typeArguments().get(0)), WildcardTypeName.subtypeOf(meta.typeArguments().get(1)));
+                ParameterizedTypeName parameterizedTypeName = ParameterizedTypeName.get(parameterClass, WildcardTypeName.subtypeOf(entryType));
+                methodSpecBuilder.addParameter(parameterizedTypeName, "i");
+                codeBlockBuilder.addStatement("i.forEach(entry -> this.$L.put(entry.getKey(), entry.getValue()))", component.name());
+            }
+            codeBlockBuilder.addStatement("return this");
+            methodSpecBuilder.addCode(codeBlockBuilder.build());
+            builder.addMethod(methodSpecBuilder.build());
+        }
+    }
+
+    private void add1ListBuilder(CollectionBuilderUtils.SingleItemsMetaData meta, RecordClassType component) {
+        /*
+            For a single list or set record component, add methods similar to:
+
+            public T addP(I i) {
+                if (this.p == null) {
+                    this.p = new ArrayList<>();
+                }
+                this.p.add(i);
+                return this;
+            }
+
+            public T addP(Stream<? extends I> i) {
+                if (this.p == null) {
+                    this.p = new ArrayList<>();
+                }
+                this.p.addAll(i);
+                return this;
+            }
+
+            public T addP(Iterable<? extends I> i) {
+                if (this.p == null) {
+                    this.p = new ArrayList<>();
+                }
+                this.p.addAll(i);
+                return this;
+            }
+         */
+        for (var i = 0; i < 3; ++i) {
+            var addClockBlock = CodeBlock.builder();
+            TypeName parameter;
+            if (i == 0) {
+                addClockBlock.addStatement("this.$L.add(i)", component.name());
+                parameter = meta.typeArguments().get(0);
+            } else {
+                addClockBlock.addStatement("i.forEach(this.$L::add)", component.name());
+                var parameterClass = ClassName.get((i == 1) ? Stream.class : Iterable.class);
+                parameter = ParameterizedTypeName.get(parameterClass, WildcardTypeName.subtypeOf(meta.typeArguments().get(0)));
+            }
+            var codeBlockBuilder = CodeBlock.builder()
+                    .beginControlFlow("if (this.$L == null)", component.name())
+                    .addStatement("this.$L = new $T<>()", component.name(), meta.singleItemCollectionClass())
+                    .endControlFlow()
+                    .add(addClockBlock.build())
+                    .addStatement("return this");
+            var methodSpecBuilder = MethodSpec.methodBuilder(metaData.singleItemBuilderPrefix() + capitalize(component.name()))
+                    .addJavadoc("Add to the internally allocated {@code $L} for {@code $L}\n", meta.singleItemCollectionClass().getSimpleName(), component.name())
+                    .addModifiers(Modifier.PUBLIC)
+                    .addAnnotation(generatedRecordBuilderAnnotation)
+                    .returns(builderClassType.typeName())
+                    .addParameter(parameter, "i")
+                    .addCode(codeBlockBuilder.build());
+            builder.addMethod(methodSpecBuilder.build());
+        }
+    }
+
     private void add1GetterMethod(RecordClassType component) {
         /*
             For a single record component, add a getter similar to:
@@ -658,19 +785,27 @@ class InternalRecordBuilderProcessor {
                 return this;
             }
          */
-        var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
-        addConstructorAnnotations(component, parameterSpecBuilder);
 
         var methodSpec = MethodSpec.methodBuilder(component.name())
-                .addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name())
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
-                .addParameter(parameterSpecBuilder.build())
-                .returns(builderClassType.typeName())
-                .addStatement("this.$L = $L", component.name(), component.name())
-                .addStatement("return this")
-                .build();
-        builder.addMethod(methodSpec);
+                .returns(builderClassType.typeName());
+
+        var collectionMetaData = collectionBuilderUtils.singleItemsMetaData(component, STANDARD_FOR_SETTER);
+        var parameterSpecBuilder = collectionMetaData.map(meta -> {
+            CodeBlock.Builder codeSpec = CodeBlock.builder();
+            codeSpec.addStatement("this.$L = ($L != null) ? new $T<>($L) : null", component.name(), component.name(), meta.singleItemCollectionClass(), component.name());
+            methodSpec.addJavadoc("Re-create the internally allocated {@code $L} for {@code $L} by copying the argument\n", meta.singleItemCollectionClass().getSimpleName(), component.name())
+                    .addCode(codeSpec.build());
+            return ParameterSpec.builder(meta.wildType(), component.name());
+        }).orElseGet(() -> {
+            methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name())
+                    .addStatement("this.$L = $L", component.name(), component.name());
+            return ParameterSpec.builder(component.typeName(), component.name());
+        });
+        addConstructorAnnotations(component, parameterSpecBuilder);
+        methodSpec.addStatement("return this").addParameter(parameterSpecBuilder.build());
+        builder.addMethod(methodSpec.build());
     }
 }
 
