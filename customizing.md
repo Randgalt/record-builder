@@ -1,5 +1,11 @@
 [◀︎ RecordBuilder](README.md) • Customizing RecordBuilder
 
+# RecordBuilderFull
+
+Note: `@RecordBuilderFull` has most optional features enabled. It's an alternate
+form of `@RecordBuilder` that uses the [templating mechanism](#create-a-custom-annotation) to
+enable optional features.
+
 # Customizing RecordBuilder
 
 RecordBuilder can be customized in a number of ways. The types of customizations will change over time. See
