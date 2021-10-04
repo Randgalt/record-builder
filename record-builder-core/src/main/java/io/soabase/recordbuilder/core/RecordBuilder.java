@@ -146,7 +146,7 @@ public @interface RecordBuilder {
         boolean useImmutableCollections() default false;
     }
 
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(RetentionPolicy.CLASS)
     @Target(ElementType.ANNOTATION_TYPE)
     @Inherited
     @interface Template {
