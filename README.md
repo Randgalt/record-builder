@@ -86,6 +86,8 @@ _Hat tip to [Benji Weber](https://benjiweber.co.uk/blog/2020/09/19/fun-with-java
 
 ## Builder Class Definition
 
+(Note: you can see a builder class built using `@RecordBuilderFull` here: [SingleItemsBuilder.java](https://gist.github.com/Randgalt/8aa487a847ea2acdd76d702f7cf17d6a))
+
 The full builder class is defined as:
 
 ```java
