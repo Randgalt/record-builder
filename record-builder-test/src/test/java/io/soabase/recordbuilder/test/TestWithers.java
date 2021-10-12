@@ -22,6 +22,17 @@ import java.util.List;
 
 class TestWithers {
     @Test
+    void testFromWithers() {
+        var r1 = new SimpleGenericRecord<>(10, List.of("1", "2", "3"));
+        var r2 = SimpleGenericRecordBuilder.from(r1).withS(List.of("4", "5"));
+        var r3 = SimpleGenericRecordBuilder.from(r1).with(b -> b.i(20).s(List.of("6", "7")));
+        Assertions.assertEquals(List.of("1", "2", "3"), r1.s());
+        Assertions.assertEquals(List.of("4", "5"), r2.s());
+        Assertions.assertEquals(List.of("6", "7"), r3.s());
+        Assertions.assertEquals(20, r3.i());
+    }
+
+    @Test
     void testWithers() {
         var r1 = new SimpleGenericRecord<>(10, List.of("1", "2", "3"));
         var r2 = r1.withS(List.of("4", "5"));

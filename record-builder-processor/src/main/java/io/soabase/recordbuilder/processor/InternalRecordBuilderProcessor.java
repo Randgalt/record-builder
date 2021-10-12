@@ -78,6 +78,7 @@ class InternalRecordBuilderProcessor {
         }
         addStaticDefaultBuilderMethod();
         addStaticCopyBuilderMethod();
+        addStaticFromWithMethod();
         addStaticComponentsMethod();
         addBuildMethod();
         addToStringMethod();
@@ -481,6 +482,67 @@ class InternalRecordBuilderProcessor {
         }
         codeBuilder.add(";$]");
         return codeBuilder.build();
+    }
+
+    private void addStaticFromWithMethod() {
+        /*
+            Adds static method that returns a "with"er view of an existing record.
+
+            public static With from(MyRecord from) {
+                return new MyRecordBuilder.With() {
+                    @Override
+                    public String p1() {
+                        return from.p1();
+                    }
+
+                    @Override
+                    public String p2() {
+                        return from.p2();
+                    }
+                };
+            }
+         */
+        var witherClassNameBuilder = CodeBlock.builder()
+                .add("$L.$L", builderClassType.name(), metaData.withClassName());
+        if (!typeVariables.isEmpty()) {
+            witherClassNameBuilder.add("<");
+            IntStream.range(0, typeVariables.size()).forEach(index -> {
+                if (index > 0) {
+                    witherClassNameBuilder.add(", ");
+                }
+                witherClassNameBuilder.add(typeVariables.get(index).name);
+            });
+            witherClassNameBuilder.add(">");
+        }
+        var witherClassName = witherClassNameBuilder.build().toString();
+        var codeBuilder = CodeBlock.builder()
+                .add("return new $L", witherClassName)
+                .add("() {\n").indent();
+        IntStream.range(0, recordComponents.size()).forEach(index -> {
+            var component = recordComponents.get(index);
+            if (index > 0) {
+                codeBuilder.add("\n");
+            }
+            codeBuilder.add("@Override\n")
+                    .add("public $T $L() {\n", component.typeName(), component.name())
+                    .indent()
+                    .addStatement("return from.$L()", component.name())
+                    .unindent()
+                    .add("}\n");
+        });
+        codeBuilder.unindent().addStatement("}");
+
+        var withType = ClassName.get("", witherClassName);
+        var methodSpec = MethodSpec.methodBuilder("from")//metaData.copyMethodName())
+                .addJavadoc("Return a \"with\"er for an existing record instance\n")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .addAnnotation(generatedRecordBuilderAnnotation)
+                .addTypeVariables(typeVariables)
+                .addParameter(recordClassType.typeName(), metaData.fromMethodName())
+                .returns(withType)
+                .addCode(codeBuilder.build())
+                .build();
+        builder.addMethod(methodSpec);
     }
 
     private void addStaticCopyBuilderMethod() {
