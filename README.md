@@ -80,6 +80,10 @@ NameAndAge r5 = r4.with(b -> {
        b.name("whatever"));
    }
 });
+
+// or, if you cannot add the "With" interface to your record...
+NameAndAge r6 = NameAndAgeBuilder.from(r5).with(b -> b.age(200).name("whatever"));
+NameAndAge r7 = NameAndAgeBuilder.from(r5).withName("boop");
 ```
 
 _Hat tip to [Benji Weber](https://benjiweber.co.uk/blog/2020/09/19/fun-with-java-records/) for the Withers idea._
@@ -92,145 +96,162 @@ The full builder class is defined as:
 
 ```java
 public class NameAndAgeBuilder {
-    private String name;
+  private String name;
 
-    private int age;
+  private int age;
 
-    private NameAndAgeBuilder() {
-    }
+  private NameAndAgeBuilder() {
+  }
 
-    private NameAndAgeBuilder(String name, int age) {
-        this.name = name;
-        this.age = age;
-    }
+  private NameAndAgeBuilder(String name, int age) {
+    this.name = name;
+    this.age = age;
+  }
 
-    /**
-     * Static constructor/builder. Can be used instead of new NameAndAge(...)
-     */
-    public static NameAndAge NameAndAge(String name, int age) {
-        return new NameAndAge(name, age);
-    }
+  /**
+   * Static constructor/builder. Can be used instead of new NameAndAge(...)
+   */
+  public static NameAndAge NameAndAge(String name, int age) {
+    return new NameAndAge(name, age);
+  }
 
-    /**
-     * Return a new builder with all fields set to default Java values
-     */
-    public static NameAndAgeBuilder builder() {
-        return new NameAndAgeBuilder();
-    }
+  /**
+   * Return a new builder with all fields set to default Java values
+   */
+  public static NameAndAgeBuilder builder() {
+    return new NameAndAgeBuilder();
+  }
 
-    /**
-     * Return a new builder with all fields set to the values taken from the given record instance
-     */
-    public static NameAndAgeBuilder builder(NameAndAge from) {
-        return new NameAndAgeBuilder(from.name(), from.age());
-    }
+  /**
+   * Return a new builder with all fields set to the values taken from the given record instance
+   */
+  public static NameAndAgeBuilder builder(NameAndAge from) {
+    return new NameAndAgeBuilder(from.name(), from.age());
+  }
 
-    /**
-     * Return a new record instance with all fields set to the current values in this builder
-     */
-    public NameAndAge build() {
-        return new NameAndAge(name, age);
-    }
+  /**
+   * Return a "with"er for an existing record instance
+   */
+  public static NameAndAgeBuilder.With from(NameAndAge from) {
+    return new NameAndAgeBuilder.With() {
+      @Override
+      public String name() {
+        return from.name();
+      }
 
-    /**
-     * Set a new value for the {@code name} record component in the builder
-     */
-    public NameAndAgeBuilder name(String name) {
-        this.name = name;
-        return this;
-    }
+      @Override
+      public int age() {
+        return from.age();
+      }
+    };
+  }
 
+  /**
+   * Return a stream of the record components as map entries keyed with the component name and the value as the component value
+   */
+  public static Stream<Map.Entry<String, Object>> stream(NameAndAge record) {
+    return Stream.of(Map.entry("name", record.name()),
+            Map.entry("age", record.age()));
+  }
+
+  /**
+   * Return a new record instance with all fields set to the current values in this builder
+   */
+  public NameAndAge build() {
+    return new NameAndAge(name, age);
+  }
+
+  @Override
+  public String toString() {
+    return "NameAndAgeBuilder[name=" + name + ", age=" + age + "]";
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, age);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    return (this == o) || ((o instanceof NameAndAgeBuilder r)
+            && Objects.equals(name, r.name)
+            && (age == r.age));
+  }
+
+  /**
+   * Set a new value for the {@code name} record component in the builder
+   */
+  public NameAndAgeBuilder name(String name) {
+    this.name = name;
+    return this;
+  }
+
+  /**
+   * Return the current value for the {@code name} record component in the builder
+   */
+  public String name() {
+    return name;
+  }
+
+  /**
+   * Set a new value for the {@code age} record component in the builder
+   */
+  public NameAndAgeBuilder age(int age) {
+    this.age = age;
+    return this;
+  }
+
+  /**
+   * Return the current value for the {@code age} record component in the builder
+   */
+  public int age() {
+    return age;
+  }
+
+  /**
+   * Add withers to {@code NameAndAge}
+   */
+  public interface With {
     /**
      * Return the current value for the {@code name} record component in the builder
      */
-    public String name() {
-        return name;
-    }
-
-    /**
-     * Set a new value for the {@code age} record component in the builder
-     */
-    public NameAndAgeBuilder age(int age) {
-        this.age = age;
-        return this;
-    }
+    String name();
 
     /**
      * Return the current value for the {@code age} record component in the builder
      */
-    public int age() {
-        return age;
+    int age();
+
+    /**
+     * Return a new record builder using the current values
+     */
+    default NameAndAgeBuilder with() {
+      return new NameAndAgeBuilder(name(), age());
     }
 
     /**
-     * Return a stream of the record components as map entries keyed with the component name and the value as the component value
+     * Return a new record built from the builder passed to the given consumer
      */
-    public static Stream<Map.Entry<String, Object>> stream(NameAndAge record) {
-        return Stream.of(Map.entry("name", record.name()),
-                 Map.entry("age", record.age()));
+    default NameAndAge with(Consumer<NameAndAgeBuilder> consumer) {
+      NameAndAgeBuilder builder = with();
+      consumer.accept(builder);
+      return builder.build();
     }
 
-    @Override
-    public String toString() {
-        return "NameAndAgeBuilder[name=" + name + ", age=" + age + "]";
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, age);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return (this == o) || ((o instanceof NameAndAgeBuilder b)
-                && Objects.equals(name, b.name)
-                && (age == b.age));
-    }
-    
     /**
-     * Add withers to {@code NameAndAge}
+     * Return a new instance of {@code NameAndAge} with a new value for {@code name}
      */
-    public interface With {
-        /**
-         * Return the current value for the {@code name} record component in the builder
-         */
-        String name();
-
-        /**
-         * Return the current value for the {@code age} record component in the builder
-         */
-        int age();
-
-        /**
-         * Return a new record builder using the current values
-         */
-        default NameAndAgeBuilder with() {
-            return new NameAndAgeBuilder(name(), age());
-        }
-
-        /**
-         * Return a new record built from the builder passed to the given consumer
-         */
-        default NameAndAge with(Consumer<NameAndAgeBuilder> consumer) {
-            NameAndAgeBuilder builder = with();
-            consumer.accept(builder);
-            return builder.build();
-        }
-
-        /**
-         * Return a new instance of {@code NameAndAge} with a new value for {@code name}
-         */
-        default NameAndAge withName(String name) {
-            return new NameAndAge(name, age());
-        }
-
-        /**
-         * Return a new instance of {@code NameAndAge} with a new value for {@code age}
-         */
-        default NameAndAge withAge(int age) {
-            return new NameAndAge(name(), age);
-        }
+    default NameAndAge withName(String name) {
+      return new NameAndAge(name, age());
     }
+
+    /**
+     * Return a new instance of {@code NameAndAge} with a new value for {@code age}
+     */
+    default NameAndAge withAge(int age) {
+      return new NameAndAge(name(), age);
+    }
+  }
 }
 ```
 

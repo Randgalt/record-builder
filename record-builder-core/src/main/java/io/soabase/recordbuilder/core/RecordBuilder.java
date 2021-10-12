@@ -90,6 +90,11 @@ public @interface RecordBuilder {
         String buildMethodName() default "build";
 
         /**
+         * The name to use for the from-to-wither method
+         */
+        String fromMethodName() default "from";
+
+        /**
          * The name to use for the method that returns the record components as a stream
          */
         String componentsMethodName() default "stream";
