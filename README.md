@@ -298,41 +298,15 @@ annotation. Use `packagePattern` to change this (see Javadoc for details).
 
 ### Maven
 
-1) Add the dependency that contains the `@RecordBuilder` annotation.
+Add a dependency that contains the discoverable annotation processor:
 
 ```xml
 <dependency>
     <groupId>io.soabase.record-builder</groupId>
-    <artifactId>record-builder-core</artifactId>
-    <version>set-version-here</version>
+    <artifactId>record-builder-processor</artifactId>
+    <version>${record.builder.version}</version>
     <scope>provided</scope>
 </dependency>
-
-```
-
-2) Enable the annotation processing for the Maven Compiler Plugin:
-
-```xml
-<plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-compiler-plugin</artifactId>
-    <version>set-version-here</version>
-    <configuration>
-        <annotationProcessorPaths>
-            <annotationProcessorPath>
-                <groupId>io.soabase.record-builder</groupId>
-                <artifactId>record-builder-processor</artifactId>
-                <version>set-version-here</version>
-            </annotationProcessorPath>
-        </annotationProcessorPaths>
-        <annotationProcessors>
-            <annotationProcessor>io.soabase.recordbuilder.processor.RecordBuilderProcessor</annotationProcessor>
-        </annotationProcessors>
-
-        
-        ... any other options here ...
-    </configuration>
-</plugin>
 ```
 
 ### Gradle
