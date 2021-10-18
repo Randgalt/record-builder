@@ -350,8 +350,9 @@ You will need to enable preview in your build tools:
 <dependencies>
     <dependency>
         <groupId>io.soabase.record-builder</groupId>
-        <artifactId>record-builder-core</artifactId>
+        <artifactId>record-builder-processor</artifactId>
         <version>record-builder-version-java15</version>
+        <scope>provided</scope>
     </dependency>
 </dependencies>
 
@@ -359,19 +360,7 @@ You will need to enable preview in your build tools:
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-compiler-plugin</artifactId>
     <version>maven-compiler-version</version>
-    <configuration>
-        <annotationProcessorPaths>
-            <annotationProcessorPath>
-                <groupId>io.soabase.record-builder</groupId>
-                <artifactId>record-builder-processor</artifactId>
-                <version>record-builder-version-java15</version>
-            </annotationProcessorPath>
-        </annotationProcessorPaths>
-        <annotationProcessors>
-            <annotationProcessor>io.soabase.recordbuilder.processor.RecordBuilderProcessor</annotationProcessor>
-        </annotationProcessors>
-
-        
+    <configuration>       
         <!-- "release" and "enable-preview" are required while records are preview features -->
         <release>15</release>
         <compilerArgs>
