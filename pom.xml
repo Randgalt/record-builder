@@ -117,6 +117,12 @@
 
             <dependency>
                 <groupId>io.soabase.record-builder</groupId>
+                <artifactId>record-builder-processor</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.soabase.record-builder</groupId>
                 <artifactId>record-builder-validator</artifactId>
                 <version>${project.version}</version>
             </dependency>
