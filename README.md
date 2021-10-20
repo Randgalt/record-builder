@@ -22,7 +22,6 @@ _Details:_
 - [Generation Via Includes](#generation-via-includes)
 - [Usage](#usage)
 - [Customizing](customizing.md) (e.g. add immutable collections, etc.)
-- [Java 15 Versions](#java-15-versions)
 
 ## RecordBuilder Example
 
@@ -350,65 +349,3 @@ Depending on your IDE you are likely to need to enable Annotation Processing in 
 RecordBuilder can be customized to your needs and you can even create your
 own custom RecordBuilder annotations. See [Customizing RecordBuilder](customizing.md)
 for details.
-
-## Java 15 Versions
-
-Artifacts compiled wth Java 15 are available. These versions have `-java15` appended.
-
-Note: records are a preview feature only in Java 15. You'll need take a number of steps in order to try RecordBuilder:
-
-- Install and make active Java 15 or later
-- Make sure your development tool is using Java 15 or later and is configured to enable preview features (for Maven I've documented how to do this here: [https://stackoverflow.com/a/59363152/2048051](https://stackoverflow.com/a/59363152/2048051))
-- Bear in mind that this is not yet meant for production and there are numerous bugs in the tools and JDKs.
-
-Note: I've seen some very odd compilation bugs with the current Java 15 and Maven. If you get internal Javac errors I suggest rebuilding with `mvn clean package` and/or `mvn clean install`.
-
-You will need to enable preview in your build tools:
-
-### Maven
-
-```xml
-<dependencies>
-    <dependency>
-        <groupId>io.soabase.record-builder</groupId>
-        <artifactId>record-builder-processor</artifactId>
-        <version>record-builder-version-java15</version>
-        <scope>provided</scope>
-    </dependency>
-</dependencies>
-
-<plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-compiler-plugin</artifactId>
-    <version>maven-compiler-version</version>
-    <configuration>       
-        <!-- "release" and "enable-preview" are required while records are preview features -->
-        <release>15</release>
-        <compilerArgs>
-            <arg>--enable-preview</arg>
-        </compilerArgs>
-
-        ... any other options here ...
-    </configuration>
-</plugin>
-```
-
-Create a file in your project's root named `.mvn/jvm.config`. The file should have 1 line with the value: `--enable-preview`. (see: https://stackoverflow.com/questions/58023240)
-
-### Gradle
-
-```groovy
-dependencies {
-    annotationProcessor 'io.soabase.record-builder:record-builder-processor:$record-builder-version-java15'
-    compileOnly 'io.soabase.record-builder:record-builder-core:$record-builder-version-java15'
-}
-
-tasks.withType(JavaCompile) {
-    options.fork = true
-    options.forkOptions.jvmArgs += '--enable-preview'
-    options.compilerArgs += '--enable-preview'
-}
-tasks.withType(Test) {
-    jvmArgs += "--enable-preview"
-}
-```

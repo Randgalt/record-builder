@@ -19,8 +19,6 @@
         <project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <enable-preview />
-
         <jdk-version>16</jdk-version>
 
         <maven-compiler-plugin-version>3.8.1</maven-compiler-plugin-version>
@@ -33,7 +31,6 @@
         <maven-clean-plugin-version>3.1.0</maven-clean-plugin-version>
         <maven-shade-plugin-version>3.2.1</maven-shade-plugin-version>
         <maven-release-plugin-version>2.5.3</maven-release-plugin-version>
-        <maven-surefire-plugin-version>3.0.0-M5</maven-surefire-plugin-version>
         <maven-jar-plugin-version>3.2.0</maven-jar-plugin-version>
 
         <license-file-path>src/etc/header.txt</license-file-path>
@@ -162,9 +159,6 @@
                     <version>${maven-compiler-plugin-version}</version>
                     <configuration>
                         <release>${jdk-version}</release>
-                        <compilerArgs>
-                            <arg>${enable-preview}</arg>
-                        </compilerArgs>
                     </configuration>
                 </plugin>
 
@@ -316,15 +310,6 @@
 
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>${maven-surefire-plugin-version}</version>
-                    <configuration>
-                        <argLine>${enable-preview}</argLine>
-                    </configuration>
-                </plugin>
-
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>${maven-jar-plugin-version}</version>
                 </plugin>
@@ -393,14 +378,6 @@
                     </plugin>
                 </plugins>
             </build>
-        </profile>
-
-        <profile>
-            <id>java15</id>
-            <properties>
-                <jdk-version>15</jdk-version>
-                <enable-preview>--enable-preview</enable-preview>
-            </properties>
         </profile>
     </profiles>
 </project>
