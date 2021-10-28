@@ -20,7 +20,8 @@ import java.lang.annotation.*;
 @RecordBuilder.Template(options = @RecordBuilder.Options(
         interpretNotNulls = true,
         useImmutableCollections = true,
-        addSingleItemCollectionBuilders = true
+        addSingleItemCollectionBuilders = true,
+        addFunctionalMethodsToWith = true
 ))
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)

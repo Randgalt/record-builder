@@ -51,6 +51,7 @@ class InternalRecordBuilderProcessor {
     private static final TypeName optionalLongType = TypeName.get(OptionalLong.class);
     private static final TypeName optionalDoubleType = TypeName.get(OptionalDouble.class);
     private static final TypeName validatorTypeName = ClassName.get("io.soabase.recordbuilder.validator", "RecordBuilderValidator");
+    private static final TypeVariableName rType = TypeVariableName.get("R");
     private final ProcessingEnvironment processingEnv;
 
     InternalRecordBuilderProcessor(ProcessingEnvironment processingEnv, TypeElement record, RecordBuilder.Options metaData, Optional<String> packageNameOpt) {
@@ -146,10 +147,16 @@ class InternalRecordBuilderProcessor {
                 .addJavadoc("Add withers to {@code $L}\n", recordClassType.name())
                 .addModifiers(Modifier.PUBLIC)
                 .addTypeVariables(typeVariables);
-        recordComponents.forEach(component -> addWithGetterMethod(classBuilder, component));
+        recordComponents.forEach(component -> addNestedGetterMethod(classBuilder, component));
         addWithBuilderMethod(classBuilder);
         addWithSuppliedBuilderMethod(classBuilder);
         IntStream.range(0, recordComponents.size()).forEach(index -> add1WithMethod(classBuilder, recordComponents.get(index), index));
+        if (metaData.addFunctionalMethodsToWith()) {
+            classBuilder.addType(buildFunctionalInterface("Function", true))
+                    .addType(buildFunctionalInterface("Consumer", false))
+                    .addMethod(buildFunctionalHandler("Function", "map", true))
+                    .addMethod(buildFunctionalHandler("Consumer", "accept", false));
+        }
         builder.addType(classBuilder.build());
     }
 
@@ -657,7 +664,7 @@ class InternalRecordBuilderProcessor {
         return (component.typeName() instanceof ParameterizedTypeName parameterizedTypeName) && parameterizedTypeName.rawType.equals(optionalType);
     }
 
-    private void addWithGetterMethod(TypeSpec.Builder classBuilder, RecordClassType component) {
+    private void addNestedGetterMethod(TypeSpec.Builder classBuilder, RecordClassType component) {
         /*
             For a single record component, add a getter similar to:
 
@@ -867,6 +874,71 @@ class InternalRecordBuilderProcessor {
         addConstructorAnnotations(component, parameterSpecBuilder);
         methodSpec.addStatement("return this").addParameter(parameterSpecBuilder.build());
         builder.addMethod(methodSpec.build());
+    }
+
+    private List<TypeVariableName> typeVariablesWithReturn() {
+        var variables = new ArrayList<TypeVariableName>();
+        variables.add(rType);
+        variables.addAll(typeVariables);
+        return variables;
+    }
+
+    private MethodSpec buildFunctionalHandler(String className, String methodName, boolean isMap) {
+        /*
+            Build a Functional handler ala:
+
+            default <R> R map(Function<R, T> proc) {
+                return proc.apply(p());
+            }
+        */
+        var localTypeVariables = isMap ? typeVariablesWithReturn() : typeVariables;
+        var typeName = localTypeVariables.isEmpty() ? ClassName.get("", className) : ParameterizedTypeName.get(ClassName.get("", className), localTypeVariables.toArray(TypeName[]::new));
+        var methodBuilder = MethodSpec.methodBuilder(methodName)
+                .addAnnotation(generatedRecordBuilderAnnotation)
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .addParameter(typeName, "proc");
+        var codeBlockBuilder = CodeBlock.builder();
+        if (isMap) {
+            methodBuilder.addJavadoc("Map record components into a new object");
+            methodBuilder.addTypeVariable(rType);
+            methodBuilder.returns(rType);
+            codeBlockBuilder.add("return ");
+        } else {
+            methodBuilder.addJavadoc("Perform an operation on record components");
+        }
+        codeBlockBuilder.add("proc.apply(");
+        addComponentCallsAsArguments(-1, codeBlockBuilder);
+        codeBlockBuilder.add(");");
+        methodBuilder.addCode(codeBlockBuilder.build());
+        return methodBuilder.build();
+    }
+
+    private TypeSpec buildFunctionalInterface(String className, boolean isMap) {
+        /*
+            Build a Functional interface ala:
+
+            @FunctionalInterface
+            interface Function<R, T> {
+                R apply(T a);
+            }
+        */
+        var localTypeVariables = isMap ? typeVariablesWithReturn() : typeVariables;
+        var methodBuilder = MethodSpec.methodBuilder("apply").addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
+        recordComponents.forEach(component -> {
+            var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
+            addConstructorAnnotations(component, parameterSpecBuilder);
+            methodBuilder.addParameter(parameterSpecBuilder.build());
+        });
+        if (isMap) {
+            methodBuilder.returns(rType);
+        }
+        return TypeSpec.interfaceBuilder(className)
+                .addAnnotation(generatedRecordBuilderAnnotation)
+                .addAnnotation(FunctionalInterface.class)
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .addTypeVariables(localTypeVariables)
+                .addMethod(methodBuilder.build())
+                .build();
     }
 }
 

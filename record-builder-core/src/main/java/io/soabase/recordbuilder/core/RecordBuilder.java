@@ -182,6 +182,11 @@ public @interface RecordBuilder {
          * The prefix for adder methods when {@link #addSingleItemCollectionBuilders()} is enabled
          */
         String singleItemBuilderPrefix() default "add";
+
+        /**
+         * When enabled, adds functional methods to the nested "With" class (such as {@code map()} and {@code accept()}).
+         */
+        boolean addFunctionalMethodsToWith() default false;
     }
 
     @Retention(RetentionPolicy.CLASS)

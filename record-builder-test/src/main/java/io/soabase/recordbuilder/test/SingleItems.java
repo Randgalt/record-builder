@@ -27,7 +27,8 @@ import java.util.Set;
 @RecordBuilder.Options(
         addSingleItemCollectionBuilders = true,
         singleItemBuilderPrefix = "add1",
-        useImmutableCollections = true
+        useImmutableCollections = true,
+        addFunctionalMethodsToWith = true
 )
 public record SingleItems<T>(List<String> strings, Set<List<T>> sets, Map<Instant, T> map, Collection<T> collection) implements SingleItemsBuilder.With<T> {
 }
