@@ -76,8 +76,7 @@ public class RecordBuilderProcessor
             var typeElement = (TypeElement) element;
             processRecordInterface(typeElement, element.getAnnotation(RecordInterface.class).addRecordBuilder(), getMetaData(typeElement), Optional.empty(), false);
         } else if (annotationClass.equals(RECORD_BUILDER_INCLUDE) || annotationClass.equals(RECORD_INTERFACE_INCLUDE)) {
-            var metaData = RecordBuilderOptions.build(processingEnv.getOptions());
-            processIncludes(element, metaData, annotationClass);
+            processIncludes(element, getMetaData(element), annotationClass);
         } else {
             var recordBuilderTemplate = annotation.getAnnotation(RecordBuilder.Template.class);
             if (recordBuilderTemplate != null) {
@@ -90,8 +89,8 @@ public class RecordBuilderProcessor
         }
     }
 
-    private RecordBuilder.Options getMetaData(TypeElement typeElement) {
-        var recordSpecificMetaData = typeElement.getAnnotation(RecordBuilder.Options.class);
+    private RecordBuilder.Options getMetaData(Element element) {
+        var recordSpecificMetaData = element.getAnnotation(RecordBuilder.Options.class);
         return (recordSpecificMetaData != null) ? recordSpecificMetaData : RecordBuilderOptions.build(processingEnv.getOptions());
     }
 
