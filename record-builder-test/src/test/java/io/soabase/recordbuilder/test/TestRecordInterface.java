@@ -15,6 +15,9 @@
  */
 package io.soabase.recordbuilder.test;
 
+import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -47,5 +50,29 @@ public class TestRecordInterface
         var generic = SimpleGenericRecord(101, now);
         Assertions.assertEquals(generic.i(), 101);
         Assertions.assertEquals(generic.s(), now);
+    }
+
+    @Test
+    public void testBuilderStreamWithValues()
+    {
+        var stream = SimpleRecordBuilder.stream(SimpleRecordBuilder.builder()
+                .i(19)
+                .s("value")
+                .build())
+            .toList();
+        Assertions.assertEquals(stream, List.of(
+            Map.entry("i", 19),
+            Map.entry("s", "value")));
+    }
+
+    @Test
+    public void testBuilderStreamWithNulls()
+    {
+        var stream = SimpleRecordBuilder.stream(SimpleRecordBuilder.builder()
+                .build())
+            .toList();
+        Assertions.assertEquals(stream, List.of(
+            new SimpleImmutableEntry<>("i", 0),
+            new SimpleImmutableEntry<>("s", null)));
     }
 }

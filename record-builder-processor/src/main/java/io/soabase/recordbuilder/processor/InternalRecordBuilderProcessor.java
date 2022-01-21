@@ -237,7 +237,6 @@ class InternalRecordBuilderProcessor {
         codeBlockBuilder.add(";$]");
 
         var methodName = getWithMethodName(component, metaData.withClassMethodPrefix());
-        var singleItemsMetaData = collectionBuilderUtils.singleItemsMetaData(component, STANDARD_FOR_SETTER);
         var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
         addConstructorAnnotations(component, parameterSpecBuilder);
         var methodSpec = MethodSpec.methodBuilder(methodName)
@@ -598,8 +597,8 @@ class InternalRecordBuilderProcessor {
             Adds a static method that converts a record instance into a stream of its component parts
 
             public static Stream<Map.Entry<String, Object>> stream(MyRecord record) {
-                return Stream.of(Map.entry("p1", record.p1()),
-                         Map.entry("p2", record.p2()));
+                return Stream.of(new AbstractMap.SimpleImmutableEntry<>("p1", record.p1()),
+                         new AbstractMap.SimpleImmutableEntry<>("p2", record.p2()));
             }
          */
         var codeBuilder = CodeBlock.builder().add("return $T.of(", Stream.class);
@@ -608,7 +607,7 @@ class InternalRecordBuilderProcessor {
                 codeBuilder.add(",\n ");
             }
             var name = recordComponents.get(index).name();
-            codeBuilder.add("$T.entry($S, record.$L())", Map.class, name, name);
+            codeBuilder.add("new $T<>($S, record.$L())", AbstractMap.SimpleImmutableEntry.class, name, name);
         });
         codeBuilder.add(")");
         var mapEntryTypeVariables = ParameterizedTypeName.get(Map.Entry.class, String.class, Object.class);
