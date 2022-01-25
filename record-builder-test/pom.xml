@@ -3,7 +3,7 @@
     <parent>
         <groupId>io.soabase.record-builder</groupId>
         <artifactId>record-builder</artifactId>
-        <version>30-SNAPSHOT</version>
+        <version>30</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
