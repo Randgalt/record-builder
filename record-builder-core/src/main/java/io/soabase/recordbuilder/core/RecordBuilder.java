@@ -187,6 +187,38 @@ public @interface RecordBuilder {
          * When enabled, adds functional methods to the nested "With" class (such as {@code map()} and {@code accept()}).
          */
         boolean addFunctionalMethodsToWith() default false;
+
+        /**
+         * If set, all builder setter methods will be prefixed with this string. Camel-casing will
+         * still be enforced, so if this option is set to "set" a field named "myField" will get
+         * a corresponding setter named "setMyField".
+         */
+        String setterPrefix() default "";
+
+        /**
+         * If set, all builder getter methods will be prefixed with this string. Camel-casing will
+         * still be enforced, so if this option is set to "get", a field named "myField" will get
+         * a corresponding getter named "getMyField".
+         */
+        String getterPrefix() default "";
+
+        /**
+         * If set, all boolean builder getter methods will be prefixed with this string.
+         * Camel-casing will still be enforced, so if this option is set to "is", a field named
+         * "myField" will get a corresponding getter named "isMyField".
+         */
+        String booleanPrefix() default "";
+
+        /**
+         * If set, the Builder will contain an internal interface with this name. This interface
+         * contains getters for all the fields in the Record prefixed with the value supplied in
+         * {@link this.getterPrefix} and {@link this.booleanPrefix}. This interface can be
+         * implemented by the original Record to have proper bean-style prefixed getters.
+         *
+         * Please note that unless either of the aforementioned prefixes are set,
+         * this option does nothing.
+         */
+        String beanClassName() default "";
     }
 
     @Retention(RetentionPolicy.CLASS)
