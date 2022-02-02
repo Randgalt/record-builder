@@ -21,6 +21,7 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -72,6 +73,9 @@ class InternalRecordBuilderProcessor {
                 .addTypeVariables(typeVariables);
         addVisibility(recordActualPackage.equals(packageName), record.getModifiers());
         addWithNestedClass();
+        if (!metaData.beanClassName().isEmpty()) {
+            addBeanNestedClass();
+        }
         addDefaultConstructor();
         addStaticBuilder();
         if (recordComponents.size() > 0) {
@@ -147,7 +151,7 @@ class InternalRecordBuilderProcessor {
                 .addJavadoc("Add withers to {@code $L}\n", recordClassType.name())
                 .addModifiers(Modifier.PUBLIC)
                 .addTypeVariables(typeVariables);
-        recordComponents.forEach(component -> addNestedGetterMethod(classBuilder, component));
+        recordComponents.forEach(component -> addNestedGetterMethod(classBuilder, component, prefixedName(component, true)));
         addWithBuilderMethod(classBuilder);
         addWithSuppliedBuilderMethod(classBuilder);
         IntStream.range(0, recordComponents.size()).forEach(index -> add1WithMethod(classBuilder, recordComponents.get(index), index));
@@ -157,6 +161,31 @@ class InternalRecordBuilderProcessor {
                     .addMethod(buildFunctionalHandler("Function", "map", true))
                     .addMethod(buildFunctionalHandler("Consumer", "accept", false));
         }
+        builder.addType(classBuilder.build());
+    }
+
+    private void addBeanNestedClass() {
+        /*
+            Adds a nested interface that adds getters similar to:
+
+            public class MyRecordBuilder {
+                public interface Bean {
+                    // getter methods
+                }
+            }
+         */
+        var classBuilder = TypeSpec.interfaceBuilder(metaData.beanClassName())
+                .addAnnotation(generatedRecordBuilderAnnotation)
+                .addJavadoc("Add getters to {@code $L}\n", recordClassType.name())
+                .addModifiers(Modifier.PUBLIC)
+                .addTypeVariables(typeVariables);
+        recordComponents.forEach(component -> {
+            if (prefixedName(component, true).equals(component.name())) {
+                return;
+            }
+            addNestedGetterMethod(classBuilder, component, component.name());
+            add1PrefixedGetterMethod(classBuilder, component);
+        });
         builder.addType(classBuilder.build());
     }
 
@@ -257,6 +286,28 @@ class InternalRecordBuilderProcessor {
         classBuilder.addMethod(methodSpec);
     }
 
+    private void add1PrefixedGetterMethod(TypeSpec.Builder classBuilder, RecordClassType component) {
+        /*
+            Adds a get method for the component similar to:
+
+            default MyRecord getName() {
+                return name();
+            }
+         */
+        var codeBlockBuilder = CodeBlock.builder();
+        codeBlockBuilder.add("$[return $L()$];", component.name());
+
+        var methodName = prefixedName(component, true);
+        var methodSpec = MethodSpec.methodBuilder(methodName)
+                .addAnnotation(generatedRecordBuilderAnnotation)
+                .addJavadoc("Returns the value of {@code $L}\n", component.name())
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .addCode(codeBlockBuilder.build())
+                .returns(component.typeName())
+                .build();
+        classBuilder.addMethod(methodSpec);
+    }
+
     private void addComponentCallsAsArguments(int index, CodeBlock.Builder codeBlockBuilder) {
         IntStream.range(0, recordComponents.size()).forEach(parameterIndex -> {
             if (parameterIndex > 0) {
@@ -266,7 +317,7 @@ class InternalRecordBuilderProcessor {
             if (parameterIndex == index) {
                 collectionBuilderUtils.add(codeBlockBuilder, parameterComponent);
             } else {
-                codeBlockBuilder.add("$L()", parameterComponent.name());
+                codeBlockBuilder.add("$L()", prefixedName(parameterComponent, true));
             }
         });
     }
@@ -530,7 +581,7 @@ class InternalRecordBuilderProcessor {
                 codeBuilder.add("\n");
             }
             codeBuilder.add("@Override\n")
-                    .add("public $T $L() {\n", component.typeName(), component.name())
+                    .add("public $T $L() {\n", component.typeName(), prefixedName(component, true))
                     .indent()
                     .addStatement("return from.$L()", component.name())
                     .unindent()
@@ -664,13 +715,13 @@ class InternalRecordBuilderProcessor {
         return (component.typeName() instanceof ParameterizedTypeName parameterizedTypeName) && parameterizedTypeName.rawType.equals(optionalType);
     }
 
-    private void addNestedGetterMethod(TypeSpec.Builder classBuilder, RecordClassType component) {
+    private void addNestedGetterMethod(TypeSpec.Builder classBuilder, RecordClassType component, String methodName) {
         /*
             For a single record component, add a getter similar to:
 
             T p();
          */
-        var methodSpecBuilder = MethodSpec.methodBuilder(component.name())
+        var methodSpecBuilder = MethodSpec.methodBuilder(methodName)
                 .addJavadoc("Return the current value for the {@code $L} record component in the builder\n", component.name())
                 .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
@@ -834,7 +885,7 @@ class InternalRecordBuilderProcessor {
                 return p;
             }
          */
-        var methodSpecBuilder = MethodSpec.methodBuilder(component.name())
+        var methodSpecBuilder = MethodSpec.methodBuilder(prefixedName(component, true))
                 .addJavadoc("Return the current value for the {@code $L} record component in the builder\n", component.name())
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
@@ -853,8 +904,7 @@ class InternalRecordBuilderProcessor {
                 return this;
             }
          */
-
-        var methodSpec = MethodSpec.methodBuilder(component.name())
+        var methodSpec = MethodSpec.methodBuilder(prefixedName(component, false))
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .returns(builderClassType.typeName());
@@ -939,6 +989,19 @@ class InternalRecordBuilderProcessor {
                 .addTypeVariables(localTypeVariables)
                 .addMethod(methodBuilder.build())
                 .build();
+    }
+
+    private String prefixedName(RecordClassType component, boolean isGetter) {
+        BiFunction<String, String, String> prefixer = (p, s) -> p.isEmpty()
+            ? s : p + Character.toUpperCase(s.charAt(0)) + s.substring(1);
+        boolean isBool = component.typeName().toString().toLowerCase(Locale.ROOT).equals("boolean");
+        if (isGetter) {
+            if (isBool) {
+                return prefixer.apply(metaData.booleanPrefix(), component.name());
+            }
+            return prefixer.apply(metaData.getterPrefix(), component.name());
+        }
+        return prefixer.apply(metaData.setterPrefix(), component.name());
     }
 }
 
