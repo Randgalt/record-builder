@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.*;
 import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
 import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedCustomAnnotation;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
 
 class InternalRecordBuilderProcessor {
@@ -70,6 +71,7 @@ class InternalRecordBuilderProcessor {
 
         builder = TypeSpec.classBuilder(builderClassType.name())
                 .addAnnotation(generatedRecordBuilderAnnotation)
+                .addAnnotation(generatedCustomAnnotation)
                 .addTypeVariables(typeVariables);
         addVisibility(recordActualPackage.equals(packageName), record.getModifiers());
         addWithNestedClass();
@@ -148,6 +150,7 @@ class InternalRecordBuilderProcessor {
          */
         var classBuilder = TypeSpec.interfaceBuilder(metaData.withClassName())
                 .addAnnotation(generatedRecordBuilderAnnotation)
+                .addAnnotation(generatedCustomAnnotation)
                 .addJavadoc("Add withers to {@code $L}\n", recordClassType.name())
                 .addModifiers(Modifier.PUBLIC)
                 .addTypeVariables(typeVariables);
@@ -176,6 +179,7 @@ class InternalRecordBuilderProcessor {
          */
         var classBuilder = TypeSpec.interfaceBuilder(metaData.beanClassName())
                 .addAnnotation(generatedRecordBuilderAnnotation)
+                .addAnnotation(generatedCustomAnnotation)
                 .addJavadoc("Add getters to {@code $L}\n", recordClassType.name())
                 .addModifiers(Modifier.PUBLIC)
                 .addTypeVariables(typeVariables);
@@ -545,22 +549,66 @@ class InternalRecordBuilderProcessor {
         /*
             Adds static method that returns a "with"er view of an existing record.
 
-            public static With from(MyRecord from) {
-                return new MyRecordBuilder.With() {
-                    @Override
-                    public String p1() {
-                        return from.p1();
-                    }
+            private static final class WitherImpl implements With {
+                private final MyRecord from;
+                private WitherImpl(MyRecord from) {
+                    this.from = from;
+                }
 
-                    @Override
-                    public String p2() {
-                        return from.p2();
-                    }
-                };
+                @Override
+                public String p1() {
+                    return from.p1();
+                }
+
+                @Override
+                public String p2() {
+                    return from.p2();
+                }
+            }
+
+            public static MyRecordBuilder.With from(MyRecord from) {
+                return new WitherImpl(from);
             }
          */
+        var witherClassName = witherClassName(builderClassType.name() + "." + metaData.withClassName());
+        var withType = ClassName.get("", witherClassName);
+
+        var witherClassBuilder = TypeSpec.classBuilder(metaData.fromInnerClassName())
+            .addAnnotation(generatedRecordBuilderAnnotation)
+            .addAnnotation(generatedCustomAnnotation)
+            .addTypeVariables(typeVariables)
+            .addSuperinterface(withType)
+            .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+            .addField(recordClassType.typeName(), metaData.fromMethodName(), Modifier.PRIVATE, Modifier.FINAL)
+            .addMethod(MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PRIVATE)
+                .addParameter(recordClassType.typeName(), metaData.fromMethodName())
+                .addCode("this.$L = $L;", metaData.fromMethodName(), metaData.fromMethodName())
+                .build());
+        recordComponents.forEach(component ->
+            witherClassBuilder.addMethod(MethodSpec.methodBuilder(prefixedName(component, true))
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(Override.class)
+                .returns(component.typeName())
+                .addCode("return $L.$L();", metaData.fromMethodName(), component.name())
+            .build()));
+        builder.addType(witherClassBuilder.build());
+
+        var methodSpec = MethodSpec.methodBuilder(metaData.fromMethodName())
+                .addJavadoc("Return a \"with\"er for an existing record instance\n")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .addAnnotation(generatedRecordBuilderAnnotation)
+                .addTypeVariables(typeVariables)
+                .addParameter(recordClassType.typeName(), metaData.fromMethodName())
+                .returns(withType)
+                .addCode("return new $L($L);", witherClassName(metaData.fromInnerClassName()), metaData.fromMethodName())
+                .build();
+        builder.addMethod(methodSpec);
+    }
+
+    private String witherClassName(String baseClassName) {
         var witherClassNameBuilder = CodeBlock.builder()
-                .add("$L.$L", builderClassType.name(), metaData.withClassName());
+            .add("$L", baseClassName);
         if (!typeVariables.isEmpty()) {
             witherClassNameBuilder.add("<");
             IntStream.range(0, typeVariables.size()).forEach(index -> {
@@ -571,35 +619,7 @@ class InternalRecordBuilderProcessor {
             });
             witherClassNameBuilder.add(">");
         }
-        var witherClassName = witherClassNameBuilder.build().toString();
-        var codeBuilder = CodeBlock.builder()
-                .add("return new $L", witherClassName)
-                .add("() {\n").indent();
-        IntStream.range(0, recordComponents.size()).forEach(index -> {
-            var component = recordComponents.get(index);
-            if (index > 0) {
-                codeBuilder.add("\n");
-            }
-            codeBuilder.add("@Override\n")
-                    .add("public $T $L() {\n", component.typeName(), prefixedName(component, true))
-                    .indent()
-                    .addStatement("return from.$L()", component.name())
-                    .unindent()
-                    .add("}\n");
-        });
-        codeBuilder.unindent().addStatement("}");
-
-        var withType = ClassName.get("", witherClassName);
-        var methodSpec = MethodSpec.methodBuilder("from")//metaData.copyMethodName())
-                .addJavadoc("Return a \"with\"er for an existing record instance\n")
-                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .addAnnotation(generatedRecordBuilderAnnotation)
-                .addTypeVariables(typeVariables)
-                .addParameter(recordClassType.typeName(), metaData.fromMethodName())
-                .returns(withType)
-                .addCode(codeBuilder.build())
-                .build();
-        builder.addMethod(methodSpec);
+        return witherClassNameBuilder.build().toString();
     }
 
     private void addStaticCopyBuilderMethod() {
@@ -984,6 +1004,7 @@ class InternalRecordBuilderProcessor {
         }
         return TypeSpec.interfaceBuilder(className)
                 .addAnnotation(generatedRecordBuilderAnnotation)
+                .addAnnotation(generatedCustomAnnotation)
                 .addAnnotation(FunctionalInterface.class)
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addTypeVariables(localTypeVariables)

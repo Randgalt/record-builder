@@ -19,6 +19,7 @@ import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
 import io.soabase.recordbuilder.core.RecordBuilder;
+import io.soabase.recordbuilder.core.RecordBuilderGenerated;
 import io.soabase.recordbuilder.core.RecordInterface;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -45,6 +46,7 @@ public class RecordBuilderProcessor
     private static final String RECORD_INTERFACE_INCLUDE = RecordInterface.Include.class.getName().replace('$', '.');
 
     static final AnnotationSpec generatedRecordBuilderAnnotation = AnnotationSpec.builder(Generated.class).addMember("value", "$S", RecordBuilder.class.getName()).build();
+    static final AnnotationSpec generatedCustomAnnotation = AnnotationSpec.builder(RecordBuilderGenerated.class).build();
     static final AnnotationSpec generatedRecordInterfaceAnnotation = AnnotationSpec.builder(Generated.class).addMember("value", "$S", RecordInterface.class.getName()).build();
 
     @Override
@@ -186,7 +188,6 @@ public class RecordBuilderProcessor
         JavaFile javaFile = javaFileBuilder(packageName, type, metaData);
 
         String classSourceCode = javaFile.toString();
-        int generatedIndex = classSourceCode.indexOf("@Generated");
         String recordSourceCode = toRecordProc.apply(classSourceCode);
 
         Filer filer = processingEnv.getFiler();
