@@ -95,6 +95,11 @@ public @interface RecordBuilder {
         String fromMethodName() default "from";
 
         /**
+         * The name to use for the from-to-wither inner class
+         */
+        String fromInnerClassName() default "WitherImpl";
+
+        /**
          * The name to use for the method that returns the record components as a stream
          */
         String componentsMethodName() default "stream";

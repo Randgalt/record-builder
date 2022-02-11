@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedCustomAnnotation;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordInterfaceAnnotation;
 
 class InternalRecordInterfaceProcessor {
@@ -67,6 +68,7 @@ class InternalRecordInterfaceProcessor {
                 .addMethod(methodSpec)
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(generatedRecordInterfaceAnnotation)
+                .addAnnotation(generatedCustomAnnotation)
                 .addTypeVariables(typeVariables);
 
         if (addRecordBuilder) {
