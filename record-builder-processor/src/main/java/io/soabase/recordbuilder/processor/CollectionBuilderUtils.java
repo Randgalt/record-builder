@@ -109,6 +109,10 @@ class CollectionBuilderUtils {
         return Optional.empty();
     }
 
+    boolean isImmutableCollection(RecordClassType component) {
+        return useImmutableCollections && (isList(component) || isMap(component) || isSet(component) || component.rawTypeName().equals(collectionType));
+    }
+
     boolean isList(RecordClassType component) {
         return component.rawTypeName().equals(listType);
     }

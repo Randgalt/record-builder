@@ -371,8 +371,10 @@ class InternalRecordBuilderProcessor {
     private void addNullCheckCodeBlock(CodeBlock.Builder builder, int index) {
         if (metaData.interpretNotNulls()) {
             var component = recordComponents.get(index);
-            if (!component.typeName().isPrimitive() && isNullAnnotated(component)) {
-                builder.addStatement("$T.requireNonNull($L, $S)", Objects.class, component.name(), component.name() + " is required");
+            if (!collectionBuilderUtils.isImmutableCollection(component)) {
+                if (!component.typeName().isPrimitive() && isNullAnnotated(component)) {
+                    builder.addStatement("$T.requireNonNull($L, $S)", Objects.class, component.name(), component.name() + " is required");
+                }
             }
         }
     }
@@ -521,6 +523,16 @@ class InternalRecordBuilderProcessor {
         */
 
         var codeBuilder = CodeBlock.builder();
+
+        IntStream.range(0, recordComponents.size()).forEach(index -> {
+            var recordComponent = recordComponents.get(index);
+            if (collectionBuilderUtils.isImmutableCollection(recordComponent)) {
+                codeBuilder.add("$[$L = ", recordComponent.name());
+                collectionBuilderUtils.add(codeBuilder, recordComponents.get(index));
+                codeBuilder.add(";\n$]");
+            }
+        });
+
         addNullCheckCodeBlock(codeBuilder);
         codeBuilder.add("$[return ");
         if (metaData.useValidationApi()) {
@@ -531,7 +543,7 @@ class InternalRecordBuilderProcessor {
             if (index > 0) {
                 codeBuilder.add(", ");
             }
-            collectionBuilderUtils.add(codeBuilder, recordComponents.get(index));
+            codeBuilder.add("$L", recordComponents.get(index).name());
         });
         codeBuilder.add(")");
         if (metaData.useValidationApi()) {
