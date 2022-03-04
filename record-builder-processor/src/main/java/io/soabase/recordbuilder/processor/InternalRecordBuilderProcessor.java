@@ -521,6 +521,14 @@ class InternalRecordBuilderProcessor {
         */
 
         var codeBuilder = CodeBlock.builder();
+
+        IntStream.range(0, recordComponents.size()).forEach(index -> {
+            var recordComponent = recordComponents.get(index);
+            codeBuilder.add("$[$L = ", recordComponent.name());
+            collectionBuilderUtils.add(codeBuilder, recordComponents.get(index));
+            codeBuilder.add(";\n$]");
+        });
+
         addNullCheckCodeBlock(codeBuilder);
         codeBuilder.add("$[return ");
         if (metaData.useValidationApi()) {
@@ -531,7 +539,7 @@ class InternalRecordBuilderProcessor {
             if (index > 0) {
                 codeBuilder.add(", ");
             }
-            collectionBuilderUtils.add(codeBuilder, recordComponents.get(index));
+            codeBuilder.add("$L", recordComponents.get(index).name());
         });
         codeBuilder.add(")");
         if (metaData.useValidationApi()) {

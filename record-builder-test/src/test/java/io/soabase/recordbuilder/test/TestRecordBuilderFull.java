@@ -20,11 +20,15 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 class TestRecordBuilderFull {
     @Test
     void testNonNull() {
-        Assertions.assertThrows(NullPointerException.class, () -> FullRecordBuilder.builder().build());
+        var record = FullRecordBuilder.builder().build();
+        Assertions.assertEquals(List.of(), record.numbers());
+        Assertions.assertEquals(Map.of(), record.fullRecords());
     }
 
     @Test
