@@ -22,6 +22,6 @@ import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 
-@RecordBuilder.Options(emptyDefaultForOptional = true)
+@RecordBuilder.Options(emptyDefaultForOptional = true, addConcreteSettersForOptional = true)
 @RecordBuilder
 public record RecordWithOptional(Optional<String> value, Optional raw, OptionalInt i, OptionalLong l, OptionalDouble d) {}

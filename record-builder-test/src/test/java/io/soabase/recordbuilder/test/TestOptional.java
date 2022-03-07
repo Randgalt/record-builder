@@ -33,4 +33,20 @@ class TestOptional {
         Assertions.assertEquals(OptionalLong.empty(), record.l());
         Assertions.assertEquals(OptionalDouble.empty(), record.d());
     }
+
+    @Test
+    void testRawSetters() {
+        var record = RecordWithOptionalBuilder.builder()
+                .value("value")
+                .raw("rawValue")
+                .i(42)
+                .l(424242L)
+                .d(42.42)
+                .build();
+        Assertions.assertEquals(Optional.of("value"), record.value());
+        Assertions.assertEquals(Optional.of("rawValue"), record.raw());
+        Assertions.assertEquals(OptionalInt.of(42), record.i());
+        Assertions.assertEquals(OptionalLong.of(424242L), record.l());
+        Assertions.assertEquals(OptionalDouble.of(42.42), record.d());
+    }
 }

@@ -145,6 +145,11 @@ public @interface RecordBuilder {
         boolean emptyDefaultForOptional() default true;
 
         /**
+         * Add non-optional setter methods for optional record components.
+         */
+        boolean addConcreteSettersForOptional() default false;
+
+        /**
          * Add not-null checks for record components annotated with any annotation named either "NotNull",
          * "NoNull", or "NonNull" (see {@link #interpretNotNullsPattern()} for the actual regex matching pattern).
          */
