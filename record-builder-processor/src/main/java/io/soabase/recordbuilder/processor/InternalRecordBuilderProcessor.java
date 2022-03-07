@@ -72,7 +72,9 @@ class InternalRecordBuilderProcessor {
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addTypeVariables(typeVariables);
         addVisibility(recordActualPackage.equals(packageName), record.getModifiers());
-        addWithNestedClass();
+        if (metaData.enableWither()) {
+            addWithNestedClass();
+        }
         if (!metaData.beanClassName().isEmpty()) {
             addBeanNestedClass();
         }
@@ -83,7 +85,9 @@ class InternalRecordBuilderProcessor {
         }
         addStaticDefaultBuilderMethod();
         addStaticCopyBuilderMethod();
-        addStaticFromWithMethod();
+        if (metaData.enableWither()) {
+            addStaticFromWithMethod();
+        }
         addStaticComponentsMethod();
         addBuildMethod();
         addToStringMethod();
@@ -92,7 +96,9 @@ class InternalRecordBuilderProcessor {
         recordComponents.forEach(component -> {
             add1Field(component);
             add1SetterMethod(component);
-            add1GetterMethod(component);
+            if (metaData.enableGetters()) {
+                add1GetterMethod(component);
+            }
             var collectionMetaData = collectionBuilderUtils.singleItemsMetaData(component, EXCLUDE_WILDCARD_TYPES);
             collectionMetaData.ifPresent(meta -> add1CollectionBuilders(meta, component));
         });
