@@ -18,8 +18,9 @@ package io.soabase.recordbuilder.test;
 import io.soabase.recordbuilder.core.RecordBuilder;
 
 import javax.validation.constraints.NotNull;
+import java.util.List;
 
 @RecordBuilder.Options(interpretNotNulls = true)
 @RecordBuilder
-public record RequiredRecord(@NotNull String hey, @NotNull int i) implements RequiredRecordBuilder.With {
+public record RequiredRecord(@NotNull String hey, @NotNull int i, @NotNull List<String> l) implements RequiredRecordBuilder.With {
 }

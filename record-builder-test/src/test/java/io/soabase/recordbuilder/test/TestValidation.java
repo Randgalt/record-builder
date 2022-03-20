@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import javax.validation.ValidationException;
+import java.util.List;
 
 class TestValidation {
     @Test
@@ -33,7 +34,7 @@ class TestValidation {
 
     @Test
     void testNotNullsWithNewProperty() {
-        var valid = RequiredRecordBuilder.builder().hey("hey").i(1).build();
+        var valid = RequiredRecordBuilder.builder().hey("hey").i(1).l(List.of()).build();
         Assertions.assertThrows(NullPointerException.class, () -> valid.withHey(null));
     }
 
