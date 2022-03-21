@@ -39,10 +39,9 @@ public record OptionalType(TypeName typeName, TypeName valueType) {
 
     static Optional<OptionalType> fromClassType(final ClassType component) {
         if (isOptional(component)) {
-            if (!(component.typeName() instanceof ParameterizedTypeName)) {
+            if (!(component.typeName() instanceof ParameterizedTypeName parameterizedType)) {
                 return Optional.of(new OptionalType(optionalType, TypeName.get(Object.class)));
             }
-            var parameterizedType = (ParameterizedTypeName) component.typeName();
             final TypeName containingType = parameterizedType.typeArguments.isEmpty()
                     ? TypeName.get(Object.class)
                     : parameterizedType.typeArguments.get(0);
