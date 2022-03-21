@@ -23,6 +23,7 @@ import javax.lang.model.element.*;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -47,6 +48,7 @@ class InternalRecordBuilderProcessor {
     private final CollectionBuilderUtils collectionBuilderUtils;
 
     private static final TypeName overrideType = TypeName.get(Override.class);
+    private static final TypeName validType = ClassName.get("javax.validation", "Valid");
     private static final TypeName validatorTypeName = ClassName.get("io.soabase.recordbuilder.validator", "RecordBuilderValidator");
     private static final TypeVariableName rType = TypeVariableName.get("R");
     private final ProcessingEnvironment processingEnv;
@@ -729,12 +731,16 @@ class InternalRecordBuilderProcessor {
                 .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .returns(component.typeName());
-        addAccessorAnnotations(component, methodSpecBuilder);
+        addAccessorAnnotations(component, methodSpecBuilder, this::filterOutValid);
         classBuilder.addMethod(methodSpecBuilder.build());
     }
 
     private boolean filterOutOverride(AnnotationSpec annotationSpec) {
         return !annotationSpec.type.equals(overrideType);
+    }
+
+    private boolean filterOutValid(AnnotationSpec annotationSpec) {
+        return !annotationSpec.type.equals(validType);
     }
 
     private void addConstructorAnnotations(RecordClassType component, ParameterSpec.Builder parameterSpecBuilder) {
@@ -747,12 +753,13 @@ class InternalRecordBuilderProcessor {
         }
     }
 
-    private void addAccessorAnnotations(RecordClassType component, MethodSpec.Builder methodSpecBuilder) {
+    private void addAccessorAnnotations(RecordClassType component, MethodSpec.Builder methodSpecBuilder, Predicate<AnnotationSpec> additionalFilter) {
         if (metaData.inheritComponentAnnotations()) {
             component.getAccessorAnnotations()
                     .stream()
                     .map(AnnotationSpec::get)
                     .filter(this::filterOutOverride)
+                    .filter(additionalFilter)
                     .forEach(methodSpecBuilder::addAnnotation);
         }
     }
@@ -894,7 +901,7 @@ class InternalRecordBuilderProcessor {
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .returns(component.typeName())
                 .addStatement("return $L", component.name());
-        addAccessorAnnotations(component, methodSpecBuilder);
+        addAccessorAnnotations(component, methodSpecBuilder, __ -> true);
         builder.addMethod(methodSpecBuilder.build());
     }
 
