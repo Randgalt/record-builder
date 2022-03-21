@@ -100,6 +100,11 @@ public @interface RecordBuilder {
         String componentsMethodName() default "stream";
 
         /**
+         * If true, a "With" interface is generated and an associated static factory
+         */
+        boolean enableWither() default true;
+
+        /**
          * The name to use for the nested With class
          */
         String withClassName() default "With";
@@ -194,6 +199,11 @@ public @interface RecordBuilder {
          * a corresponding setter named "setMyField".
          */
         String setterPrefix() default "";
+
+        /**
+         * If true, getters will be generated for the Builder class.
+         */
+        boolean enableGetters() default true;
 
         /**
          * If set, all builder getter methods will be prefixed with this string. Camel-casing will
