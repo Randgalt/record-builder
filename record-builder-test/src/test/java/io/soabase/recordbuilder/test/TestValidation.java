@@ -43,4 +43,14 @@ class TestValidation {
         var valid = RequiredRecord2Builder.builder().hey("hey").i(1).build();
         Assertions.assertThrows(ValidationException.class, () -> valid.withHey(null));
     }
+
+    @Test
+    void testRequestWithValid() {
+        Assertions.assertDoesNotThrow(() -> RequestWithValidBuilder.builder()
+                .part(new RequestWithValid.Part("jsfjsf"))
+                .build());
+        Assertions.assertThrows(ValidationException.class, () -> RequestWithValidBuilder.builder()
+                .part(new RequestWithValid.Part(""))
+                .build());
+    }
 }
