@@ -15,13 +15,12 @@
  */
 package io.soabase.recordbuilder.test;
 
-import io.soabase.recordbuilder.core.RecordBuilder;
-
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import io.soabase.recordbuilder.core.RecordBuilder;
 
-@RecordBuilder.Options(emptyDefaultForOptional = true, addConcreteSettersForOptional = true)
+@RecordBuilder.Options(emptyDefaultForOptional = true)
 @RecordBuilder
-public record RecordWithOptional(Optional<String> value, Optional raw, OptionalInt i, OptionalLong l, OptionalDouble d) {}
+public record RecordWithOptional2(Optional<String> value, Optional raw, OptionalInt i, OptionalLong l, OptionalDouble d) {}

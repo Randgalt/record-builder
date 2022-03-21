@@ -47,10 +47,6 @@ class InternalRecordBuilderProcessor {
     private final CollectionBuilderUtils collectionBuilderUtils;
 
     private static final TypeName overrideType = TypeName.get(Override.class);
-    private static final TypeName optionalType = TypeName.get(Optional.class);
-    private static final TypeName optionalIntType = TypeName.get(OptionalInt.class);
-    private static final TypeName optionalLongType = TypeName.get(OptionalLong.class);
-    private static final TypeName optionalDoubleType = TypeName.get(OptionalDouble.class);
     private static final TypeName validatorTypeName = ClassName.get("io.soabase.recordbuilder.validator", "RecordBuilderValidator");
     private static final TypeVariableName rType = TypeVariableName.get("R");
     private final ProcessingEnvironment processingEnv;
@@ -98,6 +94,9 @@ class InternalRecordBuilderProcessor {
             add1SetterMethod(component);
             if (metaData.enableGetters()) {
                 add1GetterMethod(component);
+            }
+            if (metaData.addConcreteSettersForOptional()) {
+                add1ConcreteOptionalSetterMethod(component);
             }
             var collectionMetaData = collectionBuilderUtils.singleItemsMetaData(component, EXCLUDE_WILDCARD_TYPES);
             collectionMetaData.ifPresent(meta -> add1CollectionBuilders(meta, component));
@@ -708,29 +707,15 @@ class InternalRecordBuilderProcessor {
          */
         var fieldSpecBuilder = FieldSpec.builder(component.typeName(), component.name(), Modifier.PRIVATE);
         if (metaData.emptyDefaultForOptional()) {
-            TypeName thisOptionalType = null;
-            if (isOptional(component)) {
-                thisOptionalType = optionalType;
-            } else if (component.typeName().equals(optionalIntType)) {
-                thisOptionalType = optionalIntType;
-            } else if (component.typeName().equals(optionalLongType)) {
-                thisOptionalType = optionalLongType;
-            } else if (component.typeName().equals(optionalDoubleType)) {
-                thisOptionalType = optionalDoubleType;
-            }
-            if (thisOptionalType != null) {
-                var codeBlock = CodeBlock.builder().add("$T.empty()", thisOptionalType).build();
+            Optional<OptionalType> thisOptionalType = OptionalType.fromClassType(component);
+            if (thisOptionalType.isPresent()) {
+                var codeBlock = CodeBlock.builder()
+                        .add("$T.empty()", thisOptionalType.get().typeName())
+                        .build();
                 fieldSpecBuilder.initializer(codeBlock);
             }
         }
         builder.addField(fieldSpecBuilder.build());
-    }
-
-    private boolean isOptional(ClassType component) {
-        if (component.typeName().equals(optionalType)) {
-            return true;
-        }
-        return (component.typeName() instanceof ParameterizedTypeName parameterizedTypeName) && parameterizedTypeName.rawType.equals(optionalType);
     }
 
     private void addNestedGetterMethod(TypeSpec.Builder classBuilder, RecordClassType component, String methodName) {
@@ -939,6 +924,33 @@ class InternalRecordBuilderProcessor {
                     .addStatement("this.$L = $L", component.name(), component.name());
             return ParameterSpec.builder(component.typeName(), component.name());
         });
+        addConstructorAnnotations(component, parameterSpecBuilder);
+        methodSpec.addStatement("return this").addParameter(parameterSpecBuilder.build());
+        builder.addMethod(methodSpec.build());
+    }
+
+    private void add1ConcreteOptionalSetterMethod(RecordClassType component) {
+         /*
+            For a single optional record component, add a concrete setter similar to:
+
+            public MyRecordBuilder p(T p) {
+                this.p = p;
+                return this;
+            }
+         */
+        var optionalType = OptionalType.fromClassType(component);
+        if (optionalType.isEmpty()) {
+            return;
+        }
+        var type = optionalType.get();
+        var methodSpec = MethodSpec.methodBuilder(prefixedName(component, false))
+            .addModifiers(Modifier.PUBLIC)
+            .addAnnotation(generatedRecordBuilderAnnotation)
+            .returns(builderClassType.typeName());
+
+        var parameterSpecBuilder = ParameterSpec.builder(type.valueType(), component.name());
+        methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name())
+            .addStatement("this.$L = $T.of($L)", component.name(), type.typeName(), component.name());
         addConstructorAnnotations(component, parameterSpecBuilder);
         methodSpec.addStatement("return this").addParameter(parameterSpecBuilder.build());
         builder.addMethod(methodSpec.build());
