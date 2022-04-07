@@ -81,7 +81,9 @@ class InternalRecordBuilderProcessor {
             addBeanNestedClass();
         }
         addDefaultConstructor();
-        addStaticBuilder();
+        if (metaData.addStaticBuilder()) {
+            addStaticBuilder();
+        }
         if (recordComponents.size() > 0) {
             addAllArgsConstructor();
         }

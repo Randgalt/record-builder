@@ -15,13 +15,14 @@
  */
 package io.soabase.recordbuilder.test;
 
-import java.util.List;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.List;
+import java.util.stream.Stream;
 
-public class TestCustomMethodNames {
+import static org.junit.jupiter.api.Assertions.*;
+
+public class TestVariousOptions {
 
   @Test
   public void builderGetsCustomSetterAndGetterNames() {
@@ -53,5 +54,16 @@ public class TestCustomMethodNames {
     assertEquals(1, obj.getTheValue());
     assertEquals(List.of(2), obj.getTheList());
     assertTrue(obj.isTheBoolean());
+  }
+
+  @Test
+  public void noStaticBuilder() {
+    boolean hasStaticBuilder = Stream.of(NoStaticBuilderBuilder.class.getDeclaredMethods())
+            .anyMatch(method -> method.getName().equals("NoStaticBuilder"));
+    assertFalse(hasStaticBuilder);
+
+    hasStaticBuilder = Stream.of(SimpleRecordBuilder.class.getDeclaredMethods())
+            .anyMatch(method -> method.getName().equals("SimpleRecord"));
+    assertTrue(hasStaticBuilder);
   }
 }
