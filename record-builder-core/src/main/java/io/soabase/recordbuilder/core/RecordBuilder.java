@@ -234,6 +234,18 @@ public @interface RecordBuilder {
          * this option does nothing.
          */
         String beanClassName() default "";
+
+        /**
+         * If true, generated classes are annotated with {@code RecordBuilderGenerated} which has a retention
+         * policy of {@code CLASS}. This ensures that analyzers such as Jacoco will ignore the generated class.
+         */
+        boolean addClassRetainedGenerated() default false;
+
+        /**
+         * The {@link #fromMethodName} method instantiates an internal private class. This is the
+         * name of that class.
+         */
+        String fromWithClassName() default "_FromWith";
     }
 
     @Retention(RetentionPolicy.CLASS)

@@ -13,23 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.soabase.recordbuilder.core;
+package io.soabase.recordbuilder.test.jacoco;
 
-import java.lang.annotation.*;
+import io.soabase.recordbuilder.core.RecordBuilderFull;
+import io.soabase.recordbuilder.core.RecordBuilderGenerated;
 
-@RecordBuilder.Template(options = @RecordBuilder.Options(
-        interpretNotNulls = true,
-        useImmutableCollections = true,
-        addSingleItemCollectionBuilders = true,
-        addFunctionalMethodsToWith = true,
-        addClassRetainedGenerated = true
-))
-@Retention(RetentionPolicy.SOURCE)
-@Target(ElementType.TYPE)
-@Inherited
-/**
- * An alternate form of {@code @RecordBuilder} that has most
- * optional features turned on
- */
-public @interface RecordBuilderFull {
+import javax.validation.constraints.NotNull;
+import java.util.List;
+import java.util.Map;
+
+@RecordBuilderFull
+@RecordBuilderGenerated
+public record FullRecordForJacoco(@NotNull List<Number> numbers, @NotNull Map<Number, FullRecordForJacoco> fullRecords, @NotNull String justAString) {
 }

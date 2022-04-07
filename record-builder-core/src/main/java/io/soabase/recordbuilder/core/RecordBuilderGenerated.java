@@ -15,21 +15,16 @@
  */
 package io.soabase.recordbuilder.core;
 
-import java.lang.annotation.*;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@RecordBuilder.Template(options = @RecordBuilder.Options(
-        interpretNotNulls = true,
-        useImmutableCollections = true,
-        addSingleItemCollectionBuilders = true,
-        addFunctionalMethodsToWith = true,
-        addClassRetainedGenerated = true
-))
-@Retention(RetentionPolicy.SOURCE)
-@Target(ElementType.TYPE)
-@Inherited
+import static java.lang.annotation.ElementType.*;
+
 /**
- * An alternate form of {@code @RecordBuilder} that has most
- * optional features turned on
+ * Jacoco ignores classes and methods annotated with `*Generated`
  */
-public @interface RecordBuilderFull {
+@Target({PACKAGE, TYPE, METHOD, CONSTRUCTOR, FIELD, LOCAL_VARIABLE, PARAMETER})
+@Retention(RetentionPolicy.CLASS)
+public @interface RecordBuilderGenerated {
 }
