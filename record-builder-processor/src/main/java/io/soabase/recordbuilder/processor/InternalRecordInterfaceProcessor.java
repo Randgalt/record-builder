@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 
 import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordInterfaceAnnotation;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
 
 class InternalRecordInterfaceProcessor {
     private final ProcessingEnvironment processingEnv;
@@ -68,6 +69,9 @@ class InternalRecordInterfaceProcessor {
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(generatedRecordInterfaceAnnotation)
                 .addTypeVariables(typeVariables);
+        if (metaData.addClassRetainedGenerated()) {
+            builder.addAnnotation(recordBuilderGeneratedAnnotation);
+        }
 
         if (addRecordBuilder) {
             ClassType builderClassType = ElementUtils.getClassType(packageName, getBuilderName(iface, metaData, recordClassType, metaData.suffix()) + "." + metaData.withClassName(), iface.getTypeParameters());

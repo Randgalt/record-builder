@@ -33,6 +33,7 @@ import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleIt
 import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
 import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
 
 class InternalRecordBuilderProcessor {
     private final RecordBuilder.Options metaData;
@@ -69,6 +70,9 @@ class InternalRecordBuilderProcessor {
         builder = TypeSpec.classBuilder(builderClassType.name())
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addTypeVariables(typeVariables);
+        if (metaData.addClassRetainedGenerated()) {
+            builder.addAnnotation(recordBuilderGeneratedAnnotation);
+        }
         addVisibility(recordActualPackage.equals(packageName), record.getModifiers());
         if (metaData.enableWither()) {
             addWithNestedClass();
@@ -158,6 +162,9 @@ class InternalRecordBuilderProcessor {
                 .addJavadoc("Add withers to {@code $L}\n", recordClassType.name())
                 .addModifiers(Modifier.PUBLIC)
                 .addTypeVariables(typeVariables);
+        if (metaData.addClassRetainedGenerated()) {
+            classBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
+        }
         recordComponents.forEach(component -> addNestedGetterMethod(classBuilder, component, prefixedName(component, true)));
         addWithBuilderMethod(classBuilder);
         addWithSuppliedBuilderMethod(classBuilder);
@@ -560,63 +567,83 @@ class InternalRecordBuilderProcessor {
         return codeBuilder.build();
     }
 
+    private TypeName buildWithTypeName()
+    {
+        ClassName rawTypeName = ClassName.get(packageName, builderClassType.name() + "." + metaData.withClassName());
+        if (typeVariables.isEmpty()) {
+            return rawTypeName;
+        }
+        return ParameterizedTypeName.get(rawTypeName, typeVariables.toArray(new TypeName[]{}));
+    }
+
+    private void addFromWithClass() {
+        /*
+            Adds static private class that implements/proxies the Wither
+
+            private static final class _FromWith implements MyRecordBuilder.With {
+                private final MyRecord from;
+
+                @Override
+                public String p1() {
+                    return from.p1();
+                }
+
+                @Override
+                public String p2() {
+                    return from.p2();
+                }
+            }
+         */
+
+        var fromWithClassBuilder = TypeSpec.classBuilder(metaData.fromWithClassName())
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                .addAnnotation(generatedRecordBuilderAnnotation)
+                .addTypeVariables(typeVariables)
+                .addSuperinterface(buildWithTypeName());
+        if (metaData.addClassRetainedGenerated()) {
+            fromWithClassBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
+        }
+
+        fromWithClassBuilder.addField(recordClassType.typeName(), "from", Modifier.PRIVATE, Modifier.FINAL);
+        MethodSpec constructorSpec = MethodSpec.constructorBuilder()
+                .addParameter(recordClassType.typeName(), "from")
+                .addStatement("this.from = from")
+                .addModifiers(Modifier.PRIVATE)
+                .build();
+        fromWithClassBuilder.addMethod(constructorSpec);
+
+        IntStream.range(0, recordComponents.size()).forEach(index -> {
+            var component = recordComponents.get(index);
+            MethodSpec methodSpec = MethodSpec.methodBuilder(prefixedName(component, true))
+                    .returns(component.typeName())
+                    .addAnnotation(Override.class)
+                    .addModifiers(Modifier.PUBLIC)
+                    .addStatement("return from.$L()", component.name())
+                    .build();
+            fromWithClassBuilder.addMethod(methodSpec);
+        });
+        this.builder.addType(fromWithClassBuilder.build());
+    }
+
     private void addStaticFromWithMethod() {
         /*
             Adds static method that returns a "with"er view of an existing record.
 
             public static With from(MyRecord from) {
-                return new MyRecordBuilder.With() {
-                    @Override
-                    public String p1() {
-                        return from.p1();
-                    }
-
-                    @Override
-                    public String p2() {
-                        return from.p2();
-                    }
-                };
+                return new _FromWith(from);
             }
          */
-        var witherClassNameBuilder = CodeBlock.builder()
-                .add("$L.$L", builderClassType.name(), metaData.withClassName());
-        if (!typeVariables.isEmpty()) {
-            witherClassNameBuilder.add("<");
-            IntStream.range(0, typeVariables.size()).forEach(index -> {
-                if (index > 0) {
-                    witherClassNameBuilder.add(", ");
-                }
-                witherClassNameBuilder.add(typeVariables.get(index).name);
-            });
-            witherClassNameBuilder.add(">");
-        }
-        var witherClassName = witherClassNameBuilder.build().toString();
-        var codeBuilder = CodeBlock.builder()
-                .add("return new $L", witherClassName)
-                .add("() {\n").indent();
-        IntStream.range(0, recordComponents.size()).forEach(index -> {
-            var component = recordComponents.get(index);
-            if (index > 0) {
-                codeBuilder.add("\n");
-            }
-            codeBuilder.add("@Override\n")
-                    .add("public $T $L() {\n", component.typeName(), prefixedName(component, true))
-                    .indent()
-                    .addStatement("return from.$L()", component.name())
-                    .unindent()
-                    .add("}\n");
-        });
-        codeBuilder.unindent().addStatement("}");
 
-        var withType = ClassName.get("", witherClassName);
-        var methodSpec = MethodSpec.methodBuilder("from")//metaData.copyMethodName())
+        addFromWithClass();
+
+        var methodSpec = MethodSpec.methodBuilder(metaData.fromMethodName())
                 .addJavadoc("Return a \"with\"er for an existing record instance\n")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addTypeVariables(typeVariables)
                 .addParameter(recordClassType.typeName(), metaData.fromMethodName())
-                .returns(withType)
-                .addCode(codeBuilder.build())
+                .returns(buildWithTypeName())
+                .addStatement("return new $L$L(from)", metaData.fromWithClassName(), typeVariables.isEmpty() ? "" : "<>")
                 .build();
         builder.addMethod(methodSpec);
     }
@@ -951,13 +978,13 @@ class InternalRecordBuilderProcessor {
         }
         var type = optionalType.get();
         var methodSpec = MethodSpec.methodBuilder(prefixedName(component, false))
-            .addModifiers(Modifier.PUBLIC)
-            .addAnnotation(generatedRecordBuilderAnnotation)
-            .returns(builderClassType.typeName());
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(generatedRecordBuilderAnnotation)
+                .returns(builderClassType.typeName());
 
         var parameterSpecBuilder = ParameterSpec.builder(type.valueType(), component.name());
         methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name())
-            .addStatement("this.$L = $T.of($L)", component.name(), type.typeName(), component.name());
+                .addStatement("this.$L = $T.of($L)", component.name(), type.typeName(), component.name());
         addConstructorAnnotations(component, parameterSpecBuilder);
         methodSpec.addStatement("return this").addParameter(parameterSpecBuilder.build());
         builder.addMethod(methodSpec.build());
@@ -1030,7 +1057,7 @@ class InternalRecordBuilderProcessor {
 
     private String prefixedName(RecordClassType component, boolean isGetter) {
         BiFunction<String, String, String> prefixer = (p, s) -> p.isEmpty()
-            ? s : p + Character.toUpperCase(s.charAt(0)) + s.substring(1);
+                ? s : p + Character.toUpperCase(s.charAt(0)) + s.substring(1);
         boolean isBool = component.typeName().toString().toLowerCase(Locale.ROOT).equals("boolean");
         if (isGetter) {
             if (isBool) {
