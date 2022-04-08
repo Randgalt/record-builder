@@ -616,6 +616,7 @@ class InternalRecordBuilderProcessor {
                 .addParameter(recordClassType.typeName(), "from")
                 .addStatement("this.from = from")
                 .addModifiers(Modifier.PRIVATE)
+                .addAnnotation(generatedRecordBuilderAnnotation)
                 .build();
         fromWithClassBuilder.addMethod(constructorSpec);
 
@@ -626,6 +627,7 @@ class InternalRecordBuilderProcessor {
                     .addAnnotation(Override.class)
                     .addModifiers(Modifier.PUBLIC)
                     .addStatement("return from.$L()", component.name())
+                    .addAnnotation(generatedRecordBuilderAnnotation)
                     .build();
             fromWithClassBuilder.addMethod(methodSpec);
         });
