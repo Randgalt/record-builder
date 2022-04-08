@@ -246,6 +246,12 @@ public @interface RecordBuilder {
          * name of that class.
          */
         String fromWithClassName() default "_FromWith";
+
+        /**
+         * If true, a functional-style builder is added so that record instances can be instantiated
+         * without {@code new}.
+         */
+        boolean addStaticBuilder() default true;
     }
 
     @Retention(RetentionPolicy.CLASS)
