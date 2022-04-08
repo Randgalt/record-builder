@@ -239,7 +239,7 @@ class InternalRecordBuilderProcessor {
             }
          */
         var codeBlockBuilder = CodeBlock.builder()
-                .add("return new $L(", builderClassType.name());
+                .add("return new $L$L(", builderClassType.name(), typeVariables.isEmpty() ? "" : "<>");
         addComponentCallsAsArguments(-1, codeBlockBuilder);
         codeBlockBuilder.add(");");
         var methodSpec = MethodSpec.methodBuilder(metaData.withClassMethodPrefix())
@@ -490,7 +490,12 @@ class InternalRecordBuilderProcessor {
          */
         var codeBuilder = CodeBlock.builder();
         codeBuilder.add("return (this == o) || (");
-        codeBuilder.add("(o instanceof $L $L)", builderClassType.name(), uniqueVarName);
+        if (typeVariables.isEmpty()) {
+            codeBuilder.add("(o instanceof $L $L)", builderClassType.name(), uniqueVarName);
+        } else {
+            String wildcardList = typeVariables.stream().map(__ -> "?").collect(Collectors.joining(","));
+            codeBuilder.add("(o instanceof $L<$L> $L)", builderClassType.name(), wildcardList, uniqueVarName);
+        }
         recordComponents.forEach(recordComponent -> {
             String name = recordComponent.name();
             if (recordComponent.typeName().isPrimitive()) {
