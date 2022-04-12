@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 
@@ -57,5 +58,9 @@ public record OptionalType(TypeName typeName, TypeName valueType) {
             return Optional.of(new OptionalType(optionalDoubleType, TypeName.get(double.class)));
         }
         return Optional.empty();
+    }
+
+    public boolean isOptional() {
+        return typeName.equals(optionalType);
     }
 }
