@@ -993,10 +993,19 @@ class InternalRecordBuilderProcessor {
 
         var parameterSpecBuilder = ParameterSpec.builder(type.valueType(), component.name());
         methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name())
-                .addStatement("this.$L = $T.of($L)", component.name(), type.typeName(), component.name());
+                .addStatement(getOptionalStatement(type), component.name(), type.typeName(), component.name());
         addConstructorAnnotations(component, parameterSpecBuilder);
         methodSpec.addStatement("return this").addParameter(parameterSpecBuilder.build());
         builder.addMethod(methodSpec.build());
+    }
+
+    private String getOptionalStatement(OptionalType type) {
+
+        if(type.typeName().equals(TypeName.get(Optional.class))) {
+            return "this.$L = $T.ofNullable($L)";
+        }
+
+        return "this.$L = $T.of($L)";
     }
 
     private List<TypeVariableName> typeVariablesWithReturn() {

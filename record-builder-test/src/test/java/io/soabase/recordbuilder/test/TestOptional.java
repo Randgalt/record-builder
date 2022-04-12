@@ -15,13 +15,13 @@
  */
 package io.soabase.recordbuilder.test;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 class TestOptional {
     @Test
@@ -65,4 +65,19 @@ class TestOptional {
         Assertions.assertEquals(OptionalLong.of(424242L), record.l());
         Assertions.assertEquals(OptionalDouble.of(42.42), record.d());
     }
+
+    @Test
+    void shouldAcceptNullForOptionalRawSetter() {
+        // given
+        String value = null;
+
+        // when
+        var record = RecordWithOptionalBuilder.builder()
+                                              .value(value)
+                                              .build();
+
+        // then
+        Assertions.assertEquals(Optional.empty(), record.value());
+    }
+
 }
