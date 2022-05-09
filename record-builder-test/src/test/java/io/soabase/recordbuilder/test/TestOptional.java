@@ -81,16 +81,4 @@ class TestOptional {
         Assertions.assertEquals(Optional.empty(), record.value());
     }
 
-    @Test
-    void concreteSetterForOptionalShouldNotHaveNotNullAnnotation() throws NoSuchMethodException {
-        // given
-        var method = RecordWithOptionalBuilder.class.getMethod("value", String.class);
-
-        // when
-        var actual = method.getParameters()[0].getAnnotation(NotNull.class);
-
-        // then
-        Assertions.assertNull(actual);
-    }
-
 }
