@@ -15,7 +15,6 @@
  */
 package io.soabase.recordbuilder.test;
 
-import javax.validation.constraints.NotNull;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
