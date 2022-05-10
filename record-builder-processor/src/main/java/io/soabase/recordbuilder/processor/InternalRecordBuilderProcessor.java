@@ -15,8 +15,13 @@
  */
 package io.soabase.recordbuilder.processor;
 
-import com.squareup.javapoet.*;
-import io.soabase.recordbuilder.core.RecordBuilder;
+import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.EXCLUDE_WILDCARD_TYPES;
+import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.STANDARD;
+import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.STANDARD_FOR_SETTER;
+import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
+import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
@@ -29,11 +34,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.*;
-import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
-import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
+import com.squareup.javapoet.*;
+import io.soabase.recordbuilder.core.RecordBuilder;
 
 class InternalRecordBuilderProcessor {
     private final RecordBuilder.Options metaData;
@@ -993,10 +995,19 @@ class InternalRecordBuilderProcessor {
 
         var parameterSpecBuilder = ParameterSpec.builder(type.valueType(), component.name());
         methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name())
-                .addStatement("this.$L = $T.of($L)", component.name(), type.typeName(), component.name());
+                .addStatement(getOptionalStatement(type), component.name(), type.typeName(), component.name());
         addConstructorAnnotations(component, parameterSpecBuilder);
         methodSpec.addStatement("return this").addParameter(parameterSpecBuilder.build());
         builder.addMethod(methodSpec.build());
+    }
+
+    private String getOptionalStatement(OptionalType type) {
+
+        if(type.isOptional()) {
+            return "this.$L = $T.ofNullable($L)";
+        }
+
+        return "this.$L = $T.of($L)";
     }
 
     private List<TypeVariableName> typeVariablesWithReturn() {
