@@ -44,10 +44,14 @@ class CollectionBuilderUtils {
     private boolean needsMapMutableMaker;
     private boolean needsSetMutableMaker;
 
-    private static final TypeName listType = TypeName.get(List.class);
-    private static final TypeName mapType = TypeName.get(Map.class);
-    private static final TypeName setType = TypeName.get(Set.class);
-    private static final TypeName collectionType = TypeName.get(Collection.class);
+    private static final Class<?> listType = List.class;
+    private static final Class<?> mapType = Map.class;
+    private static final Class<?> setType = Set.class;
+    private static final Class<?> collectionType = Collection.class;
+    private static final TypeName listTypeName = TypeName.get(listType);
+    private static final TypeName mapTypeName = TypeName.get(mapType);
+    private static final TypeName setTypeName = TypeName.get(setType);
+    private static final TypeName collectionTypeName = TypeName.get(collectionType);
 
     private static final Class<?> mutableListType = ArrayList.class;
     private static final Class<?> mutableMapType = HashMap.class;
@@ -129,19 +133,19 @@ class CollectionBuilderUtils {
     }
 
     boolean isImmutableCollection(RecordClassType component) {
-        return useImmutableCollections && (isList(component) || isMap(component) || isSet(component) || component.rawTypeName().equals(collectionType));
+        return useImmutableCollections && (isList(component) || isMap(component) || isSet(component) || component.rawTypeName().equals(collectionTypeName));
     }
 
     boolean isList(RecordClassType component) {
-        return component.rawTypeName().equals(listType);
+        return component.rawTypeName().equals(listTypeName);
     }
 
     boolean isMap(RecordClassType component) {
-        return component.rawTypeName().equals(mapType);
+        return component.rawTypeName().equals(mapTypeName);
     }
 
     boolean isSet(RecordClassType component) {
-        return component.rawTypeName().equals(setType);
+        return component.rawTypeName().equals(setTypeName);
     }
 
     void addShimCall(CodeBlock.Builder builder, RecordClassType component) {
@@ -158,7 +162,7 @@ class CollectionBuilderUtils {
                 needsSetShim = true;
                 needsSetMutableMaker = true;
                 builder.add("$L($L)", setShimName, component.name());
-            } else if (component.rawTypeName().equals(collectionType)) {
+            } else if (component.rawTypeName().equals(collectionTypeName)) {
                 needsCollectionShim = true;
                 builder.add("$L($L)", collectionShimName, component.name());
             } else {
@@ -176,7 +180,7 @@ class CollectionBuilderUtils {
             return mapShimName;
         } else if (isSet(component)) {
             return setShimName;
-        } else if (component.rawTypeName().equals(collectionType)) {
+        } else if (component.rawTypeName().equals(collectionTypeName)) {
             return collectionShimName;
         } else {
             throw new IllegalArgumentException(component + " is not a supported collection type");
@@ -201,13 +205,13 @@ class CollectionBuilderUtils {
         }
 
         if (needsListShim) {
-            builder.addMethod(buildShimMethod(listShimName, listType, parameterizedListType, tType));
+            builder.addMethod(buildShimMethod(listShimName, listTypeName, collectionType , parameterizedListType, tType));
         }
         if (needsSetShim) {
-            builder.addMethod(buildShimMethod(setShimName, setType, parameterizedSetType, tType));
+            builder.addMethod(buildShimMethod(setShimName, setTypeName, collectionType, parameterizedSetType, tType));
         }
         if (needsMapShim) {
-            builder.addMethod(buildShimMethod(mapShimName, mapType, parameterizedMapType, kType, vType));
+            builder.addMethod(buildShimMethod(mapShimName, mapTypeName, mapType, parameterizedMapType, kType, vType));
         }
         if (needsCollectionShim) {
             builder.addMethod(buildCollectionsShimMethod());
@@ -259,14 +263,16 @@ class CollectionBuilderUtils {
         return name;
     }
 
-    private MethodSpec buildShimMethod(String name, TypeName mainType, ParameterizedTypeName parameterizedType, TypeVariableName... typeVariables) {
+    private MethodSpec buildShimMethod(String name, TypeName mainType, Class<?> abstractType, ParameterizedTypeName parameterizedType, TypeVariableName... typeVariables) {
         var code = CodeBlock.of("return (o != null) ? $T.copyOf(o) : $T.of()", mainType, mainType);
+        TypeName[] wildCardTypeArguments = parameterizedType.typeArguments.stream().map(WildcardTypeName::subtypeOf).toList().toArray(new TypeName[0]);
+        var extendedParameterizedType = ParameterizedTypeName.get(ClassName.get(abstractType), wildCardTypeArguments);
         return MethodSpec.methodBuilder(name)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
                 .addTypeVariables(Arrays.asList(typeVariables))
                 .returns(parameterizedType)
-                .addParameter(parameterizedType, "o")
+                .addParameter(extendedParameterizedType, "o")
                 .addStatement(code)
                 .build();
     }
@@ -291,10 +297,10 @@ class CollectionBuilderUtils {
         var code = CodeBlock.builder()
                 .add("if (o instanceof Set) {\n")
                 .indent()
-                .addStatement("return $T.copyOf(o)", setType)
+                .addStatement("return $T.copyOf(o)", setTypeName)
                 .unindent()
                 .addStatement("}")
-                .addStatement("return (o != null) ? $T.copyOf(o) : $T.of()", listType, listType)
+                .addStatement("return (o != null) ? $T.copyOf(o) : $T.of()", listTypeName, listTypeName)
                 .build();
         return MethodSpec.methodBuilder(collectionShimName)
                 .addAnnotation(generatedRecordBuilderAnnotation)
