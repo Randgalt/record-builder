@@ -144,7 +144,7 @@ class CollectionBuilderUtils {
         return component.rawTypeName().equals(setType);
     }
 
-    void add(CodeBlock.Builder builder, RecordClassType component) {
+    void addShimCall(CodeBlock.Builder builder, RecordClassType component) {
         if (useImmutableCollections) {
             if (isList(component)) {
                 needsListShim = true;
@@ -166,6 +166,20 @@ class CollectionBuilderUtils {
             }
         } else {
             builder.add("$L", component.name());
+        }
+    }
+
+    String shimName(RecordClassType component) {
+        if (isList(component)) {
+            return listShimName;
+        } else if (isMap(component)) {
+            return mapShimName;
+        } else if (isSet(component)) {
+            return setShimName;
+        } else if (component.rawTypeName().equals(collectionType)) {
+            return collectionShimName;
+        } else {
+            throw new IllegalArgumentException(component + " is not a supported collection type");
         }
     }
 

@@ -16,6 +16,7 @@
 package io.soabase.recordbuilder.processor;
 
 import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.EXCLUDE_WILDCARD_TYPES;
+import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.STANDARD_FOR_SETTER;
 import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
 import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
@@ -332,7 +333,7 @@ class InternalRecordBuilderProcessor {
             }
             RecordClassType parameterComponent = recordComponents.get(parameterIndex);
             if (parameterIndex == index) {
-                collectionBuilderUtils.add(codeBlockBuilder, parameterComponent);
+                collectionBuilderUtils.addShimCall(codeBlockBuilder, parameterComponent);
             } else {
                 codeBlockBuilder.add("$L()", prefixedName(parameterComponent, true));
             }
@@ -548,7 +549,7 @@ class InternalRecordBuilderProcessor {
             var recordComponent = recordComponents.get(index);
             if (collectionBuilderUtils.isImmutableCollection(recordComponent)) {
                 codeBuilder.add("$[$L = ", recordComponent.name());
-                collectionBuilderUtils.add(codeBuilder, recordComponents.get(index));
+                collectionBuilderUtils.addShimCall(codeBuilder, recordComponents.get(index));
                 codeBuilder.add(";\n$]");
             }
         });
@@ -955,12 +956,28 @@ class InternalRecordBuilderProcessor {
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .returns(builderClassType.typeName());
 
-        var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
+        var collectionMetaData = collectionBuilderUtils.singleItemsMetaData(component, STANDARD_FOR_SETTER);
+        var parameterSpecBuilder = collectionMetaData.map(meta -> {
+            CodeBlock.Builder codeSpec = CodeBlock.builder();
+            codeSpec.addStatement("this.$L = $L($L)", component.name(), collectionBuilderUtils.shimName(component), component.name());
+            methodSpec.addJavadoc("Re-create the internally allocated {@code $T} for {@code $L} by copying the argument\n", component.typeName(), component.name())
+                    .addCode(codeSpec.build());
+            return ParameterSpec.builder(meta.wildType(), component.name());
+        }).orElseGet(() -> {
+            methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name())
+                    .addStatement("this.$L = $L", component.name(), component.name());
+            return ParameterSpec.builder(component.typeName(), component.name());
+        });
         addConstructorAnnotations(component, parameterSpecBuilder);
-        methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name());
-        methodSpec.addStatement("this.$L = $L", component.name(), component.name());
         methodSpec.addStatement("return this").addParameter(parameterSpecBuilder.build());
         builder.addMethod(methodSpec.build());
+
+//        var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
+//        addConstructorAnnotations(component, parameterSpecBuilder);
+//        methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name());
+//        methodSpec.addStatement("this.$L = $L", component.name(), component.name());
+//        methodSpec.addStatement("return this").addParameter(parameterSpecBuilder.build());
+//        builder.addMethod(methodSpec.build());
     }
 
     private void add1ConcreteOptionalSetterMethod(RecordClassType component) {
