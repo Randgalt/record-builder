@@ -252,6 +252,24 @@ public @interface RecordBuilder {
          * without {@code new}.
          */
         boolean addStaticBuilder() default true;
+
+        /**
+         * If {@link #addSingleItemCollectionBuilders()} and {@link #useImmutableCollections()} are enabled the builder
+         * uses an internal class to track changes to lists. This is the name of that class.
+         */
+        String mutableListClassName() default "_MutableList";
+
+        /**
+         * If {@link #addSingleItemCollectionBuilders()} and {@link #useImmutableCollections()} are enabled the builder
+         * uses an internal class to track changes to sets. This is the name of that class.
+         */
+        String mutableSetClassName() default "_MutableSet";
+
+        /**
+         * If {@link #addSingleItemCollectionBuilders()} and {@link #useImmutableCollections()} are enabled the builder
+         * uses an internal class to track changes to maps. This is the name of that class.
+         */
+        String mutableMapClassName() default "_MutableMap";
     }
 
     @Retention(RetentionPolicy.CLASS)
