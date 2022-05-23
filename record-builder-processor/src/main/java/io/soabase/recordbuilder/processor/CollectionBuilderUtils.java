@@ -280,7 +280,7 @@ class CollectionBuilderUtils {
     private MethodSpec buildMutableMakerMethod(String name, TypeName mutableCollectionType, ParameterizedTypeName parameterizedType, TypeVariableName... typeVariables) {
         var nullCase = CodeBlock.of("if (o == null) return new $T<>()", mutableCollectionType);
         var isMutableCase = CodeBlock.of("if (o instanceof $T) return o", mutableCollectionType);
-        var defaultCase = CodeBlock.of("return new $T(o)", mutableCollectionType);
+        var defaultCase = CodeBlock.of("return new $T<>(o)", mutableCollectionType);
         return MethodSpec.methodBuilder(name)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC)

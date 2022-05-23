@@ -971,13 +971,6 @@ class InternalRecordBuilderProcessor {
         addConstructorAnnotations(component, parameterSpecBuilder);
         methodSpec.addStatement("return this").addParameter(parameterSpecBuilder.build());
         builder.addMethod(methodSpec.build());
-
-//        var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
-//        addConstructorAnnotations(component, parameterSpecBuilder);
-//        methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name());
-//        methodSpec.addStatement("this.$L = $L", component.name(), component.name());
-//        methodSpec.addStatement("return this").addParameter(parameterSpecBuilder.build());
-//        builder.addMethod(methodSpec.build());
     }
 
     private void add1ConcreteOptionalSetterMethod(RecordClassType component) {
