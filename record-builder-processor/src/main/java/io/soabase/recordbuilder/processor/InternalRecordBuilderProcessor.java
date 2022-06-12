@@ -139,9 +139,9 @@ class InternalRecordBuilderProcessor {
     }
 
     private List<RecordClassType> buildRecordComponents(TypeElement record) {
-        var accessorAnnotations = record.getRecordComponents().stream().map(e -> e.getAccessor().getAnnotationMirrors()).collect(Collectors.toList());
-        var canonicalConstructorAnnotations = ElementUtils.findCanonicalConstructor(record).map(constructor -> ((ExecutableElement) constructor).getParameters().stream().map(Element::getAnnotationMirrors).collect(Collectors.toList())).orElse(List.of());
         var recordComponents = record.getRecordComponents();
+        var accessorAnnotations = recordComponents.stream().map(e -> e.asType().getAnnotationMirrors()).toList();
+        var canonicalConstructorAnnotations = ElementUtils.findCanonicalConstructor(record).map(constructor -> ((ExecutableElement) constructor).getParameters().stream().map(e -> e.asType().getAnnotationMirrors()).collect(Collectors.toList())).orElse(List.of());
         return IntStream.range(0, recordComponents.size())
                 .mapToObj(index -> {
                     var thisAccessorAnnotations = (accessorAnnotations.size() > index) ? accessorAnnotations.get(index) : List.<AnnotationMirror>of();
