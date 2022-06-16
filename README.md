@@ -22,6 +22,7 @@ _Details:_
 - [Generation Via Includes](#generation-via-includes)
 - [Usage](#usage)
 - [Customizing](customizing.md) (e.g. add immutable collections, etc.)
+- **_NEW!!_** [RecordBuilder Enhancer](record-builder-enhancer/README.md) - Inject verification, defensive copying, null checks or custom code into your Java Record constructors during compilation!
 
 ## RecordBuilder Example
 
@@ -321,6 +322,11 @@ in the listed packages.
 
 The target package for generation is the same as the package that contains the "Include"
 annotation. Use `packagePattern` to change this (see Javadoc for details).  
+
+## Enhancer
+
+[RecordBuilder Enhancer](record-builder-enhancer/README.md) - Inject verification, defensive copying, null 
+checks or custom code into your Java Record constructors during compilation. 
 
 ## Usage
 

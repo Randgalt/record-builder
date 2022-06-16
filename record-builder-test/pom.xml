@@ -21,13 +21,39 @@
 
         <dependency>
             <groupId>io.soabase.record-builder</groupId>
+            <artifactId>record-builder-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.soabase.record-builder</groupId>
+            <artifactId>record-builder-enhancer-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.soabase.record-builder</groupId>
             <artifactId>record-builder-processor</artifactId>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>io.soabase.record-builder</groupId>
+            <artifactId>record-builder-enhancer</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.soabase.record-builder</groupId>
             <artifactId>record-builder-validator</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.soabase.record-builder</groupId>
+            <artifactId>record-builder-test-custom-enhancer</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
         </dependency>
 
         <dependency>
