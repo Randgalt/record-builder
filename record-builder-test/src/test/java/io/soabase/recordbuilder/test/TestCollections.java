@@ -27,7 +27,7 @@ class TestCollections {
     @Test
     void testRecordBuilderOptionsCopied() {
         try {
-            assertNotNull(CollectionInterfaceRecordBuilder.class.getDeclaredMethod("__list", List.class));
+            assertNotNull(CollectionInterfaceRecordBuilder.class.getDeclaredMethod("__list", Collection.class));
         } catch (NoSuchMethodException e) {
             Assertions.fail(e);
         }
