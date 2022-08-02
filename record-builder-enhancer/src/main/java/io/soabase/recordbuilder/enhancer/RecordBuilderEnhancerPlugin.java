@@ -22,18 +22,9 @@ import com.sun.source.util.TaskListener;
 import io.soabase.recordbuilder.enhancer.EnhancersController.EnhancerAndArgs;
 import io.soabase.recordbuilder.enhancer.Session.FileStreams;
 import picocli.CommandLine;
-import recordbuilder.org.objectweb.asm.ClassReader;
-import recordbuilder.org.objectweb.asm.ClassWriter;
-import recordbuilder.org.objectweb.asm.Opcodes;
-import recordbuilder.org.objectweb.asm.tree.*;
 
 import javax.lang.model.element.TypeElement;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.List;
-import java.util.ListIterator;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class RecordBuilderEnhancerPlugin
@@ -80,60 +71,9 @@ public class RecordBuilderEnhancerPlugin
         }
     }
 
-    private boolean removeAndSaveSuperCall(MethodNode constructor, InsnList insnList) {
-        ListIterator<AbstractInsnNode> iterator = constructor.instructions.iterator();
-        while (iterator.hasNext()) {
-            AbstractInsnNode node = iterator.next();
-            iterator.remove();
-            insnList.add(node);
-            if ((node.getOpcode() == Opcodes.INVOKESPECIAL) && ((MethodInsnNode) node).owner.equals("java/lang/Record") && ((MethodInsnNode) node).name.equals("<init>")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private void enhance(TypeElement typeElement, ProcessorImpl processor, List<EnhancerAndArgs> specs, FileStreams fileStreams) {
-        try {
-            ClassNode classNode = new ClassNode();
-            try (InputStream in = fileStreams.openInputStream()) {
-                ClassReader classReader = new ClassReader(in);
-                classReader.accept(classNode, 0);
-            }
-            InsnList insnList = new InsnList();
-            MethodNode constructor = findConstructor(classNode).orElseThrow(() -> new IllegalStateException("Could not find default constructor"));
-            if (!removeAndSaveSuperCall(constructor, insnList)) {
-                processor.logError("Unrecognized constructor - missing super() call.");
-                return;
-            }
-            specs.stream()
-                    .map(spec -> spec.enhancer().enhance(processor, typeElement, spec.arguments()))
-                    .forEach(insnList::add);
-            constructor.instructions.insert(insnList);
-
-            ClassWriter classWriter = new ClassWriter(Opcodes.ASM9 | ClassWriter.COMPUTE_FRAMES);
-            classNode.accept(classWriter);
-
-            if (!session.isDryRun()) {
-                try (OutputStream out = fileStreams.openOutputStream()) {
-                    out.write(classWriter.toByteArray());
-                }
-            }
-        } catch (IOException e) {
-            processor.logError("Could not process " + typeElement.getQualifiedName() + " - " + e.getMessage());
-        }
+        RecordBuilderEnhancer enhancer = new RecordBuilderEnhancer(session);
+        enhancer.enhance(typeElement, processor, specs, fileStreams);
     }
 
-    static String adjustedClassName(Class<?> clazz) {
-        return clazz.getName().replace('$', '.');
-    }
-
-    private static Optional<MethodNode> findConstructor(ClassNode classNode) {
-        String defaultConstructorDescription = classNode.recordComponents.stream()
-                .map(recordComponentNode -> recordComponentNode.descriptor)
-                .collect(Collectors.joining("", "(", ")V"));
-        return classNode.methods.stream()
-                .filter(methodNode -> methodNode.name.equals("<init>") && methodNode.desc.equals(defaultConstructorDescription))
-                .findFirst();
-    }
 }

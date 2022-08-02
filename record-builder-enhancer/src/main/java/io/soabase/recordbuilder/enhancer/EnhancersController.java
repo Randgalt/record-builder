@@ -28,8 +28,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.soabase.recordbuilder.enhancer.RecordBuilderEnhancerPlugin.adjustedClassName;
-
 class EnhancersController {
     private final Map<String, Optional<RecordBuilderEnhancer>> enhancers = new ConcurrentHashMap<>();
 
@@ -127,5 +125,9 @@ class EnhancersController {
             processor.logError("Could not create enhancer instance. type=%s exception=%s message=%s".formatted(enhancerClass, e.getClass().getSimpleName(), e.getMessage()));
             return Optional.empty();
         }
+    }
+
+    private static String adjustedClassName(Class<?> clazz) {
+        return clazz.getName().replace('$', '.');
     }
 }
