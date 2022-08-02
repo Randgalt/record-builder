@@ -5,7 +5,7 @@
     <groupId>io.soabase.record-builder</groupId>
     <artifactId>record-builder</artifactId>
     <packaging>pom</packaging>
-    <version>35-SNAPSHOT</version>
+    <version>34-SNAPSHOT</version>
 
     <modules>
         <module>record-builder-core</module>
