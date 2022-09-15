@@ -428,10 +428,10 @@ class InternalRecordBuilderProcessor {
 
             @Override
             public String toString() {
-                return "MyRecord[p1=blah, p2=blah]";
+                return getClass().getSimpleName() + "[p1=blah, p2=blah]";
             }
          */
-        var codeBuilder = CodeBlock.builder().add("return \"$L[", builderClassType.name());
+        var codeBuilder = CodeBlock.builder().add("return getClass().getSimpleName() + \"[");
         IntStream.range(0, recordComponents.size()).forEach(index -> {
             if (index > 0) {
                 codeBuilder.add(", ");
