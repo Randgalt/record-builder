@@ -344,11 +344,11 @@ class InternalRecordBuilderProcessor {
         /*
             Adds a default constructor similar to:
 
-            private MyRecordBuilder() {
+            public MyRecordBuilder() {
             }
          */
         var constructor = MethodSpec.constructorBuilder()
-                .addModifiers(Modifier.PRIVATE)
+                .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .build();
         builder.addMethod(constructor);
