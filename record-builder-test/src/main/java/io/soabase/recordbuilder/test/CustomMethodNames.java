@@ -16,14 +16,17 @@
 package io.soabase.recordbuilder.test;
 
 import java.util.List;
+import java.util.Map;
+
 import io.soabase.recordbuilder.core.RecordBuilder;
 import io.soabase.recordbuilder.test.CustomMethodNamesBuilder.Bean;
 
 @RecordBuilder
 @RecordBuilder.Options(
     setterPrefix = "set", getterPrefix = "get", booleanPrefix = "is", beanClassName = "Bean")
-public record CustomMethodNames(
+public record CustomMethodNames<K, V>(
+    Map<K, V> kvMap,
     int theValue,
     List<Integer> theList,
-    boolean theBoolean) implements Bean {
+    boolean theBoolean) implements Bean, CustomMethodNamesBuilder.With {
 }

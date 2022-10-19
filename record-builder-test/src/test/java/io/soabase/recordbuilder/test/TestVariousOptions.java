@@ -18,6 +18,7 @@ package io.soabase.recordbuilder.test;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -27,30 +28,32 @@ public class TestVariousOptions {
   @Test
   public void builderGetsCustomSetterAndGetterNames() {
     var obj = CustomMethodNamesBuilder.builder()
+        .setKvMap(Map.of(1, "one"))
         .setTheValue(1)
         .setTheList(List.of(2))
         .setTheBoolean(true);
     assertEquals(1, obj.getTheValue());
     assertEquals(List.of(2), obj.getTheList());
     assertTrue(obj.isTheBoolean());
-    assertEquals(new CustomMethodNames(1, List.of(2), true), obj.build());
+    assertEquals(new CustomMethodNames<>(Map.of(1, "one"), 1, List.of(2), true), obj.build());
   }
 
   @Test
   public void withBuilderGetsCustomSetterAndGetterNames() {
     var obj = CustomMethodNamesBuilder.from(CustomMethodNamesBuilder.builder()
+            .setKvMap(Map.of(1, "one"))
             .setTheValue(1)
             .setTheList(List.of(2))
             .setTheBoolean(true)
             .build());
-    assertEquals(1, obj.getTheValue());
-    assertEquals(List.of(2), obj.getTheList());
-    assertTrue(obj.isTheBoolean());
+    assertEquals(1, obj.theValue());
+    assertEquals(List.of(2), obj.theList());
+    assertTrue(obj.theBoolean());
   }
 
   @Test
   public void recordHasPrefixedGetters() {
-    var obj = new CustomMethodNames(1, List.of(2), true);
+    var obj = new CustomMethodNames<>(Map.of(1, "one"), 1, List.of(2), true);
     assertEquals(1, obj.getTheValue());
     assertEquals(List.of(2), obj.getTheList());
     assertTrue(obj.isTheBoolean());
