@@ -15,12 +15,8 @@
  */
 package io.soabase.recordbuilder.processor;
 
-import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.EXCLUDE_WILDCARD_TYPES;
-import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.STANDARD_FOR_SETTER;
-import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
-import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
+import com.squareup.javapoet.*;
+import io.soabase.recordbuilder.core.RecordBuilder;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
@@ -33,8 +29,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import com.squareup.javapoet.*;
-import io.soabase.recordbuilder.core.RecordBuilder;
+import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.EXCLUDE_WILDCARD_TYPES;
+import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.STANDARD_FOR_SETTER;
+import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
+import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
 
 class InternalRecordBuilderProcessor {
     private final RecordBuilder.Options metaData;
@@ -107,11 +107,9 @@ class InternalRecordBuilderProcessor {
             if (metaData.addConcreteSettersForOptional()) {
                 add1ConcreteOptionalSetterMethod(component);
             }
-            var collectionMetaData = collectionBuilderUtils.singleItemsMetaData(component, EXCLUDE_WILDCARD_TYPES);
-            collectionMetaData.ifPresent(meta -> add1CollectionBuilders(meta, component));
+            collectionBuilderUtils.singleItemsMetaData(component, EXCLUDE_WILDCARD_TYPES).ifPresent(meta -> add1CollectionBuilders(meta, component));
         });
         collectionBuilderUtils.addShims(builder);
-        collectionBuilderUtils.addMutableMakers(builder);
         builderType = builder.build();
     }
 
@@ -806,13 +804,13 @@ class InternalRecordBuilderProcessor {
 
     private void add1CollectionBuilders(CollectionBuilderUtils.SingleItemsMetaData meta, RecordClassType component) {
         if (collectionBuilderUtils.isList(component) || collectionBuilderUtils.isSet(component)) {
-            add1ListBuilder(meta, component);
+            add1SingleItemsListBuilder(meta, component);
         } else if (collectionBuilderUtils.isMap(component)) {
-            add1MapBuilder(meta, component);
+            add1SingleItemsMapBuilder(meta, component);
         }
     }
 
-    private void add1MapBuilder(CollectionBuilderUtils.SingleItemsMetaData meta, RecordClassType component) {
+    private void add1SingleItemsMapBuilder(CollectionBuilderUtils.SingleItemsMetaData meta, RecordClassType component) {
         /*
             For a single map record component, add a methods similar to:
 
@@ -836,15 +834,7 @@ class InternalRecordBuilderProcessor {
          */
         for (var i = 0; i < 3; ++i) {
             var codeBlockBuilder = CodeBlock.builder();
-            if (collectionBuilderUtils.isImmutableCollection(component)) {
-                codeBlockBuilder
-                        .addStatement("this.$L = $L($L)", component.name(), collectionBuilderUtils.mutableMakerName(component), component.name());
-            } else {
-                codeBlockBuilder
-                        .beginControlFlow("if (this.$L == null)", component.name())
-                        .addStatement("this.$L = new $T<>()", component.name(), meta.singleItemCollectionClass())
-                        .endControlFlow();
-            }
+            codeBlockBuilder.addStatement("this.$L = $L($L)", component.name(), collectionBuilderUtils.mutableMakerName(component), component.name());
             var methodSpecBuilder = MethodSpec.methodBuilder(metaData.singleItemBuilderPrefix() + capitalize(component.name()))
                     .addJavadoc("Add to the internally allocated {@code HashMap} for {@code $L}\n", component.name())
                     .addModifiers(Modifier.PUBLIC)
@@ -867,7 +857,7 @@ class InternalRecordBuilderProcessor {
         }
     }
 
-    private void add1ListBuilder(CollectionBuilderUtils.SingleItemsMetaData meta, RecordClassType component) {
+    private void add1SingleItemsListBuilder(CollectionBuilderUtils.SingleItemsMetaData meta, RecordClassType component) {
         /*
             For a single list or set record component, add methods similar to:
 
@@ -901,15 +891,7 @@ class InternalRecordBuilderProcessor {
                 parameter = ParameterizedTypeName.get(parameterClass, WildcardTypeName.subtypeOf(meta.typeArguments().get(0)));
             }
             var codeBlockBuilder = CodeBlock.builder();
-            if (collectionBuilderUtils.isImmutableCollection(component)) {
-                codeBlockBuilder
-                        .addStatement("this.$L = $L($L)", component.name(), collectionBuilderUtils.mutableMakerName(component), component.name());
-            } else {
-                codeBlockBuilder
-                        .beginControlFlow("if (this.$L == null)", component.name())
-                        .addStatement("this.$L = new $T<>()", component.name(), meta.singleItemCollectionClass())
-                        .endControlFlow();
-            }
+            codeBlockBuilder.addStatement("this.$L = $L($L)", component.name(), collectionBuilderUtils.mutableMakerName(component), component.name());
             codeBlockBuilder
                     .add(addClockBlock.build())
                     .addStatement("return this");

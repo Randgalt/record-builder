@@ -42,10 +42,6 @@ class CollectionBuilderUtils {
     private boolean needsSetShim;
     private boolean needsCollectionShim;
 
-    private boolean needsListMutableMaker;
-    private boolean needsMapMutableMaker;
-    private boolean needsSetMutableMaker;
-
     private static final Class<?> listType = List.class;
     private static final Class<?> mapType = Map.class;
     private static final Class<?> setType = Set.class;
@@ -93,7 +89,6 @@ class CollectionBuilderUtils {
     }
 
     enum SingleItemsMetaDataMode {
-        STANDARD,
         STANDARD_FOR_SETTER,
         EXCLUDE_WILDCARD_TYPES
     }
@@ -122,8 +117,6 @@ class CollectionBuilderUtils {
             var hasWildcardTypeArguments = hasWildcardTypeArguments(parameterizedTypeName, typeArgumentQty);
             if (collectionClass != null) {
                 return switch (mode) {
-                    case STANDARD -> singleItemsMetaDataWithWildType(parameterizedTypeName, collectionClass, wildcardClass, typeArgumentQty);
-
                     case STANDARD_FOR_SETTER -> {
                         if (hasWildcardTypeArguments) {
                             yield Optional.of(new SingleItemsMetaData(collectionClass, parameterizedTypeName.typeArguments, component.typeName()));
@@ -160,18 +153,15 @@ class CollectionBuilderUtils {
     }
 
     void addShimCall(CodeBlock.Builder builder, RecordClassType component) {
-        if (useImmutableCollections) {
+        if (useImmutableCollections || addSingleItemCollectionBuilders) {
             if (isList(component)) {
                 needsListShim = true;
-                needsListMutableMaker = true;
                 builder.add("$L($L)", listShimName, component.name());
             } else if (isMap(component)) {
                 needsMapShim = true;
-                needsMapMutableMaker = true;
                 builder.add("$L($L)", mapShimName, component.name());
             } else if (isSet(component)) {
                 needsSetShim = true;
-                needsSetMutableMaker = true;
                 builder.add("$L($L)", setShimName, component.name());
             } else if (component.rawTypeName().equals(collectionTypeName)) {
                 needsCollectionShim = true;
@@ -211,10 +201,6 @@ class CollectionBuilderUtils {
     }
 
     void addShims(TypeSpec.Builder builder) {
-        if (!useImmutableCollections) {
-            return;
-        }
-
         if (needsListShim) {
             builder.addMethod(buildShimMethod(listShimName, listTypeName, collectionType, parameterizedListType, tType));
         }
@@ -227,24 +213,19 @@ class CollectionBuilderUtils {
         if (needsCollectionShim) {
             builder.addMethod(buildCollectionsShimMethod());
         }
-    }
-
-    void addMutableMakers(TypeSpec.Builder builder) {
-        if (!useImmutableCollections) {
-            return;
-        }
-
-        if (needsListMutableMaker) {
-            builder.addMethod(buildMutableMakerMethod(listMakerMethodName, mutableListSpec.name, parameterizedListType, tType));
-            builder.addType(mutableListSpec);
-        }
-        if (needsSetMutableMaker) {
-            builder.addMethod(buildMutableMakerMethod(setMakerMethodName, mutableSetSpec.name, parameterizedSetType, tType));
-            builder.addType(mutableSetSpec);
-        }
-        if (needsMapMutableMaker) {
-            builder.addMethod(buildMutableMakerMethod(mapMakerMethodName, mutableMapSpec.name, parameterizedMapType, kType, vType));
-            builder.addType(mutableMapSpec);
+        if (addSingleItemCollectionBuilders) {
+            if (needsListShim) {
+                builder.addType(mutableListSpec);
+                builder.addMethod(buildMutableMakerMethod(listMakerMethodName, mutableListSpec.name, parameterizedListType, tType));
+            }
+            if (needsSetShim) {
+                builder.addType(mutableSetSpec);
+                builder.addMethod(buildMutableMakerMethod(setMakerMethodName, mutableSetSpec.name, parameterizedSetType, tType));
+            }
+            if (needsMapShim) {
+                builder.addType(mutableMapSpec);
+                builder.addMethod(buildMutableMakerMethod(mapMakerMethodName, mutableMapSpec.name, parameterizedMapType, kType, vType));
+            }
         }
     }
 
