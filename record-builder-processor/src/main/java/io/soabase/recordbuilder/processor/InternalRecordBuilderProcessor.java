@@ -220,7 +220,7 @@ class InternalRecordBuilderProcessor {
         var codeBlockBuilder = CodeBlock.builder()
                 .add("$T builder = with();\n", builderClassType.typeName())
                 .add("consumer.accept(builder);\n")
-                .add("return builder.build();\n");
+                .add("return builder.$L();\n", metaData.buildMethodName());
         var consumerType = ParameterizedTypeName.get(ClassName.get(Consumer.class), builderClassType.typeName());
         var parameter = ParameterSpec.builder(consumerType, "consumer").build();
         var methodSpec = MethodSpec.methodBuilder(metaData.withClassMethodPrefix())
