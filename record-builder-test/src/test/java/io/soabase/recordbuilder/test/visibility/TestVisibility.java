@@ -29,4 +29,15 @@ class TestVisibility {
 
         Assertions.assertTrue(Modifier.isPublic(WrapperProtectedRecordBuilder.class.getModifiers()));
     }
+
+
+    @Test
+    void testMatchesWithModifers() {
+        Assertions.assertFalse(Modifier.isPublic(PackagePrivateRecordWithPublicBuilder.class.getModifiers()));
+        Assertions.assertFalse(Modifier.isPrivate(PackagePrivateRecordWithPublicBuilder.class.getModifiers()));
+        Assertions.assertFalse(Modifier.isProtected(PackagePrivateRecordWithPublicBuilder.class.getModifiers()));
+
+        Assertions.assertTrue(Modifier.isPublic(PackagePrivateRecordWithPublicBuilderBuilder.class.getModifiers()));
+    }
+
 }

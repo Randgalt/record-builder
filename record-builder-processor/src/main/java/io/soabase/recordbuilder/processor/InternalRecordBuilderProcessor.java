@@ -70,6 +70,7 @@ class InternalRecordBuilderProcessor {
 
         builder = TypeSpec.classBuilder(builderClassType.name())
                 .addAnnotation(generatedRecordBuilderAnnotation)
+                .addModifiers(metaData.builderClassModifiers())
                 .addTypeVariables(typeVariables);
         if (metaData.addClassRetainedGenerated()) {
             builder.addAnnotation(recordBuilderGeneratedAnnotation);

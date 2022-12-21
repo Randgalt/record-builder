@@ -15,6 +15,7 @@
  */
 package io.soabase.recordbuilder.core;
 
+import javax.lang.model.element.Modifier;
 import java.lang.annotation.*;
 
 @Retention(RetentionPolicy.SOURCE)
@@ -270,6 +271,13 @@ public @interface RecordBuilder {
          * uses an internal class to track changes to maps. This is the name of that class.
          */
         String mutableMapClassName() default "_MutableMap";
+
+
+        /**
+         * Any additional {@link javax.lang.model.element.Modifier} you wish to apply to the builder.  For example to
+         * make the builder public when the record is package protect.
+         */
+        Modifier[] builderClassModifiers() default {};
     }
 
     @Retention(RetentionPolicy.CLASS)
