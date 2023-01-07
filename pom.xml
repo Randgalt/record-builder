@@ -227,6 +227,8 @@
                             <exclude>**/.travis.yml</exclude>
                             <exclude>**/gradlew</exclude>
                             <exclude>**/.github/**</exclude>
+                            <exclude>**/.mvn/**</exclude>
+                            <exclude>**/mvnw*</exclude>
                         </excludes>
                         <strictCheck>true</strictCheck>
                     </configuration>
