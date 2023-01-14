@@ -938,9 +938,21 @@ class InternalRecordBuilderProcessor {
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .returns(component.typeName())
-                .addStatement("return $L", component.name());
+                .addCode(build1codeBlock(component));
         addAccessorAnnotations(component, methodSpecBuilder, __ -> true);
         builder.addMethod(methodSpecBuilder.build());
+    }
+
+    private CodeBlock build1codeBlock(RecordClassType component) {
+        var codeBuilder = CodeBlock.builder();
+        if (collectionBuilderUtils.isImmutableCollection(component)) {
+            codeBuilder.add("return ");
+            collectionBuilderUtils.addShimCall(codeBuilder, component);
+            codeBuilder.add(";");
+        } else {
+            codeBuilder.addStatement("return $L", component.name());
+        }
+        return codeBuilder.build();
     }
 
     private void add1SetterMethod(RecordClassType component) {
