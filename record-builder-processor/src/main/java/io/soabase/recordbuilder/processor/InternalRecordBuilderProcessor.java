@@ -938,12 +938,12 @@ class InternalRecordBuilderProcessor {
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .returns(component.typeName())
-                .addCode(build1codeBlock(component));
+                .addCode(checkReturnShim(component));
         addAccessorAnnotations(component, methodSpecBuilder, __ -> true);
         builder.addMethod(methodSpecBuilder.build());
     }
 
-    private CodeBlock build1codeBlock(RecordClassType component) {
+    private CodeBlock checkReturnShim(RecordClassType component) {
         var codeBuilder = CodeBlock.builder();
         if (collectionBuilderUtils.isImmutableCollection(component)) {
             codeBuilder.add("return ");
