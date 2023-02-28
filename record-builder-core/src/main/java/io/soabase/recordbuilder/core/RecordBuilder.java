@@ -1,12 +1,9 @@
 /**
  * Copyright 2019 Jordan Zimmerman
- *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
  * http://www.apache.org/licenses/LICENSE-2.0
- *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,16 +24,16 @@ public @interface RecordBuilder {
     @Inherited
     @interface Include {
         /**
-         * @return list of classes to include
+         * @return collection of classes to include
          */
         Class<?>[] value() default {};
 
         /**
-         * Synonym for {@code value()}. When using the other attributes it maybe more clear to
+         * Synonym for {@code value()}. When using the other attributes it maybe clearer to
          * use {@code classes()} instead of {@code value()}. Note: both attributes are applied
          * (i.e. a union of classes from both attributes).
          *
-         * @return list of classes
+         * @return collection of classes
          */
         Class<?>[] classes() default {};
 
@@ -44,7 +41,7 @@ public @interface RecordBuilder {
          * Optional list of package names. All records in the packages will get processed as
          * if they were listed as classes to include.
          *
-         * @return list of package names
+         * @return collection of package names
          */
         String[] packages() default {};
 
@@ -126,7 +123,7 @@ public @interface RecordBuilder {
         String fileIndent() default "    ";
 
         /**
-         * If the record is declared inside of another class, the outer class's name will
+         * If the record is declared inside another class, the outer class's name will
          * be prefixed to the builder name if this returns true.
          */
         boolean prefixEnclosingClassNames() default true;
@@ -230,7 +227,6 @@ public @interface RecordBuilder {
          * contains getters for all the fields in the Record prefixed with the value supplied in
          * {@link this.getterPrefix} and {@link this.booleanPrefix}. This interface can be
          * implemented by the original Record to have proper bean-style prefixed getters.
-         *
          * Please note that unless either of the aforementioned prefixes are set,
          * this option does nothing.
          */

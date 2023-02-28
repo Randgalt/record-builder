@@ -17,6 +17,10 @@ package io.soabase.recordbuilder.core;
 
 import java.lang.annotation.*;
 
+/**
+ * An alternate form of {@code @RecordBuilder} that has most
+ * optional features turned on
+ */
 @RecordBuilder.Template(options = @RecordBuilder.Options(
         interpretNotNulls = true,
         useImmutableCollections = true,
@@ -27,9 +31,5 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
 @Inherited
-/**
- * An alternate form of {@code @RecordBuilder} that has most
- * optional features turned on
- */
 public @interface RecordBuilderFull {
 }
