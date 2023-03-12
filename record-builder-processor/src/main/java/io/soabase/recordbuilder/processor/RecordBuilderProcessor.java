@@ -31,7 +31,10 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
+import javax.tools.FileObject;
 import javax.tools.JavaFileObject;
+import javax.tools.StandardLocation;
+import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Optional;
@@ -193,6 +196,13 @@ public class RecordBuilderProcessor
 
         Filer filer = processingEnv.getFiler();
         try {
+            FileObject existingClassFile = filer.getResource(StandardLocation.CLASS_OUTPUT, packageName, classType.name() + ".class");
+            String path = existingClassFile.toUri().getPath();
+            boolean delete = new File(path).delete();
+            if (delete) {
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Deleted pre-existing record class at " + path + " " + delete);
+            }
+
             String fullyQualifiedName = packageName.isEmpty() ? classType.name() : (packageName + "." + classType.name());
             JavaFileObject sourceFile = filer.createSourceFile(fullyQualifiedName);
             try (Writer writer = sourceFile.openWriter()) {
