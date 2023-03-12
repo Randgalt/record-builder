@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2019 Jordan Zimmerman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 @RecordBuilder.Include(value = {Point.class, Pair.class}, packagePattern = "*.foo")
 @RecordInterface.Include(value = Customer.class, addRecordBuilder = false, packagePattern = "*.bar")
 package io.soabase.recordbuilder.test;
