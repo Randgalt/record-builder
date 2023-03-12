@@ -48,7 +48,7 @@ class InternalRecordInterfaceProcessor {
 
     private static final Set<String> javaBeanPrefixes = Set.of("get", "is");
 
-    private record Component(ExecutableElement element, Optional<String> alternateName) {
+    record Component(ExecutableElement element, Optional<String> alternateName) {
     }
 
     InternalRecordInterfaceProcessor(ProcessingEnvironment processingEnv, TypeElement iface, boolean addRecordBuilder, RecordBuilder.Options metaData, Optional<String> packageNameOpt, boolean fromTemplate) {
@@ -75,7 +75,7 @@ class InternalRecordInterfaceProcessor {
 
         if (addRecordBuilder) {
             ClassType builderClassType = ElementUtils.getClassType(packageName, getBuilderName(iface, metaData, recordClassType, metaData.suffix()) + "." + metaData.withClassName(), iface.getTypeParameters());
-            builder.addAnnotation(RecordBuilder.class);
+//            builder.addAnnotation(RecordBuilder.class);
             builder.addSuperinterface(builderClassType.typeName());
             if (fromTemplate) {
                 builder.addAnnotation(AnnotationSpec.get(metaData));
@@ -106,6 +106,10 @@ class InternalRecordInterfaceProcessor {
 
     ClassType recordClassType() {
         return recordClassType;
+    }
+
+    List<Component> recordComponents() {
+        return recordComponents;
     }
 
     String toRecord(String classSource) {

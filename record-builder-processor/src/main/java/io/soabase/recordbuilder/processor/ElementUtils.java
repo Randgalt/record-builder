@@ -26,7 +26,6 @@ import javax.lang.model.element.AnnotationValue;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.RecordComponentElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.type.TypeMirror;
@@ -115,10 +114,10 @@ public class ElementUtils {
         return new ClassType(ParameterizedTypeName.get(builderClassName, typeNames), builderClassName.simpleName());
     }
 
-    public static RecordClassType getRecordClassType(ProcessingEnvironment processingEnv, RecordComponentElement recordComponent, List<? extends AnnotationMirror> accessorAnnotations, List<? extends AnnotationMirror> canonicalConstructorAnnotations) {
-        var typeName = TypeName.get(recordComponent.asType());
-        var rawTypeName = TypeName.get(processingEnv.getTypeUtils().erasure(recordComponent.asType()));
-        return new RecordClassType(typeName, rawTypeName, recordComponent.getSimpleName().toString(), accessorAnnotations, canonicalConstructorAnnotations);
+    public static RecordClassType getRecordClassType(ProcessingEnvironment processingEnv, TypeMirror recordComponent, String simpleName, List<? extends AnnotationMirror> accessorAnnotations, List<? extends AnnotationMirror> canonicalConstructorAnnotations) {
+        var typeName = TypeName.get(recordComponent);
+        var rawTypeName = TypeName.get(processingEnv.getTypeUtils().erasure(recordComponent));
+        return new RecordClassType(typeName, rawTypeName, simpleName, accessorAnnotations, canonicalConstructorAnnotations);
     }
 
     public static String getWithMethodName(ClassType component, String prefix) {
@@ -132,6 +131,10 @@ public class ElementUtils {
     public static String getBuilderName(TypeElement element, RecordBuilder.Options metaData, ClassType classType, String suffix) {
         // generate the class name
         var baseName = classType.name() + suffix;
+        return getBuilderName(baseName, element, metaData);
+    }
+
+    public static String getBuilderName(String baseName, TypeElement element, RecordBuilder.Options metaData) {
         return metaData.prefixEnclosingClassNames() ? (getBuilderNamePrefix(element.getEnclosingElement()) + baseName) : baseName;
     }
 

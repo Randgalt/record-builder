@@ -15,15 +15,10 @@
  */
 package io.soabase.recordbuilder.processor;
 
-import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.EXCLUDE_WILDCARD_TYPES;
-import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.STANDARD_FOR_SETTER;
-import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
-import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
+import com.squareup.javapoet.*;
+import io.soabase.recordbuilder.core.RecordBuilder;
 
-import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.*;
+import javax.lang.model.element.Modifier;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -33,16 +28,17 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import com.squareup.javapoet.*;
-import io.soabase.recordbuilder.core.RecordBuilder;
+import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.EXCLUDE_WILDCARD_TYPES;
+import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.STANDARD_FOR_SETTER;
+import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
 
 class InternalRecordBuilderProcessor {
     private final RecordBuilder.Options metaData;
-    private final ClassType recordClassType;
     private final String packageName;
     private final ClassType builderClassType;
     private final List<TypeVariableName> typeVariables;
-    private final List<RecordClassType> recordComponents;
     private final TypeSpec builderType;
     private final TypeSpec.Builder builder;
     private final String uniqueVarName;
@@ -53,20 +49,17 @@ class InternalRecordBuilderProcessor {
     private static final TypeName validType = ClassName.get("javax.validation", "Valid");
     private static final TypeName validatorTypeName = ClassName.get("io.soabase.recordbuilder.validator", "RecordBuilderValidator");
     private static final TypeVariableName rType = TypeVariableName.get("R");
-    private final ProcessingEnvironment processingEnv;
+    private final RecordSpecification recordSpecification;
 
-    InternalRecordBuilderProcessor(ProcessingEnvironment processingEnv, TypeElement record, RecordBuilder.Options metaData, Optional<String> packageNameOpt) {
-        this.processingEnv = processingEnv;
-        var recordActualPackage = ElementUtils.getPackageName(record);
+    InternalRecordBuilderProcessor(RecordSpecification recordSpecification, RecordBuilder.Options metaData, Optional<String> packageNameOpt) {
+        this.recordSpecification = recordSpecification;
         this.metaData = metaData;
-        recordClassType = ElementUtils.getClassType(record, record.getTypeParameters());
-        packageName = packageNameOpt.orElse(recordActualPackage);
-        builderClassType = ElementUtils.getClassType(packageName, getBuilderName(record, metaData, recordClassType, metaData.suffix()), record.getTypeParameters());
-        typeVariables = record.getTypeParameters().stream().map(TypeVariableName::get).collect(Collectors.toList());
-        recordComponents = buildRecordComponents(record);
+        packageName = packageNameOpt.orElse(recordSpecification.recordActualPackage());
+        builderClassType = ElementUtils.getClassType(packageName, recordSpecification.builderName(), recordSpecification.typeParameters());
+        typeVariables = recordSpecification.typeParameters().stream().map(TypeVariableName::get).collect(Collectors.toList());
         uniqueVarName = getUniqueVarName();
         notNullPattern = Pattern.compile(metaData.interpretNotNullsPattern());
-        collectionBuilderUtils = new CollectionBuilderUtils(recordComponents, this.metaData);
+        collectionBuilderUtils = new CollectionBuilderUtils(recordSpecification.recordComponents(), this.metaData);
 
         builder = TypeSpec.classBuilder(builderClassType.name())
                 .addAnnotation(generatedRecordBuilderAnnotation)
@@ -75,7 +68,7 @@ class InternalRecordBuilderProcessor {
         if (metaData.addClassRetainedGenerated()) {
             builder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
-        addVisibility(recordActualPackage.equals(packageName), record.getModifiers());
+        addVisibility(recordSpecification.recordActualPackage().equals(packageName), recordSpecification.modifiers());
         if (metaData.enableWither()) {
             addWithNestedClass();
         }
@@ -86,7 +79,7 @@ class InternalRecordBuilderProcessor {
         if (metaData.addStaticBuilder()) {
             addStaticBuilder();
         }
-        if (recordComponents.size() > 0) {
+        if (recordSpecification.recordComponents().size() > 0) {
             addAllArgsConstructor();
         }
         addStaticDefaultBuilderMethod();
@@ -99,7 +92,7 @@ class InternalRecordBuilderProcessor {
         addToStringMethod();
         addHashCodeMethod();
         addEqualsMethod();
-        recordComponents.forEach(component -> {
+        recordSpecification.recordComponents().forEach(component -> {
             add1Field(component);
             add1SetterMethod(component);
             if (metaData.enableGetters()) {
@@ -139,19 +132,6 @@ class InternalRecordBuilderProcessor {
         }
     }
 
-    private List<RecordClassType> buildRecordComponents(TypeElement record) {
-        var accessorAnnotations = record.getRecordComponents().stream().map(e -> e.getAccessor().getAnnotationMirrors()).collect(Collectors.toList());
-        var canonicalConstructorAnnotations = ElementUtils.findCanonicalConstructor(record).map(constructor -> ((ExecutableElement) constructor).getParameters().stream().map(Element::getAnnotationMirrors).collect(Collectors.toList())).orElse(List.of());
-        var recordComponents = record.getRecordComponents();
-        return IntStream.range(0, recordComponents.size())
-                .mapToObj(index -> {
-                    var thisAccessorAnnotations = (accessorAnnotations.size() > index) ? accessorAnnotations.get(index) : List.<AnnotationMirror>of();
-                    var thisCanonicalConstructorAnnotations = (canonicalConstructorAnnotations.size() > index) ? canonicalConstructorAnnotations.get(index) : List.<AnnotationMirror>of();
-                    return ElementUtils.getRecordClassType(processingEnv, recordComponents.get(index), thisAccessorAnnotations, thisCanonicalConstructorAnnotations);
-                })
-                .collect(Collectors.toList());
-    }
-
     private void addWithNestedClass() {
         /*
             Adds a nested interface that adds withers similar to:
@@ -164,16 +144,16 @@ class InternalRecordBuilderProcessor {
          */
         var classBuilder = TypeSpec.interfaceBuilder(metaData.withClassName())
                 .addAnnotation(generatedRecordBuilderAnnotation)
-                .addJavadoc("Add withers to {@code $L}\n", recordClassType.name())
+                .addJavadoc("Add withers to {@code $L}\n", recordSpecification.recordClassType().name())
                 .addModifiers(Modifier.PUBLIC)
                 .addTypeVariables(typeVariables);
         if (metaData.addClassRetainedGenerated()) {
             classBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
-        recordComponents.forEach(component -> addNestedGetterMethod(classBuilder, component, prefixedName(component, true)));
+        recordSpecification.recordComponents().forEach(component -> addNestedGetterMethod(classBuilder, component, prefixedName(component, true)));
         addWithBuilderMethod(classBuilder);
         addWithSuppliedBuilderMethod(classBuilder);
-        IntStream.range(0, recordComponents.size()).forEach(index -> add1WithMethod(classBuilder, recordComponents.get(index), index));
+        IntStream.range(0, recordSpecification.recordComponents().size()).forEach(index -> add1WithMethod(classBuilder, recordSpecification.recordComponents().get(index), index));
         if (metaData.addFunctionalMethodsToWith()) {
             classBuilder.addType(buildFunctionalInterface("Function", true))
                     .addType(buildFunctionalInterface("Consumer", false))
@@ -195,10 +175,10 @@ class InternalRecordBuilderProcessor {
          */
         var classBuilder = TypeSpec.interfaceBuilder(metaData.beanClassName())
                 .addAnnotation(generatedRecordBuilderAnnotation)
-                .addJavadoc("Add getters to {@code $L}\n", recordClassType.name())
+                .addJavadoc("Add getters to {@code $L}\n", recordSpecification.recordClassType().name())
                 .addModifiers(Modifier.PUBLIC)
                 .addTypeVariables(typeVariables);
-        recordComponents.forEach(component -> {
+        recordSpecification.recordComponents().forEach(component -> {
             if (prefixedName(component, true).equals(component.name())) {
                 return;
             }
@@ -229,7 +209,7 @@ class InternalRecordBuilderProcessor {
                 .addJavadoc("Return a new record built from the builder passed to the given consumer")
                 .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
                 .addParameter(parameter)
-                .returns(recordClassType.typeName())
+                .returns(recordSpecification.recordClassType().typeName())
                 .addCode(codeBlockBuilder.build())
                 .build();
         classBuilder.addMethod(methodSpec);
@@ -263,7 +243,7 @@ class InternalRecordBuilderProcessor {
 
     private String getUniqueVarName(String prefix) {
         var name = prefix + "r";
-        var alreadyExists = recordComponents.stream()
+        var alreadyExists = recordSpecification.recordComponents().stream()
                 .map(ClassType::name)
                 .anyMatch(n -> n.equals(name));
         return alreadyExists ? getUniqueVarName(prefix + "_") : name;
@@ -283,7 +263,7 @@ class InternalRecordBuilderProcessor {
         if (metaData.useValidationApi()) {
             codeBlockBuilder.add("$T.validate(", validatorTypeName);
         }
-        codeBlockBuilder.add("new $T(", recordClassType.typeName());
+        codeBlockBuilder.add("new $T(", recordSpecification.recordClassType().typeName());
         addComponentCallsAsArguments(index, codeBlockBuilder);
         codeBlockBuilder.add(")");
         if (metaData.useValidationApi()) {
@@ -296,11 +276,11 @@ class InternalRecordBuilderProcessor {
         addConstructorAnnotations(component, parameterSpecBuilder);
         var methodSpec = MethodSpec.methodBuilder(methodName)
                 .addAnnotation(generatedRecordBuilderAnnotation)
-                .addJavadoc("Return a new instance of {@code $L} with a new value for {@code $L}\n", recordClassType.name(), component.name())
+                .addJavadoc("Return a new instance of {@code $L} with a new value for {@code $L}\n", recordSpecification.recordClassType().name(), component.name())
                 .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
                 .addParameter(parameterSpecBuilder.build())
                 .addCode(codeBlockBuilder.build())
-                .returns(recordClassType.typeName())
+                .returns(recordSpecification.recordClassType().typeName())
                 .build();
         classBuilder.addMethod(methodSpec);
     }
@@ -328,11 +308,11 @@ class InternalRecordBuilderProcessor {
     }
 
     private void addComponentCallsAsArguments(int index, CodeBlock.Builder codeBlockBuilder) {
-        IntStream.range(0, recordComponents.size()).forEach(parameterIndex -> {
+        IntStream.range(0, recordSpecification.recordComponents().size()).forEach(parameterIndex -> {
             if (parameterIndex > 0) {
                 codeBlockBuilder.add(", ");
             }
-            RecordClassType parameterComponent = recordComponents.get(parameterIndex);
+            RecordClassType parameterComponent = recordSpecification.recordComponents().get(parameterIndex);
             if (parameterIndex == index) {
                 collectionBuilderUtils.addShimCall(codeBlockBuilder, parameterComponent);
             } else {
@@ -364,14 +344,14 @@ class InternalRecordBuilderProcessor {
             }
          */
         CodeBlock codeBlock = buildCodeBlock();
-        var builder = MethodSpec.methodBuilder(recordClassType.name())
-                .addJavadoc("Static constructor/builder. Can be used instead of new $L(...)\n", recordClassType.name())
+        var builder = MethodSpec.methodBuilder(recordSpecification.recordClassType().name())
+                .addJavadoc("Static constructor/builder. Can be used instead of new $L(...)\n", recordSpecification.recordClassType().name())
                 .addTypeVariables(typeVariables)
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
-                .returns(recordClassType.typeName())
+                .returns(recordSpecification.recordClassType().typeName())
                 .addCode(codeBlock);
-        recordComponents.forEach(component -> {
+        recordSpecification.recordComponents().forEach(component -> {
             var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
             addConstructorAnnotations(component, parameterSpecBuilder);
             builder.addParameter(parameterSpecBuilder.build());
@@ -381,7 +361,7 @@ class InternalRecordBuilderProcessor {
 
     private void addNullCheckCodeBlock(CodeBlock.Builder builder) {
         if (metaData.interpretNotNulls()) {
-            for (int i = 0; i < recordComponents.size(); ++i) {
+            for (int i = 0; i < recordSpecification.recordComponents().size(); ++i) {
                 addNullCheckCodeBlock(builder, i);
             }
         }
@@ -389,7 +369,7 @@ class InternalRecordBuilderProcessor {
 
     private void addNullCheckCodeBlock(CodeBlock.Builder builder, int index) {
         if (metaData.interpretNotNulls()) {
-            var component = recordComponents.get(index);
+            var component = recordSpecification.recordComponents().get(index);
             if (!collectionBuilderUtils.isImmutableCollection(component)) {
                 if (!component.typeName().isPrimitive() && isNullAnnotated(component)) {
                     builder.addStatement("$T.requireNonNull($L, $S)", Objects.class, component.name(), component.name() + " is required");
@@ -416,7 +396,7 @@ class InternalRecordBuilderProcessor {
         var constructorBuilder = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PRIVATE)
                 .addAnnotation(generatedRecordBuilderAnnotation);
-        recordComponents.forEach(component -> {
+        recordSpecification.recordComponents().forEach(component -> {
             constructorBuilder.addParameter(component.typeName(), component.name());
             constructorBuilder.addStatement("this.$L = $L", component.name(), component.name());
         });
@@ -433,11 +413,11 @@ class InternalRecordBuilderProcessor {
             }
          */
         var codeBuilder = CodeBlock.builder().add("return \"$L[", builderClassType.name());
-        IntStream.range(0, recordComponents.size()).forEach(index -> {
+        IntStream.range(0, recordSpecification.recordComponents().size()).forEach(index -> {
             if (index > 0) {
                 codeBuilder.add(", ");
             }
-            String name = recordComponents.get(index).name();
+            String name = recordSpecification.recordComponents().get(index).name();
             codeBuilder.add("$L=\" + $L + \"", name, name);
         });
         codeBuilder.add("]\"");
@@ -462,11 +442,11 @@ class InternalRecordBuilderProcessor {
             }
          */
         var codeBuilder = CodeBlock.builder().add("return $T.hash(", Objects.class);
-        IntStream.range(0, recordComponents.size()).forEach(index -> {
+        IntStream.range(0, recordSpecification.recordComponents().size()).forEach(index -> {
             if (index > 0) {
                 codeBuilder.add(", ");
             }
-            codeBuilder.add("$L", recordComponents.get(index).name());
+            codeBuilder.add("$L", recordSpecification.recordComponents().get(index).name());
         });
         codeBuilder.add(")");
 
@@ -499,7 +479,7 @@ class InternalRecordBuilderProcessor {
             String wildcardList = typeVariables.stream().map(__ -> "?").collect(Collectors.joining(","));
             codeBuilder.add("(o instanceof $L<$L> $L)", builderClassType.name(), wildcardList, uniqueVarName);
         }
-        recordComponents.forEach(recordComponent -> {
+        recordSpecification.recordComponents().forEach(recordComponent -> {
             String name = recordComponent.name();
             if (recordComponent.typeName().isPrimitive()) {
                 codeBuilder.add("\n&& ($L == $L.$L)", name, uniqueVarName, name);
@@ -533,7 +513,7 @@ class InternalRecordBuilderProcessor {
                 .addJavadoc("Return a new record instance with all fields set to the current values in this builder\n")
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
-                .returns(recordClassType.typeName())
+                .returns(recordSpecification.recordClassType().typeName())
                 .addCode(codeBlock)
                 .build();
         builder.addMethod(methodSpec);
@@ -546,11 +526,11 @@ class InternalRecordBuilderProcessor {
 
         var codeBuilder = CodeBlock.builder();
 
-        IntStream.range(0, recordComponents.size()).forEach(index -> {
-            var recordComponent = recordComponents.get(index);
+        IntStream.range(0, recordSpecification.recordComponents().size()).forEach(index -> {
+            var recordComponent = recordSpecification.recordComponents().get(index);
             if (collectionBuilderUtils.isImmutableCollection(recordComponent)) {
                 codeBuilder.add("$[$L = ", recordComponent.name());
-                collectionBuilderUtils.addShimCall(codeBuilder, recordComponents.get(index));
+                collectionBuilderUtils.addShimCall(codeBuilder, recordSpecification.recordComponents().get(index));
                 codeBuilder.add(";\n$]");
             }
         });
@@ -560,12 +540,12 @@ class InternalRecordBuilderProcessor {
         if (metaData.useValidationApi()) {
             codeBuilder.add("$T.validate(", validatorTypeName);
         }
-        codeBuilder.add("new $T(", recordClassType.typeName());
-        IntStream.range(0, recordComponents.size()).forEach(index -> {
+        codeBuilder.add("new $T(", recordSpecification.recordClassType().typeName());
+        IntStream.range(0, recordSpecification.recordComponents().size()).forEach(index -> {
             if (index > 0) {
                 codeBuilder.add(", ");
             }
-            codeBuilder.add("$L", recordComponents.get(index).name());
+            codeBuilder.add("$L", recordSpecification.recordComponents().get(index).name());
         });
         codeBuilder.add(")");
         if (metaData.useValidationApi()) {
@@ -612,17 +592,17 @@ class InternalRecordBuilderProcessor {
             fromWithClassBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
 
-        fromWithClassBuilder.addField(recordClassType.typeName(), "from", Modifier.PRIVATE, Modifier.FINAL);
+        fromWithClassBuilder.addField(recordSpecification.recordClassType().typeName(), "from", Modifier.PRIVATE, Modifier.FINAL);
         MethodSpec constructorSpec = MethodSpec.constructorBuilder()
-                .addParameter(recordClassType.typeName(), "from")
+                .addParameter(recordSpecification.recordClassType().typeName(), "from")
                 .addStatement("this.from = from")
                 .addModifiers(Modifier.PRIVATE)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .build();
         fromWithClassBuilder.addMethod(constructorSpec);
 
-        IntStream.range(0, recordComponents.size()).forEach(index -> {
-            var component = recordComponents.get(index);
+        IntStream.range(0, recordSpecification.recordComponents().size()).forEach(index -> {
+            var component = recordSpecification.recordComponents().get(index);
             MethodSpec methodSpec = MethodSpec.methodBuilder(prefixedName(component, true))
                     .returns(component.typeName())
                     .addAnnotation(Override.class)
@@ -651,7 +631,7 @@ class InternalRecordBuilderProcessor {
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addTypeVariables(typeVariables)
-                .addParameter(recordClassType.typeName(), metaData.fromMethodName())
+                .addParameter(recordSpecification.recordClassType().typeName(), metaData.fromMethodName())
                 .returns(buildWithTypeName())
                 .addStatement("return new $L$L(from)", metaData.fromWithClassName(), typeVariables.isEmpty() ? "" : "<>")
                 .build();
@@ -667,11 +647,11 @@ class InternalRecordBuilderProcessor {
             }
          */
         var codeBuilder = CodeBlock.builder().add("return new $T(", builderClassType.typeName());
-        IntStream.range(0, recordComponents.size()).forEach(index -> {
+        IntStream.range(0, recordSpecification.recordComponents().size()).forEach(index -> {
             if (index > 0) {
                 codeBuilder.add(", ");
             }
-            codeBuilder.add("from.$L()", recordComponents.get(index).name());
+            codeBuilder.add("from.$L()", recordSpecification.recordComponents().get(index).name());
         });
         codeBuilder.add(")");
 
@@ -680,7 +660,7 @@ class InternalRecordBuilderProcessor {
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addTypeVariables(typeVariables)
-                .addParameter(recordClassType.typeName(), "from")
+                .addParameter(recordSpecification.recordClassType().typeName(), "from")
                 .returns(builderClassType.typeName())
                 .addStatement(codeBuilder.build())
                 .build();
@@ -716,11 +696,11 @@ class InternalRecordBuilderProcessor {
             }
          */
         var codeBuilder = CodeBlock.builder().add("return $T.of(", Stream.class);
-        IntStream.range(0, recordComponents.size()).forEach(index -> {
+        IntStream.range(0, recordSpecification.recordComponents().size()).forEach(index -> {
             if (index > 0) {
                 codeBuilder.add(",\n ");
             }
-            var name = recordComponents.get(index).name();
+            var name = recordSpecification.recordComponents().get(index).name();
             codeBuilder.add("new $T<>($S, record.$L())", AbstractMap.SimpleImmutableEntry.class, name, name);
         });
         codeBuilder.add(")");
@@ -729,7 +709,7 @@ class InternalRecordBuilderProcessor {
         var methodSpec = MethodSpec.methodBuilder(metaData.componentsMethodName())
                 .addJavadoc("Return a stream of the record components as map entries keyed with the component name and the value as the component value\n")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .addParameter(recordClassType.typeName(), "record")
+                .addParameter(recordSpecification.recordClassType().typeName(), "record")
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addTypeVariables(typeVariables)
                 .returns(mapEntryType)
@@ -1070,7 +1050,7 @@ class InternalRecordBuilderProcessor {
         */
         var localTypeVariables = isMap ? typeVariablesWithReturn() : typeVariables;
         var methodBuilder = MethodSpec.methodBuilder("apply").addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
-        recordComponents.forEach(component -> {
+        recordSpecification.recordComponents().forEach(component -> {
             var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
             addConstructorAnnotations(component, parameterSpecBuilder);
             methodBuilder.addParameter(parameterSpecBuilder.build());

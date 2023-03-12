@@ -52,7 +52,7 @@ public class RecordBuilderProcessor
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         annotations.forEach(annotation -> roundEnv.getElementsAnnotatedWith(annotation).forEach(element -> process(annotation, element)));
-        return false;
+        return true;
     }
 
     @Override
@@ -154,6 +154,12 @@ public class RecordBuilderProcessor
             return;
         }
         writeRecordInterfaceJavaFile(element, internalProcessor.packageName(), internalProcessor.recordClassType(), internalProcessor.recordType(), metaData, internalProcessor::toRecord);
+
+        if (addRecordBuilder) {
+            RecordSpecification recordSpecification = RecordSpecification.fromInterfaceProcessor(processingEnv, metaData, internalProcessor.recordComponents(), internalProcessor.recordClassType(), element, internalProcessor.packageName());
+            var internalRecordProcessor = new InternalRecordBuilderProcessor(recordSpecification, metaData, packageName);
+            writeRecordBuilderJavaFile(element, internalProcessor.packageName(), internalRecordProcessor.builderClassType(), internalRecordProcessor.builderType(), metaData);
+        }
     }
 
     private void processRecordBuilder(TypeElement record, RecordBuilder.Options metaData, Optional<String> packageName) {
@@ -165,7 +171,8 @@ public class RecordBuilderProcessor
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "RecordBuilder only valid for records.", record);
             return;
         }
-        var internalProcessor = new InternalRecordBuilderProcessor(processingEnv, record, metaData, packageName);
+        RecordSpecification recordSpecification = RecordSpecification.fromRecordTypeElement(processingEnv, metaData, record);
+        var internalProcessor = new InternalRecordBuilderProcessor(recordSpecification, metaData, packageName);
         writeRecordBuilderJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(), internalProcessor.builderType(), metaData);
     }
 
