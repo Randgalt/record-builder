@@ -28,16 +28,16 @@ public @interface RecordInterface {
     @Inherited
     @interface Include {
         /**
-         * @return list of classes to include
+         * @return collection of classes to include
          */
         Class<?>[] value() default {};
 
         /**
-         * Synonym for {@code value()}. When using the other attributes it maybe more clear to
+         * Synonym for {@code value()}. When using the other attributes it maybe clearer to
          * use {@code classes()} instead of {@code value()}. Note: both attributes are applied
          * (i.e. a union of classes from both attributes).
          *
-         * @return list of classes
+         * @return collection of classes
          */
         Class<?>[] classes() default {};
 
