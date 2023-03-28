@@ -23,4 +23,6 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 
 @RecordBuilder.Options(emptyDefaultForOptional = true)
 @RecordBuilder
-public record RecordWithOptional2(Optional<String> value, Optional raw, OptionalInt i, OptionalLong l, OptionalDouble d) {}
+public record RecordWithOptional2(Optional<String> value, Optional raw, OptionalInt i, OptionalLong l,
+        OptionalDouble d) {
+}

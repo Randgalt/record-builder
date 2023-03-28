@@ -58,10 +58,14 @@ class CollectionBuilderUtils {
     private static final TypeVariableName tType = TypeVariableName.get("T");
     private static final TypeVariableName kType = TypeVariableName.get("K");
     private static final TypeVariableName vType = TypeVariableName.get("V");
-    private static final ParameterizedTypeName parameterizedListType = ParameterizedTypeName.get(ClassName.get(List.class), tType);
-    private static final ParameterizedTypeName parameterizedMapType = ParameterizedTypeName.get(ClassName.get(Map.class), kType, vType);
-    private static final ParameterizedTypeName parameterizedSetType = ParameterizedTypeName.get(ClassName.get(Set.class), tType);
-    private static final ParameterizedTypeName parameterizedCollectionType = ParameterizedTypeName.get(ClassName.get(Collection.class), tType);
+    private static final ParameterizedTypeName parameterizedListType = ParameterizedTypeName
+            .get(ClassName.get(List.class), tType);
+    private static final ParameterizedTypeName parameterizedMapType = ParameterizedTypeName
+            .get(ClassName.get(Map.class), kType, vType);
+    private static final ParameterizedTypeName parameterizedSetType = ParameterizedTypeName
+            .get(ClassName.get(Set.class), tType);
+    private static final ParameterizedTypeName parameterizedCollectionType = ParameterizedTypeName
+            .get(ClassName.get(Collection.class), tType);
 
     private static final Class<?> mutableListType = ArrayList.class;
     private static final Class<?> mutableMapType = HashMap.class;
@@ -87,22 +91,24 @@ class CollectionBuilderUtils {
         setMakerMethodName = disambiguateGeneratedMethodName(recordComponents, "__ensureSetMutable", 0);
         mapMakerMethodName = disambiguateGeneratedMethodName(recordComponents, "__ensureMapMutable", 0);
 
-        mutableListSpec = buildMutableCollectionSubType(metaData.mutableListClassName(), mutableListTypeName, parameterizedListType, tType);
-        mutableSetSpec = buildMutableCollectionSubType(metaData.mutableSetClassName(), mutableSetTypeName, parameterizedSetType, tType);
-        mutableMapSpec = buildMutableCollectionSubType(metaData.mutableMapClassName(), mutableMapTypeName, parameterizedMapType, kType, vType);
+        mutableListSpec = buildMutableCollectionSubType(metaData.mutableListClassName(), mutableListTypeName,
+                parameterizedListType, tType);
+        mutableSetSpec = buildMutableCollectionSubType(metaData.mutableSetClassName(), mutableSetTypeName,
+                parameterizedSetType, tType);
+        mutableMapSpec = buildMutableCollectionSubType(metaData.mutableMapClassName(), mutableMapTypeName,
+                parameterizedMapType, kType, vType);
     }
 
     enum SingleItemsMetaDataMode {
-        STANDARD,
-        STANDARD_FOR_SETTER,
-        EXCLUDE_WILDCARD_TYPES
+        STANDARD, STANDARD_FOR_SETTER, EXCLUDE_WILDCARD_TYPES
     }
 
     record SingleItemsMetaData(Class<?> singleItemCollectionClass, List<TypeName> typeArguments, TypeName wildType) {
     }
 
     Optional<SingleItemsMetaData> singleItemsMetaData(RecordClassType component, SingleItemsMetaDataMode mode) {
-        if (addSingleItemCollectionBuilders && (component.typeName() instanceof ParameterizedTypeName parameterizedTypeName)) {
+        if (addSingleItemCollectionBuilders
+                && (component.typeName() instanceof ParameterizedTypeName parameterizedTypeName)) {
             Class<?> collectionClass = null;
             ClassName wildcardClass = null;
             int typeArgumentQty = 0;
@@ -122,21 +128,25 @@ class CollectionBuilderUtils {
             var hasWildcardTypeArguments = hasWildcardTypeArguments(parameterizedTypeName, typeArgumentQty);
             if (collectionClass != null) {
                 return switch (mode) {
-                    case STANDARD -> singleItemsMetaDataWithWildType(parameterizedTypeName, collectionClass, wildcardClass, typeArgumentQty);
+                case STANDARD -> singleItemsMetaDataWithWildType(parameterizedTypeName, collectionClass, wildcardClass,
+                        typeArgumentQty);
 
-                    case STANDARD_FOR_SETTER -> {
-                        if (hasWildcardTypeArguments) {
-                            yield Optional.of(new SingleItemsMetaData(collectionClass, parameterizedTypeName.typeArguments, component.typeName()));
-                        }
-                        yield singleItemsMetaDataWithWildType(parameterizedTypeName, collectionClass, wildcardClass, typeArgumentQty);
+                case STANDARD_FOR_SETTER -> {
+                    if (hasWildcardTypeArguments) {
+                        yield Optional.of(new SingleItemsMetaData(collectionClass, parameterizedTypeName.typeArguments,
+                                component.typeName()));
                     }
+                    yield singleItemsMetaDataWithWildType(parameterizedTypeName, collectionClass, wildcardClass,
+                            typeArgumentQty);
+                }
 
-                    case EXCLUDE_WILDCARD_TYPES -> {
-                        if (hasWildcardTypeArguments) {
-                            yield Optional.empty();
-                        }
-                        yield singleItemsMetaDataWithWildType(parameterizedTypeName, collectionClass, wildcardClass, typeArgumentQty);
+                case EXCLUDE_WILDCARD_TYPES -> {
+                    if (hasWildcardTypeArguments) {
+                        yield Optional.empty();
                     }
+                    yield singleItemsMetaDataWithWildType(parameterizedTypeName, collectionClass, wildcardClass,
+                            typeArgumentQty);
+                }
                 };
             }
         }
@@ -144,7 +154,8 @@ class CollectionBuilderUtils {
     }
 
     boolean isImmutableCollection(RecordClassType component) {
-        return useImmutableCollections && (isList(component) || isMap(component) || isSet(component) || component.rawTypeName().equals(collectionTypeName));
+        return useImmutableCollections && (isList(component) || isMap(component) || isSet(component)
+                || component.rawTypeName().equals(collectionTypeName));
     }
 
     boolean isList(RecordClassType component) {
@@ -216,7 +227,8 @@ class CollectionBuilderUtils {
         }
 
         if (needsListShim) {
-            builder.addMethod(buildShimMethod(listShimName, listTypeName, collectionType, parameterizedListType, tType));
+            builder.addMethod(
+                    buildShimMethod(listShimName, listTypeName, collectionType, parameterizedListType, tType));
         }
         if (needsSetShim) {
             builder.addMethod(buildShimMethod(setShimName, setTypeName, collectionType, parameterizedSetType, tType));
@@ -235,25 +247,32 @@ class CollectionBuilderUtils {
         }
 
         if (needsListMutableMaker) {
-            builder.addMethod(buildMutableMakerMethod(listMakerMethodName, mutableListSpec.name, parameterizedListType, tType));
+            builder.addMethod(
+                    buildMutableMakerMethod(listMakerMethodName, mutableListSpec.name, parameterizedListType, tType));
             builder.addType(mutableListSpec);
         }
         if (needsSetMutableMaker) {
-            builder.addMethod(buildMutableMakerMethod(setMakerMethodName, mutableSetSpec.name, parameterizedSetType, tType));
+            builder.addMethod(
+                    buildMutableMakerMethod(setMakerMethodName, mutableSetSpec.name, parameterizedSetType, tType));
             builder.addType(mutableSetSpec);
         }
         if (needsMapMutableMaker) {
-            builder.addMethod(buildMutableMakerMethod(mapMakerMethodName, mutableMapSpec.name, parameterizedMapType, kType, vType));
+            builder.addMethod(buildMutableMakerMethod(mapMakerMethodName, mutableMapSpec.name, parameterizedMapType,
+                    kType, vType));
             builder.addType(mutableMapSpec);
         }
     }
 
-    private Optional<SingleItemsMetaData> singleItemsMetaDataWithWildType(ParameterizedTypeName parameterizedTypeName, Class<?> collectionClass, ClassName wildcardClass, int typeArgumentQty) {
+    private Optional<SingleItemsMetaData> singleItemsMetaDataWithWildType(ParameterizedTypeName parameterizedTypeName,
+            Class<?> collectionClass, ClassName wildcardClass, int typeArgumentQty) {
         TypeName wildType;
         if (typeArgumentQty == 1) {
-            wildType = ParameterizedTypeName.get(wildcardClass, WildcardTypeName.subtypeOf(parameterizedTypeName.typeArguments.get(0)));
+            wildType = ParameterizedTypeName.get(wildcardClass,
+                    WildcardTypeName.subtypeOf(parameterizedTypeName.typeArguments.get(0)));
         } else { // if (typeArgumentQty == 2)
-            wildType = ParameterizedTypeName.get(wildcardClass, WildcardTypeName.subtypeOf(parameterizedTypeName.typeArguments.get(0)), WildcardTypeName.subtypeOf(parameterizedTypeName.typeArguments.get(1)));
+            wildType = ParameterizedTypeName.get(wildcardClass,
+                    WildcardTypeName.subtypeOf(parameterizedTypeName.typeArguments.get(0)),
+                    WildcardTypeName.subtypeOf(parameterizedTypeName.typeArguments.get(1)));
         }
         return Optional.of(new SingleItemsMetaData(collectionClass, parameterizedTypeName.typeArguments, wildType));
     }
@@ -277,47 +296,41 @@ class CollectionBuilderUtils {
         return name;
     }
 
-    private MethodSpec buildShimMethod(String name, TypeName mainType, Class<?> abstractType, ParameterizedTypeName parameterizedType, TypeVariableName... typeVariables) {
+    private MethodSpec buildShimMethod(String name, TypeName mainType, Class<?> abstractType,
+            ParameterizedTypeName parameterizedType, TypeVariableName... typeVariables) {
         var code = CodeBlock.of("return (o != null) ? $T.copyOf(o) : $T.of()", mainType, mainType);
-        TypeName[] wildCardTypeArguments = parameterizedType.typeArguments.stream().map(WildcardTypeName::subtypeOf).toList().toArray(new TypeName[0]);
+        TypeName[] wildCardTypeArguments = parameterizedType.typeArguments.stream().map(WildcardTypeName::subtypeOf)
+                .toList().toArray(new TypeName[0]);
         var extendedParameterizedType = ParameterizedTypeName.get(ClassName.get(abstractType), wildCardTypeArguments);
-        return MethodSpec.methodBuilder(name)
-                .addAnnotation(generatedRecordBuilderAnnotation)
-                .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
-                .addTypeVariables(Arrays.asList(typeVariables))
-                .returns(parameterizedType)
-                .addParameter(extendedParameterizedType, "o")
-                .addStatement(code)
-                .build();
+        return MethodSpec.methodBuilder(name).addAnnotation(generatedRecordBuilderAnnotation)
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC).addTypeVariables(Arrays.asList(typeVariables))
+                .returns(parameterizedType).addParameter(extendedParameterizedType, "o").addStatement(code).build();
     }
 
-    private MethodSpec buildMutableMakerMethod(String name, String mutableCollectionType, ParameterizedTypeName parameterizedType, TypeVariableName... typeVariables) {
+    private MethodSpec buildMutableMakerMethod(String name, String mutableCollectionType,
+            ParameterizedTypeName parameterizedType, TypeVariableName... typeVariables) {
         var nullCase = CodeBlock.of("if (o == null) return new $L<>()", mutableCollectionType);
         var isMutableCase = CodeBlock.of("if (o instanceof $L) return o", mutableCollectionType);
         var defaultCase = CodeBlock.of("return new $L<>(o)", mutableCollectionType);
-        return MethodSpec.methodBuilder(name)
-                .addAnnotation(generatedRecordBuilderAnnotation)
-                .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
-                .addTypeVariables(Arrays.asList(typeVariables))
-                .returns(parameterizedType)
-                .addParameter(parameterizedType, "o")
-                .addStatement(nullCase)
-                .addStatement(isMutableCase)
-                .addStatement(defaultCase)
-                .build();
+        return MethodSpec.methodBuilder(name).addAnnotation(generatedRecordBuilderAnnotation)
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC).addTypeVariables(Arrays.asList(typeVariables))
+                .returns(parameterizedType).addParameter(parameterizedType, "o").addStatement(nullCase)
+                .addStatement(isMutableCase).addStatement(defaultCase).build();
     }
 
-    private TypeSpec buildMutableCollectionSubType(String className, ClassName mutableCollectionType, ParameterizedTypeName parameterizedType, TypeVariableName... typeVariables) {
-        TypeName[] typeArguments = new TypeName[]{};
+    private TypeSpec buildMutableCollectionSubType(String className, ClassName mutableCollectionType,
+            ParameterizedTypeName parameterizedType, TypeVariableName... typeVariables) {
+        TypeName[] typeArguments = new TypeName[] {};
         typeArguments = Arrays.stream(typeVariables).toList().toArray(typeArguments);
 
-        TypeSpec.Builder builder = TypeSpec.classBuilder(className)
-                .addAnnotation(generatedRecordBuilderAnnotation)
+        TypeSpec.Builder builder = TypeSpec.classBuilder(className).addAnnotation(generatedRecordBuilderAnnotation)
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
                 .superclass(ParameterizedTypeName.get(mutableCollectionType, typeArguments))
                 .addTypeVariables(Arrays.asList(typeVariables))
-                .addMethod(MethodSpec.constructorBuilder().addAnnotation(generatedRecordBuilderAnnotation).addStatement("super()").build())
-                .addMethod(MethodSpec.constructorBuilder().addAnnotation(generatedRecordBuilderAnnotation).addParameter(parameterizedType, "o").addStatement("super(o)").build());
+                .addMethod(MethodSpec.constructorBuilder().addAnnotation(generatedRecordBuilderAnnotation)
+                        .addStatement("super()").build())
+                .addMethod(MethodSpec.constructorBuilder().addAnnotation(generatedRecordBuilderAnnotation)
+                        .addParameter(parameterizedType, "o").addStatement("super(o)").build());
 
         if (addClassRetainedGenerated) {
             builder.addAnnotation(recordBuilderGeneratedAnnotation);
@@ -327,21 +340,12 @@ class CollectionBuilderUtils {
     }
 
     private MethodSpec buildCollectionsShimMethod() {
-        var code = CodeBlock.builder()
-                .add("if (o instanceof Set) {\n")
-                .indent()
-                .addStatement("return $T.copyOf(o)", setTypeName)
-                .unindent()
-                .addStatement("}")
-                .addStatement("return (o != null) ? $T.copyOf(o) : $T.of()", listTypeName, listTypeName)
-                .build();
-        return MethodSpec.methodBuilder(collectionShimName)
-                .addAnnotation(generatedRecordBuilderAnnotation)
-                .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
-                .addTypeVariable(tType)
-                .returns(parameterizedCollectionType)
-                .addParameter(parameterizedCollectionType, "o")
-                .addCode(code)
+        var code = CodeBlock.builder().add("if (o instanceof Set) {\n").indent()
+                .addStatement("return $T.copyOf(o)", setTypeName).unindent().addStatement("}")
+                .addStatement("return (o != null) ? $T.copyOf(o) : $T.of()", listTypeName, listTypeName).build();
+        return MethodSpec.methodBuilder(collectionShimName).addAnnotation(generatedRecordBuilderAnnotation)
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC).addTypeVariable(tType)
+                .returns(parameterizedCollectionType).addParameter(parameterizedCollectionType, "o").addCode(code)
                 .build();
     }
 }

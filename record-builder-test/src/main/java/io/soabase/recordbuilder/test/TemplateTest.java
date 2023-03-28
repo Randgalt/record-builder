@@ -18,6 +18,5 @@ package io.soabase.recordbuilder.test;
 import java.time.Instant;
 
 @MyTemplate
-public record TemplateTest(String text, Instant date) implements TemplateTestBuilder.Com
-{
+public record TemplateTest(String text, Instant date) implements TemplateTestBuilder.Com {
 }

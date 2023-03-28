@@ -21,10 +21,8 @@ import javax.lang.model.type.ErrorType;
 import java.util.List;
 
 @RecordBuilder
-public record ExceptionDetails(
-        String internalMessage, String endUserMessage, String httpStatus,
-        ErrorType errorType, List<String> jsonProblems, Throwable cause
-) {
+public record ExceptionDetails(String internalMessage, String endUserMessage, String httpStatus, ErrorType errorType,
+        List<String> jsonProblems, Throwable cause) {
     @Override
     public List<String> jsonProblems() {
         if (jsonProblems == null) {

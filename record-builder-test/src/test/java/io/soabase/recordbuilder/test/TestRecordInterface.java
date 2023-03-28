@@ -26,11 +26,9 @@ import java.time.Instant;
 import static io.soabase.recordbuilder.test.SimpleGenericRecordBuilder.SimpleGenericRecord;
 import static io.soabase.recordbuilder.test.SimpleRecordBuilder.SimpleRecord;
 
-public class TestRecordInterface
-{
+public class TestRecordInterface {
     @Test
-    public void testHasDefaults()
-    {
+    public void testHasDefaults() {
         var r1 = new HasDefaultsRecord(Instant.MIN, Instant.MAX);
         var r2 = r1.with(b -> b.tomorrow(Instant.MIN));
         Assertions.assertEquals(Instant.MIN, r1.time());
@@ -40,9 +38,8 @@ public class TestRecordInterface
     }
 
     @Test
-    public void testStaticConstructor()
-    {
-        var simple = SimpleRecord(10,"hey");
+    public void testStaticConstructor() {
+        var simple = SimpleRecord(10, "hey");
         Assertions.assertEquals(simple.i(), 10);
         Assertions.assertEquals(simple.s(), "hey");
 
@@ -53,26 +50,15 @@ public class TestRecordInterface
     }
 
     @Test
-    public void testBuilderStreamWithValues()
-    {
-        var stream = SimpleRecordBuilder.stream(SimpleRecordBuilder.builder()
-                .i(19)
-                .s("value")
-                .build())
-            .toList();
-        Assertions.assertEquals(stream, List.of(
-            Map.entry("i", 19),
-            Map.entry("s", "value")));
+    public void testBuilderStreamWithValues() {
+        var stream = SimpleRecordBuilder.stream(SimpleRecordBuilder.builder().i(19).s("value").build()).toList();
+        Assertions.assertEquals(stream, List.of(Map.entry("i", 19), Map.entry("s", "value")));
     }
 
     @Test
-    public void testBuilderStreamWithNulls()
-    {
-        var stream = SimpleRecordBuilder.stream(SimpleRecordBuilder.builder()
-                .build())
-            .toList();
-        Assertions.assertEquals(stream, List.of(
-            new SimpleImmutableEntry<>("i", 0),
-            new SimpleImmutableEntry<>("s", null)));
+    public void testBuilderStreamWithNulls() {
+        var stream = SimpleRecordBuilder.stream(SimpleRecordBuilder.builder().build()).toList();
+        Assertions.assertEquals(stream,
+                List.of(new SimpleImmutableEntry<>("i", 0), new SimpleImmutableEntry<>("s", null)));
     }
 }

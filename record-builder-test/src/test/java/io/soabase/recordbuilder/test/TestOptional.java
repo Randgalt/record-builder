@@ -36,12 +36,7 @@ class TestOptional {
 
     @Test
     void testRawSetters() {
-        var record = RecordWithOptionalBuilder.builder()
-                .value("value")
-                .raw("rawValue")
-                .i(42)
-                .l(424242L)
-                .d(42.42)
+        var record = RecordWithOptionalBuilder.builder().value("value").raw("rawValue").i(42).l(424242L).d(42.42)
                 .build();
         Assertions.assertEquals(Optional.of("value"), record.value());
         Assertions.assertEquals(Optional.of("rawValue"), record.raw());
@@ -52,13 +47,8 @@ class TestOptional {
 
     @Test
     void testOptionalSetters() {
-        var record = RecordWithOptional2Builder.builder()
-            .value(Optional.of("value"))
-            .raw(Optional.of("rawValue"))
-            .i(OptionalInt.of(42))
-            .l(OptionalLong.of(424242L))
-            .d(OptionalDouble.of(42.42))
-            .build();
+        var record = RecordWithOptional2Builder.builder().value(Optional.of("value")).raw(Optional.of("rawValue"))
+                .i(OptionalInt.of(42)).l(OptionalLong.of(424242L)).d(OptionalDouble.of(42.42)).build();
         Assertions.assertEquals(Optional.of("value"), record.value());
         Assertions.assertEquals(Optional.of("rawValue"), record.raw());
         Assertions.assertEquals(OptionalInt.of(42), record.i());
@@ -72,9 +62,7 @@ class TestOptional {
         String value = null;
 
         // when
-        var record = RecordWithOptionalBuilder.builder()
-                                              .value(value)
-                                              .build();
+        var record = RecordWithOptionalBuilder.builder().value(value).build();
 
         // then
         Assertions.assertEquals(Optional.empty(), record.value());

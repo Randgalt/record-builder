@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@RecordBuilder.Include(value = {Point.class, Pair.class}, packagePattern = "*.foo")
+@RecordBuilder.Include(value = { Point.class, Pair.class }, packagePattern = "*.foo")
 @RecordInterface.Include(value = Customer.class, addRecordBuilder = false, packagePattern = "*.bar")
 package io.soabase.recordbuilder.test;
 

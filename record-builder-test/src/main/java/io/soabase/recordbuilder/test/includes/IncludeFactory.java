@@ -17,9 +17,6 @@ package io.soabase.recordbuilder.test.includes;
 
 import io.soabase.recordbuilder.core.RecordBuilder;
 
-@RecordBuilder.Include(
-        packages = "io.soabase.recordbuilder.test.includes.pack",
-        classes = JustATest.class
-)
+@RecordBuilder.Include(packages = "io.soabase.recordbuilder.test.includes.pack", classes = JustATest.class)
 public class IncludeFactory {
 }

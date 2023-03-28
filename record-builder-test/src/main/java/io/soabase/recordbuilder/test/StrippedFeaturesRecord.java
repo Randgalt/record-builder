@@ -18,8 +18,6 @@ package io.soabase.recordbuilder.test;
 import io.soabase.recordbuilder.core.RecordBuilder;
 
 @RecordBuilder
-@RecordBuilder.Options(
-    enableGetters = false,
-    enableWither = false
-)
-public record StrippedFeaturesRecord(int aField) {}
+@RecordBuilder.Options(enableGetters = false, enableWither = false)
+public record StrippedFeaturesRecord(int aField) {
+}

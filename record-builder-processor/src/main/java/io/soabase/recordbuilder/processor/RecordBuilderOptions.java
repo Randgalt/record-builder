@@ -25,35 +25,36 @@ class RecordBuilderOptions {
     private static final Map<String, Object> defaultValues = buildDefaultValues();
 
     static RecordBuilder.Options build(Map<String, String> options) {
-        return (RecordBuilder.Options)Proxy.newProxyInstance(RecordBuilderOptions.class.getClassLoader(), new Class[]{RecordBuilder.Options.class}, (proxy, method, args) -> {
-            var name = method.getName();
-            var defaultValue = defaultValues.get(name);
-            var option = options.get(name);
-            if (option != null) {
-                if (defaultValue instanceof String) {
-                    return option;
-                }
-                if (defaultValue instanceof Boolean) {
-                    return Boolean.parseBoolean(option);
-                }
-                if (defaultValue instanceof Integer) {
-                    return Integer.parseInt(option);
-                }
-                if (defaultValue instanceof Long) {
-                    return Long.parseLong(option);
-                }
-                if (defaultValue instanceof Double) {
-                    return Double.parseDouble(option);
-                }
-                throw new IllegalArgumentException("Unhandled option type: " + defaultValue.getClass());
-            }
-            return defaultValue;
-        });
+        return (RecordBuilder.Options) Proxy.newProxyInstance(RecordBuilderOptions.class.getClassLoader(),
+                new Class[] { RecordBuilder.Options.class }, (proxy, method, args) -> {
+                    var name = method.getName();
+                    var defaultValue = defaultValues.get(name);
+                    var option = options.get(name);
+                    if (option != null) {
+                        if (defaultValue instanceof String) {
+                            return option;
+                        }
+                        if (defaultValue instanceof Boolean) {
+                            return Boolean.parseBoolean(option);
+                        }
+                        if (defaultValue instanceof Integer) {
+                            return Integer.parseInt(option);
+                        }
+                        if (defaultValue instanceof Long) {
+                            return Long.parseLong(option);
+                        }
+                        if (defaultValue instanceof Double) {
+                            return Double.parseDouble(option);
+                        }
+                        throw new IllegalArgumentException("Unhandled option type: " + defaultValue.getClass());
+                    }
+                    return defaultValue;
+                });
     }
 
     private static Map<String, Object> buildDefaultValues() {
         var workMap = new HashMap<String, Object>();
-        for ( Method method : RecordBuilder.Options.class.getDeclaredMethods()) {
+        for (Method method : RecordBuilder.Options.class.getDeclaredMethods()) {
             workMap.put(method.getName(), method.getDefaultValue());
         }
         workMap.put("toString", "Generated RecordBuilder.Options");

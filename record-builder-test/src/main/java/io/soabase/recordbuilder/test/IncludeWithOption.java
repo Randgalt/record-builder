@@ -20,5 +20,6 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 @RecordBuilder.Options(prefixEnclosingClassNames = false)
 @RecordBuilder.Include(IncludeWithOption.Hey.class)
 public class IncludeWithOption {
-    public static record Hey(String s){}
+    public static record Hey(String s) {
+    }
 }

@@ -23,7 +23,7 @@ import java.lang.annotation.*;
 public @interface RecordInterface {
     boolean addRecordBuilder() default true;
 
-    @Target({ElementType.TYPE, ElementType.PACKAGE})
+    @Target({ ElementType.TYPE, ElementType.PACKAGE })
     @Retention(RetentionPolicy.SOURCE)
     @Inherited
     @interface Include {
@@ -33,9 +33,8 @@ public @interface RecordInterface {
         Class<?>[] value() default {};
 
         /**
-         * Synonym for {@code value()}. When using the other attributes it maybe clearer to
-         * use {@code classes()} instead of {@code value()}. Note: both attributes are applied
-         * (i.e. a union of classes from both attributes).
+         * Synonym for {@code value()}. When using the other attributes it maybe clearer to use {@code classes()}
+         * instead of {@code value()}. Note: both attributes are applied (i.e. a union of classes from both attributes).
          *
          * @return collection of classes
          */
@@ -49,10 +48,9 @@ public @interface RecordInterface {
         boolean addRecordBuilder() default true;
 
         /**
-         * Pattern used to generate the package for the generated class. The value
-         * is the literal package name however two replacement values can be used. '@'
-         * is replaced with the package of the {@code Include} annotation. '*' is replaced with
-         * the package of the included class.
+         * Pattern used to generate the package for the generated class. The value is the literal package name however
+         * two replacement values can be used. '@' is replaced with the package of the {@code Include} annotation. '*'
+         * is replaced with the package of the included class.
          *
          * @return package pattern
          */

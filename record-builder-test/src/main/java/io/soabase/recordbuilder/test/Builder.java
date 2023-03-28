@@ -18,11 +18,7 @@ package io.soabase.recordbuilder.test;
 import io.soabase.recordbuilder.core.RecordBuilder;
 import io.soabase.recordbuilder.core.RecordInterface;
 
-@RecordInterface.Include({
-    Thingy.class
-})
-@RecordBuilder.Include({
-    Nested.NestedRecord.class
-})
+@RecordInterface.Include({ Thingy.class })
+@RecordBuilder.Include({ Nested.NestedRecord.class })
 public class Builder {
 }

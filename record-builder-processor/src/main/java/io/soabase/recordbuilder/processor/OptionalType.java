@@ -43,8 +43,7 @@ public record OptionalType(TypeName typeName, TypeName valueType) {
             if (!(component.typeName() instanceof ParameterizedTypeName parameterizedType)) {
                 return Optional.of(new OptionalType(optionalType, TypeName.get(Object.class)));
             }
-            final TypeName containingType = parameterizedType.typeArguments.isEmpty()
-                    ? TypeName.get(Object.class)
+            final TypeName containingType = parameterizedType.typeArguments.isEmpty() ? TypeName.get(Object.class)
                     : parameterizedType.typeArguments.get(0);
             return Optional.of(new OptionalType(optionalType, containingType));
         }

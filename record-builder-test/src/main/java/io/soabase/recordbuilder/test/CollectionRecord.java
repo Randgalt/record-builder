@@ -25,10 +25,11 @@ import java.util.Set;
 
 @RecordBuilder
 @RecordBuilder.Options(useImmutableCollections = true, addFunctionalMethodsToWith = true)
-public record CollectionRecord<T, X extends Point>(List<T> l, Set<T> s, Map<T, X> m,
-                                                   Collection<X> c) implements CollectionRecordBuilder.With<T, X> {
+public record CollectionRecord<T, X extends Point>(List<T> l, Set<T> s, Map<T, X> m, Collection<X> c)
+        implements CollectionRecordBuilder.With<T, X> {
     public static void main(String[] args) {
-        var r = new CollectionRecord<>(List.of("hey"), Set.of("there"), Map.of("one", new Point(10, 20)), Set.of(new Point(30, 40)));
+        var r = new CollectionRecord<>(List.of("hey"), Set.of("there"), Map.of("one", new Point(10, 20)),
+                Set.of(new Point(30, 40)));
         Instant now = r.map((l1, s1, m1, c1) -> Instant.now());
         r.accept((l1, s1, m1, c1) -> {
         });

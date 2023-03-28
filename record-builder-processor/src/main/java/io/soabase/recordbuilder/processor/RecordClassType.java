@@ -25,7 +25,9 @@ public class RecordClassType extends ClassType {
     private final List<? extends AnnotationMirror> accessorAnnotations;
     private final List<? extends AnnotationMirror> canonicalConstructorAnnotations;
 
-    public RecordClassType(TypeName typeName, TypeName rawTypeName, String name, List<? extends AnnotationMirror> accessorAnnotations, List<? extends AnnotationMirror> canonicalConstructorAnnotations) {
+    public RecordClassType(TypeName typeName, TypeName rawTypeName, String name,
+            List<? extends AnnotationMirror> accessorAnnotations,
+            List<? extends AnnotationMirror> canonicalConstructorAnnotations) {
         super(typeName, name);
         this.rawTypeName = rawTypeName;
         this.accessorAnnotations = accessorAnnotations;

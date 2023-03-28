@@ -24,7 +24,7 @@ import static java.lang.annotation.ElementType.*;
 /**
  * Jacoco ignores classes and methods annotated with `*Generated`
  */
-@Target({PACKAGE, TYPE, METHOD, CONSTRUCTOR, FIELD, LOCAL_VARIABLE, PARAMETER})
+@Target({ PACKAGE, TYPE, METHOD, CONSTRUCTOR, FIELD, LOCAL_VARIABLE, PARAMETER })
 @Retention(RetentionPolicy.CLASS)
 public @interface RecordBuilderGenerated {
 }

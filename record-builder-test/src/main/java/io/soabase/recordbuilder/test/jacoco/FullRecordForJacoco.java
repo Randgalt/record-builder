@@ -24,5 +24,6 @@ import java.util.Map;
 
 @RecordBuilderFull
 @RecordBuilderGenerated
-public record FullRecordForJacoco(@NotNull List<Number> numbers, @NotNull Map<Number, FullRecordForJacoco> fullRecords, @NotNull String justAString) {
+public record FullRecordForJacoco(@NotNull List<Number> numbers, @NotNull Map<Number, FullRecordForJacoco> fullRecords,
+        @NotNull String justAString) {
 }

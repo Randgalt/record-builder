@@ -19,8 +19,7 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 
 import javax.lang.model.element.Modifier;
 
-
-@RecordBuilder.Options(builderClassModifiers = {Modifier.PUBLIC})
+@RecordBuilder.Options(builderClassModifiers = { Modifier.PUBLIC })
 @RecordBuilder
 record PackagePrivateRecordWithPublicBuilder(String value) {
 }

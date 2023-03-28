@@ -52,6 +52,7 @@
         <maven-surefire-plugin-version>3.0.0-M5</maven-surefire-plugin-version>
 
         <jacoco-maven-plugin-version>0.8.7</jacoco-maven-plugin-version>
+        <formatter-maven-plugin-version>2.22.0</formatter-maven-plugin-version>
 
         <license-file-path>src/etc/header.txt</license-file-path>
 
@@ -353,6 +354,24 @@
                     <artifactId>jacoco-maven-plugin</artifactId>
                     <version>${jacoco-maven-plugin-version}</version>
                 </plugin>
+
+                <plugin>
+                    <groupId>net.revelc.code.formatter</groupId>
+                    <artifactId>formatter-maven-plugin</artifactId>
+                    <version>${formatter-maven-plugin-version}</version>
+                    <executions>
+                        <execution>
+                            <phase>validate</phase>
+                            <goals>
+                                <goal>format</goal>
+                            </goals>
+                            <configuration>
+                                <compilerCompliance>17</compilerCompliance>
+                                <compilerSource>17</compilerSource>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -390,6 +409,11 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>net.revelc.code.formatter</groupId>
+                <artifactId>formatter-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

@@ -16,5 +16,6 @@
 package io.soabase.recordbuilder.test;
 
 public class Nested {
-    record NestedRecord(int x, int y){}
+    record NestedRecord(int x, int y) {
+    }
 }

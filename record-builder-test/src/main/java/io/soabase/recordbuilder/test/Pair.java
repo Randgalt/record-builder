@@ -15,4 +15,5 @@
  */
 package io.soabase.recordbuilder.test;
 
-public record Pair<T, U>(T t, U u) {}
+public record Pair<T, U>(T t, U u) {
+}

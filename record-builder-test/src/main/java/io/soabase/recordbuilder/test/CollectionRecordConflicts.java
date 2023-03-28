@@ -24,5 +24,6 @@ import java.util.Set;
 
 @RecordBuilder
 @RecordBuilder.Options(useImmutableCollections = true)
-public record CollectionRecordConflicts(List<String> __list, Set<String> __set, Map<String, String> __map, Collection<String> __collection) implements CollectionRecordConflictsBuilder.With {
+public record CollectionRecordConflicts(List<String> __list, Set<String> __set, Map<String, String> __map,
+        Collection<String> __collection) implements CollectionRecordConflictsBuilder.With {
 }

@@ -22,7 +22,7 @@ import java.lang.annotation.*;
 @Target(ElementType.TYPE)
 @Inherited
 public @interface RecordBuilder {
-    @Target({ElementType.TYPE, ElementType.PACKAGE})
+    @Target({ ElementType.TYPE, ElementType.PACKAGE })
     @Retention(RetentionPolicy.SOURCE)
     @Inherited
     @interface Include {
@@ -32,27 +32,25 @@ public @interface RecordBuilder {
         Class<?>[] value() default {};
 
         /**
-         * Synonym for {@code value()}. When using the other attributes it maybe clearer to
-         * use {@code classes()} instead of {@code value()}. Note: both attributes are applied
-         * (i.e. a union of classes from both attributes).
+         * Synonym for {@code value()}. When using the other attributes it maybe clearer to use {@code classes()}
+         * instead of {@code value()}. Note: both attributes are applied (i.e. a union of classes from both attributes).
          *
          * @return collection of classes
          */
         Class<?>[] classes() default {};
 
         /**
-         * Optional list of package names. All records in the packages will get processed as
-         * if they were listed as classes to include.
+         * Optional list of package names. All records in the packages will get processed as if they were listed as
+         * classes to include.
          *
          * @return collection of package names
          */
         String[] packages() default {};
 
         /**
-         * Pattern used to generate the package for the generated class. The value
-         * is the literal package name however two replacement values can be used. '@'
-         * is replaced with the package of the {@code Include} annotation. '*' is replaced with
-         * the package of the included class.
+         * Pattern used to generate the package for the generated class. The value is the literal package name however
+         * two replacement values can be used. '@' is replaced with the package of the {@code Include} annotation. '*'
+         * is replaced with the package of the included class.
          *
          * @return package pattern
          */
@@ -64,14 +62,14 @@ public @interface RecordBuilder {
     @Inherited
     @interface Options {
         /**
-         * The builder class name will be the name of the record (prefixed with any enclosing class) plus this suffix. E.g.
-         * if the record name is "Foo", the builder will be named "FooBuilder".
+         * The builder class name will be the name of the record (prefixed with any enclosing class) plus this suffix.
+         * E.g. if the record name is "Foo", the builder will be named "FooBuilder".
          */
         String suffix() default "Builder";
 
         /**
-         * Used by {@code RecordInterface}. The generated record will have the same name as the annotated interface
-         * plus this suffix. E.g. if the interface name is "Foo", the record will be named "FooRecord".
+         * Used by {@code RecordInterface}. The generated record will have the same name as the annotated interface plus
+         * this suffix. E.g. if the interface name is "Foo", the record will be named "FooRecord".
          */
         String interfaceSuffix() default "Record";
 
@@ -126,22 +124,20 @@ public @interface RecordBuilder {
         String fileIndent() default "    ";
 
         /**
-         * If the record is declared inside another class, the outer class's name will
-         * be prefixed to the builder name if this returns true.
+         * If the record is declared inside another class, the outer class's name will be prefixed to the builder name
+         * if this returns true.
          */
         boolean prefixEnclosingClassNames() default true;
 
         /**
-         * If true, any annotations (if applicable) on record components are copied
-         * to the builder methods
+         * If true, any annotations (if applicable) on record components are copied to the builder methods
          *
          * @return true/false
          */
         boolean inheritComponentAnnotations() default true;
 
         /**
-         * Set the default value of {@code Optional} record components to
-         * {@code Optional.empty()}
+         * Set the default value of {@code Optional} record components to {@code Optional.empty()}
          */
         boolean emptyDefaultForOptional() default true;
 
@@ -151,8 +147,8 @@ public @interface RecordBuilder {
         boolean addConcreteSettersForOptional() default false;
 
         /**
-         * Add not-null checks for record components annotated with any annotation named either "NotNull",
-         * "NoNull", or "NonNull" (see {@link #interpretNotNullsPattern()} for the actual regex matching pattern).
+         * Add not-null checks for record components annotated with any annotation named either "NotNull", "NoNull", or
+         * "NonNull" (see {@link #interpretNotNullsPattern()} for the actual regex matching pattern).
          */
         boolean interpretNotNulls() default false;
 
@@ -163,29 +159,33 @@ public @interface RecordBuilder {
         String interpretNotNullsPattern() default "(?i)((notnull)|(nonnull)|(nonull))";
 
         /**
-         * <p>Pass built records through the Java Validation API if it's available in the classpath.</p>
+         * <p>
+         * Pass built records through the Java Validation API if it's available in the classpath.
+         * </p>
          *
-         * <p>IMPORTANT:
-         * if this option is enabled you must include the {@code record-builder-validator} dependency in addition
-         * to {@code record-builder-core}. {@code record-builder-validator} is implemented completely via reflection and
-         * does not require other dependencies. Alternatively, you can define your own class with the package {@code package io.soabase.recordbuilder.validator;}
-         * named {@code RecordBuilderValidator} which has a public static method: {@code public static <T> T validate(T o)}.</p>
+         * <p>
+         * IMPORTANT: if this option is enabled you must include the {@code record-builder-validator} dependency in
+         * addition to {@code record-builder-core}. {@code record-builder-validator} is implemented completely via
+         * reflection and does not require other dependencies. Alternatively, you can define your own class with the
+         * package {@code package io.soabase.recordbuilder.validator;} named {@code RecordBuilderValidator} which has a
+         * public static method: {@code public static <T> T validate(T o)}.
+         * </p>
          */
         boolean useValidationApi() default false;
 
         /**
          * Adds special handling for record components of type {@link java.util.List}, {@link java.util.Set},
-         * {@link java.util.Map} and {@link java.util.Collection}. When the record is built, any components
-         * of these types are passed through an added shim method that uses the corresponding immutable collection
-         * (e.g. {@code List.copyOf(o)}) or an empty immutable collection if the component is {@code null}.
+         * {@link java.util.Map} and {@link java.util.Collection}. When the record is built, any components of these
+         * types are passed through an added shim method that uses the corresponding immutable collection (e.g.
+         * {@code List.copyOf(o)}) or an empty immutable collection if the component is {@code null}.
          */
         boolean useImmutableCollections() default false;
 
         /**
-         * When enabled, collection types ({@code List}, {@code Set} and {@code Map}) are handled specially.
-         * The setters for these types now create an internal collection and items are added to that
-         * collection. Additionally, "adder" methods prefixed with {@link #singleItemBuilderPrefix()} are created
-         * to add single items to these collections.
+         * When enabled, collection types ({@code List}, {@code Set} and {@code Map}) are handled specially. The setters
+         * for these types now create an internal collection and items are added to that collection. Additionally,
+         * "adder" methods prefixed with {@link #singleItemBuilderPrefix()} are created to add single items to these
+         * collections.
          */
         boolean addSingleItemCollectionBuilders() default false;
 
@@ -195,14 +195,14 @@ public @interface RecordBuilder {
         String singleItemBuilderPrefix() default "add";
 
         /**
-         * When enabled, adds functional methods to the nested "With" class (such as {@code map()} and {@code accept()}).
+         * When enabled, adds functional methods to the nested "With" class (such as {@code map()} and
+         * {@code accept()}).
          */
         boolean addFunctionalMethodsToWith() default false;
 
         /**
-         * If set, all builder setter methods will be prefixed with this string. Camel-casing will
-         * still be enforced, so if this option is set to "set" a field named "myField" will get
-         * a corresponding setter named "setMyField".
+         * If set, all builder setter methods will be prefixed with this string. Camel-casing will still be enforced, so
+         * if this option is set to "set" a field named "myField" will get a corresponding setter named "setMyField".
          */
         String setterPrefix() default "";
 
@@ -212,44 +212,41 @@ public @interface RecordBuilder {
         boolean enableGetters() default true;
 
         /**
-         * If set, all builder getter methods will be prefixed with this string. Camel-casing will
-         * still be enforced, so if this option is set to "get", a field named "myField" will get
-         * a corresponding getter named "getMyField".
+         * If set, all builder getter methods will be prefixed with this string. Camel-casing will still be enforced, so
+         * if this option is set to "get", a field named "myField" will get a corresponding getter named "getMyField".
          */
         String getterPrefix() default "";
 
         /**
-         * If set, all boolean builder getter methods will be prefixed with this string.
-         * Camel-casing will still be enforced, so if this option is set to "is", a field named
-         * "myField" will get a corresponding getter named "isMyField".
+         * If set, all boolean builder getter methods will be prefixed with this string. Camel-casing will still be
+         * enforced, so if this option is set to "is", a field named "myField" will get a corresponding getter named
+         * "isMyField".
          */
         String booleanPrefix() default "";
 
         /**
-         * If set, the Builder will contain an internal interface with this name. This interface
-         * contains getters for all the fields in the Record prefixed with the value supplied in
-         * {@link this.getterPrefix} and {@link this.booleanPrefix}. This interface can be
-         * implemented by the original Record to have proper bean-style prefixed getters.
-         * Please note that unless either of the aforementioned prefixes are set,
-         * this option does nothing.
+         * If set, the Builder will contain an internal interface with this name. This interface contains getters for
+         * all the fields in the Record prefixed with the value supplied in {@link this.getterPrefix} and
+         * {@link this.booleanPrefix}. This interface can be implemented by the original Record to have proper
+         * bean-style prefixed getters. Please note that unless either of the aforementioned prefixes are set, this
+         * option does nothing.
          */
         String beanClassName() default "";
 
         /**
-         * If true, generated classes are annotated with {@code RecordBuilderGenerated} which has a retention
-         * policy of {@code CLASS}. This ensures that analyzers such as Jacoco will ignore the generated class.
+         * If true, generated classes are annotated with {@code RecordBuilderGenerated} which has a retention policy of
+         * {@code CLASS}. This ensures that analyzers such as Jacoco will ignore the generated class.
          */
         boolean addClassRetainedGenerated() default false;
 
         /**
-         * The {@link #fromMethodName} method instantiates an internal private class. This is the
-         * name of that class.
+         * The {@link #fromMethodName} method instantiates an internal private class. This is the name of that class.
          */
         String fromWithClassName() default "_FromWith";
 
         /**
-         * If true, a functional-style builder is added so that record instances can be instantiated
-         * without {@code new}.
+         * If true, a functional-style builder is added so that record instances can be instantiated without
+         * {@code new}.
          */
         boolean addStaticBuilder() default true;
 
@@ -271,9 +268,8 @@ public @interface RecordBuilder {
          */
         String mutableMapClassName() default "_MutableMap";
 
-
         /**
-         * Any additional {@link javax.lang.model.element.Modifier} you wish to apply to the builder.  For example to
+         * Any additional {@link javax.lang.model.element.Modifier} you wish to apply to the builder. For example to
          * make the builder public when the record is package protect.
          */
         Modifier[] builderClassModifiers() default {};

@@ -33,10 +33,7 @@ class TestRecordBuilderFull {
 
     @Test
     void testImmutable() {
-        var record = FullRecordBuilder.builder()
-                .fullRecords(new HashMap<>())
-                .numbers(new ArrayList<>())
-                .justAString("")
+        var record = FullRecordBuilder.builder().fullRecords(new HashMap<>()).numbers(new ArrayList<>()).justAString("")
                 .build();
         Assertions.assertThrows(UnsupportedOperationException.class, () -> record.fullRecords().put(1, record));
         Assertions.assertThrows(UnsupportedOperationException.class, () -> record.numbers().add(1));

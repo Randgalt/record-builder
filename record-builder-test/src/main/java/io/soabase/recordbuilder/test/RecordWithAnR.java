@@ -18,4 +18,5 @@ package io.soabase.recordbuilder.test;
 import io.soabase.recordbuilder.core.RecordBuilder;
 
 @RecordBuilder
-public record RecordWithAnR(int r, String b) {}
+public record RecordWithAnR(int r, String b) {
+}
