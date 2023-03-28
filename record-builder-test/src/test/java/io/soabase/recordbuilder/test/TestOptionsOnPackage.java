@@ -13,10 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@RecordBuilder.Include(value = { Point.class, Pair.class }, packagePattern = "*.foo")
-@RecordBuilder.Options(fileComment = "MyLicense - Auto generated")
-@RecordInterface.Include(value = Customer.class, addRecordBuilder = false, packagePattern = "*.bar")
 package io.soabase.recordbuilder.test;
 
-import io.soabase.recordbuilder.core.RecordBuilder;
-import io.soabase.recordbuilder.core.RecordInterface;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+class TestOptionsOnPackage {
+    @Test
+    void testOptionsOnInclude() throws IOException {
+      String text= Files.readString(Path.of("target/generated-sources/annotations/io/soabase/recordbuilder/test/foo/PairBuilder.java"));
+      Assertions.assertTrue(text.contains("// MyLicense - Auto generated"));
+    }
+}
