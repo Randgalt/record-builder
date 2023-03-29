@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,5 +22,6 @@ import java.util.List;
 import java.util.Map;
 
 @RecordBuilderFull
-public record FullRecord(@NotNull List<Number> numbers, @NotNull Map<Number, FullRecord> fullRecords, @NotNull String justAString) {
+public record FullRecord(@NotNull List<Number> numbers, @NotNull Map<Number, FullRecord> fullRecords,
+        @NotNull String justAString) {
 }

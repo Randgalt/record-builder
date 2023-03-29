@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,91 +24,65 @@ import java.util.*;
 public class TestImmutableCollections {
     @Test
     public void testImmutableListNotCopiedWhenNotChanged() {
-        var item = CollectionCopyingBuilder.<String>builder()
-                .addList("a")
-                .addList("b")
-                .addList("c")
-                .build();
+        var item = CollectionCopyingBuilder.<String> builder().addList("a").addList("b").addList("c").build();
         Assertions.assertEquals(item.list(), List.of("a", "b", "c"));
 
         var oldList = item.list();
 
-        var copy = item.with()
-                .count(1)
-                .build();
+        var copy = item.with().count(1).build();
 
         Assertions.assertSame(oldList, copy.list());
 
-        var otherCopy = item.with()
-                .count(2)
-                .build();
+        var otherCopy = item.with().count(2).build();
 
         Assertions.assertSame(oldList, otherCopy.list());
     }
 
     @Test
     public void testImmutableSetNotCopiedWhenNotChanged() {
-        var item = CollectionCopyingBuilder.<String>builder()
-                .addSet(Arrays.asList("1", "2", "3"))
-                .build();
+        var item = CollectionCopyingBuilder.<String> builder().addSet(Arrays.asList("1", "2", "3")).build();
         Assertions.assertEquals(item.set(), Set.of("1", "2", "3"));
 
         var oldSet = item.set();
 
-        var copy = item.with()
-                .count(1)
-                .build();
+        var copy = item.with().count(1).build();
 
         Assertions.assertSame(oldSet, copy.set());
 
-        var otherCopy = item.with()
-                .count(2)
-                .build();
+        var otherCopy = item.with().count(2).build();
 
         Assertions.assertSame(oldSet, otherCopy.set());
     }
 
     @Test
     public void testImmutableCollectionNotCopiedWhenNotChanged() {
-        var item = CollectionCopyingBuilder.<String>builder()
-                .collection(List.of("foo", "bar", "baz"))
-                .build();
+        var item = CollectionCopyingBuilder.<String> builder().collection(List.of("foo", "bar", "baz")).build();
         Assertions.assertEquals(item.collection(), List.of("foo", "bar", "baz"));
 
         var oldCollection = item.collection();
 
-        var copy = item.with()
-                .count(1)
-                .build();
+        var copy = item.with().count(1).build();
 
         Assertions.assertSame(oldCollection, copy.collection());
 
-        var otherCopy = item.with()
-                .count(2)
-                .build();
+        var otherCopy = item.with().count(2).build();
 
         Assertions.assertSame(oldCollection, otherCopy.collection());
     }
 
     @Test
     public void testImmutableMapNotCopiedWhenNotChanged() {
-        var item = CollectionCopyingBuilder.<String>builder()
-                .addMap(Instant.MAX, "future")
-                .addMap(Instant.MIN, "before")
-                .build();
+        var item = CollectionCopyingBuilder.<String> builder().addMap(Instant.MAX, "future")
+                .addMap(Instant.MIN, "before").build();
         Assertions.assertEquals(item.map(), Map.of(Instant.MAX, "future", Instant.MIN, "before"));
 
         var oldMap = item.map();
 
-        var copy = item.with()
-                .count(1)
-                .build();
+        var copy = item.with().count(1).build();
 
         Assertions.assertSame(oldMap, copy.map());
 
-        var otherCopy = item.with()
-                .count(2)
-                .build();
+        var otherCopy = item.with().count(2).build();
 
         Assertions.assertSame(oldMap, otherCopy.map());
     }
@@ -116,9 +90,7 @@ public class TestImmutableCollections {
     @Test
     void testSourceListNotModified() {
         var item = new CollectionCopying<>(new ArrayList<>(), null, null, null, 0);
-        var modifiedItem = CollectionCopyingBuilder.builder(item)
-                .addList("a")
-                .build();
+        var modifiedItem = CollectionCopyingBuilder.builder(item).addList("a").build();
 
         Assertions.assertEquals(modifiedItem.list(), List.of("a"));
         Assertions.assertTrue(item.list().isEmpty());
@@ -127,9 +99,7 @@ public class TestImmutableCollections {
     @Test
     void testSourceSetNotModified() {
         var item = new CollectionCopying<>(null, new HashSet<>(), null, null, 0);
-        var modifiedItem = CollectionCopyingBuilder.builder(item)
-                .addSet("a")
-                .build();
+        var modifiedItem = CollectionCopyingBuilder.builder(item).addSet("a").build();
 
         Assertions.assertEquals(modifiedItem.set(), Set.of("a"));
         Assertions.assertTrue(item.set().isEmpty());
@@ -138,9 +108,7 @@ public class TestImmutableCollections {
     @Test
     void testSourceMapNotModified() {
         var item = new CollectionCopying<>(null, null, new HashMap<>(), null, 0);
-        var modifiedItem = CollectionCopyingBuilder.builder(item)
-                .addMap(Instant.MIN, "a")
-                .build();
+        var modifiedItem = CollectionCopyingBuilder.builder(item).addMap(Instant.MIN, "a").build();
 
         Assertions.assertEquals(modifiedItem.map(), Map.of(Instant.MIN, "a"));
         Assertions.assertTrue(item.map().isEmpty());

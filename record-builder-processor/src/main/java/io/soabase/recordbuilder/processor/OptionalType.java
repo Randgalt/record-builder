@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,8 +43,7 @@ public record OptionalType(TypeName typeName, TypeName valueType) {
             if (!(component.typeName() instanceof ParameterizedTypeName parameterizedType)) {
                 return Optional.of(new OptionalType(optionalType, TypeName.get(Object.class)));
             }
-            final TypeName containingType = parameterizedType.typeArguments.isEmpty()
-                    ? TypeName.get(Object.class)
+            final TypeName containingType = parameterizedType.typeArguments.isEmpty() ? TypeName.get(Object.class)
                     : parameterizedType.typeArguments.get(0);
             return Optional.of(new OptionalType(optionalType, containingType));
         }

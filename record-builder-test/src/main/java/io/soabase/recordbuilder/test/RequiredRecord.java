@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,5 +22,6 @@ import java.util.List;
 
 @RecordBuilder.Options(interpretNotNulls = true)
 @RecordBuilder
-public record RequiredRecord(@NotNull String hey, @NotNull int i, @NotNull List<String> l) implements RequiredRecordBuilder.With {
+public record RequiredRecord(@NotNull String hey, @NotNull int i, @NotNull List<String> l)
+        implements RequiredRecordBuilder.With {
 }

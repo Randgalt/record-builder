@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,49 +37,43 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class ElementUtils {
-    public static Optional<? extends AnnotationMirror> findAnnotationMirror(ProcessingEnvironment processingEnv, Element element, String annotationClass) {
+    public static Optional<? extends AnnotationMirror> findAnnotationMirror(ProcessingEnvironment processingEnv,
+            Element element, String annotationClass) {
         return processingEnv.getElementUtils().getAllAnnotationMirrors(element).stream()
-            .filter(e -> e.getAnnotationType().toString().equals(annotationClass))
-            .findFirst();
+                .filter(e -> e.getAnnotationType().toString().equals(annotationClass)).findFirst();
     }
 
-    public static Optional<? extends AnnotationValue> getAnnotationValue(Map<? extends ExecutableElement, ? extends AnnotationValue> values, String name) {
-        return values.entrySet()
-            .stream()
-            .filter(e -> e.getKey().getSimpleName().toString().equals(name))
-            .map(Map.Entry::getValue)
-            .findFirst();
+    public static Optional<? extends AnnotationValue> getAnnotationValue(
+            Map<? extends ExecutableElement, ? extends AnnotationValue> values, String name) {
+        return values.entrySet().stream().filter(e -> e.getKey().getSimpleName().toString().equals(name))
+                .map(Map.Entry::getValue).findFirst();
     }
 
     @SuppressWarnings("unchecked")
-    public static List<TypeMirror> getAttributeTypeMirrorList(AnnotationValue attribute)
-    {
-        List<? extends AnnotationValue> values = (attribute != null) ? (List<? extends AnnotationValue>)attribute.getValue() : Collections.emptyList();
-        return values.stream().map(v -> (TypeMirror)v.getValue()).collect(Collectors.toList());
+    public static List<TypeMirror> getAttributeTypeMirrorList(AnnotationValue attribute) {
+        List<? extends AnnotationValue> values = (attribute != null)
+                ? (List<? extends AnnotationValue>) attribute.getValue() : Collections.emptyList();
+        return values.stream().map(v -> (TypeMirror) v.getValue()).collect(Collectors.toList());
     }
 
     @SuppressWarnings("unchecked")
-    public static List<String> getAttributeStringList(AnnotationValue attribute)
-    {
-        List<? extends AnnotationValue> values = (attribute != null) ? (List<? extends AnnotationValue>)attribute.getValue() : Collections.emptyList();
-        return values.stream().map(v -> (String)v.getValue()).collect(Collectors.toList());
+    public static List<String> getAttributeStringList(AnnotationValue attribute) {
+        List<? extends AnnotationValue> values = (attribute != null)
+                ? (List<? extends AnnotationValue>) attribute.getValue() : Collections.emptyList();
+        return values.stream().map(v -> (String) v.getValue()).collect(Collectors.toList());
     }
 
-    public static boolean getBooleanAttribute(AnnotationValue attribute)
-    {
+    public static boolean getBooleanAttribute(AnnotationValue attribute) {
         Object value = (attribute != null) ? attribute.getValue() : null;
-        if ( value != null )
-        {
+        if (value != null) {
             return Boolean.parseBoolean(String.valueOf(value));
         }
         return false;
     }
 
-    public static String getStringAttribute(AnnotationValue attribute, String defaultValue)
-    {
+    public static String getStringAttribute(AnnotationValue attribute, String defaultValue) {
         Object value = (attribute != null) ? attribute.getValue() : null;
-        if ( value != null )
-        {
+        if (value != null) {
             return String.valueOf(value);
         }
         return defaultValue;
@@ -99,7 +93,8 @@ public class ElementUtils {
         return (index > -1) ? name.substring(0, index) : "";
     }
 
-    public static ClassType getClassType(String packageName, String simpleName, List<? extends TypeParameterElement> typeParameters) {
+    public static ClassType getClassType(String packageName, String simpleName,
+            List<? extends TypeParameterElement> typeParameters) {
         return getClassType(ClassName.get(packageName, simpleName), typeParameters);
     }
 
@@ -107,7 +102,8 @@ public class ElementUtils {
         return getClassType(ClassName.get(typeElement), typeParameters);
     }
 
-    public static ClassType getClassType(ClassName builderClassName, List<? extends TypeParameterElement> typeParameters) {
+    public static ClassType getClassType(ClassName builderClassName,
+            List<? extends TypeParameterElement> typeParameters) {
         if (typeParameters.isEmpty()) {
             return new ClassType(builderClassName, builderClassName.simpleName());
         }
@@ -115,10 +111,13 @@ public class ElementUtils {
         return new ClassType(ParameterizedTypeName.get(builderClassName, typeNames), builderClassName.simpleName());
     }
 
-    public static RecordClassType getRecordClassType(ProcessingEnvironment processingEnv, RecordComponentElement recordComponent, List<? extends AnnotationMirror> accessorAnnotations, List<? extends AnnotationMirror> canonicalConstructorAnnotations) {
+    public static RecordClassType getRecordClassType(ProcessingEnvironment processingEnv,
+            RecordComponentElement recordComponent, List<? extends AnnotationMirror> accessorAnnotations,
+            List<? extends AnnotationMirror> canonicalConstructorAnnotations) {
         var typeName = TypeName.get(recordComponent.asType());
         var rawTypeName = TypeName.get(processingEnv.getTypeUtils().erasure(recordComponent.asType()));
-        return new RecordClassType(typeName, rawTypeName, recordComponent.getSimpleName().toString(), accessorAnnotations, canonicalConstructorAnnotations);
+        return new RecordClassType(typeName, rawTypeName, recordComponent.getSimpleName().toString(),
+                accessorAnnotations, canonicalConstructorAnnotations);
     }
 
     public static String getWithMethodName(ClassType component, String prefix) {
@@ -129,27 +128,30 @@ public class ElementUtils {
         return prefix + Character.toUpperCase(name.charAt(0)) + name.substring(1);
     }
 
-    public static String getBuilderName(TypeElement element, RecordBuilder.Options metaData, ClassType classType, String suffix) {
+    public static String getBuilderName(TypeElement element, RecordBuilder.Options metaData, ClassType classType,
+            String suffix) {
         // generate the class name
         var baseName = classType.name() + suffix;
-        return metaData.prefixEnclosingClassNames() ? (getBuilderNamePrefix(element.getEnclosingElement()) + baseName) : baseName;
+        return metaData.prefixEnclosingClassNames() ? (getBuilderNamePrefix(element.getEnclosingElement()) + baseName)
+                : baseName;
     }
 
     public static Optional<? extends Element> findCanonicalConstructor(TypeElement record) {
-        if ( record.getKind() != ElementKind.RECORD ) {
+        if (record.getKind() != ElementKind.RECORD) {
             return Optional.empty();
         }
 
-        // based on https://github.com/openjdk/jdk/pull/3556/files#diff-a6270f4b50989abe733607c69038b2036306d13f77276af005d023b7fc57f1a2R2368
-        var componentList = record.getRecordComponents().stream().map(e -> e.asType().toString()).collect(Collectors.toList());
-        return record.getEnclosedElements().stream()
-            .filter(element -> element.getKind() == ElementKind.CONSTRUCTOR)
-            .filter(element -> {
-                var parameters = ((ExecutableElement)element).getParameters();
-                var parametersList = parameters.stream().map(e -> e.asType().toString()).collect(Collectors.toList());
-                return componentList.equals(parametersList);
-            })
-            .findFirst();
+        // based on
+        // https://github.com/openjdk/jdk/pull/3556/files#diff-a6270f4b50989abe733607c69038b2036306d13f77276af005d023b7fc57f1a2R2368
+        var componentList = record.getRecordComponents().stream().map(e -> e.asType().toString())
+                .collect(Collectors.toList());
+        return record.getEnclosedElements().stream().filter(element -> element.getKind() == ElementKind.CONSTRUCTOR)
+                .filter(element -> {
+                    var parameters = ((ExecutableElement) element).getParameters();
+                    var parametersList = parameters.stream().map(e -> e.asType().toString())
+                            .collect(Collectors.toList());
+                    return componentList.equals(parametersList);
+                }).findFirst();
     }
 
     private static String getBuilderNamePrefix(Element element) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import static java.lang.annotation.ElementType.*;
 /**
  * Jacoco ignores classes and methods annotated with `*Generated`
  */
-@Target({PACKAGE, TYPE, METHOD, CONSTRUCTOR, FIELD, LOCAL_VARIABLE, PARAMETER})
+@Target({ PACKAGE, TYPE, METHOD, CONSTRUCTOR, FIELD, LOCAL_VARIABLE, PARAMETER })
 @Retention(RetentionPolicy.CLASS)
 public @interface RecordBuilderGenerated {
 }

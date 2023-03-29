@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,10 +33,7 @@ class TestRecordBuilderFull {
 
     @Test
     void testImmutable() {
-        var record = FullRecordBuilder.builder()
-                .fullRecords(new HashMap<>())
-                .numbers(new ArrayList<>())
-                .justAString("")
+        var record = FullRecordBuilder.builder().fullRecords(new HashMap<>()).numbers(new ArrayList<>()).justAString("")
                 .build();
         Assertions.assertThrows(UnsupportedOperationException.class, () -> record.fullRecords().put(1, record));
         Assertions.assertThrows(UnsupportedOperationException.class, () -> record.numbers().add(1));

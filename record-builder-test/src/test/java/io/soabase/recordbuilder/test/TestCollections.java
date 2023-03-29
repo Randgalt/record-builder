@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,30 +52,20 @@ class TestCollections {
         map.put("one", Point(10, 20));
         var collectionAsSet = new HashSet<Point>();
         collectionAsSet.add(Point(30, 40));
-        var r = CollectionRecordBuilder.<String, Point>builder()
-                .l(list)
-                .s(set)
-                .m(map)
-                .c(collectionAsSet)
-                .build();
+        var r = CollectionRecordBuilder.<String, Point> builder().l(list).s(set).m(map).c(collectionAsSet).build();
 
         assertValues(r, list, set, map, collectionAsSet);
         assertValueChanges(r, list, set, map, collectionAsSet);
         assertImmutable(r);
 
         var collectionAsList = new ArrayList<Point>();
-        var x = CollectionRecordBuilder.<String, Point>builder()
-                .l(list)
-                .s(set)
-                .m(map)
-                .c(collectionAsList)
-                .build();
+        var x = CollectionRecordBuilder.<String, Point> builder().l(list).s(set).m(map).c(collectionAsList).build();
         assertTrue(x.c() instanceof List);
     }
 
     @Test
     void testCollectionRecordImmutableWithers() {
-        var r = CollectionRecordBuilder.<String, Point>builder().build();
+        var r = CollectionRecordBuilder.<String, Point> builder().build();
 
         var list = new ArrayList<String>();
         list.add("one");
@@ -113,7 +103,8 @@ class TestCollections {
         assertThrows(UnsupportedOperationException.class, () -> r.c().add(Point(1, 2)));
     }
 
-    private void assertValueChanges(CollectionRecord<String, Point> r, ArrayList<String> list, HashSet<String> set, HashMap<String, Point> map, HashSet<Point> collectionAsSet) {
+    private void assertValueChanges(CollectionRecord<String, Point> r, ArrayList<String> list, HashSet<String> set,
+            HashMap<String, Point> map, HashSet<Point> collectionAsSet) {
         list.add("two");
         set.add("two");
         map.put("two", Point(50, 60));
@@ -125,7 +116,8 @@ class TestCollections {
         assertNotEquals(r.c(), collectionAsSet);
     }
 
-    private void assertValues(CollectionRecord<String, Point> r, ArrayList<String> list, HashSet<String> set, HashMap<String, Point> map, HashSet<Point> collectionAsSet) {
+    private void assertValues(CollectionRecord<String, Point> r, ArrayList<String> list, HashSet<String> set,
+            HashMap<String, Point> map, HashSet<Point> collectionAsSet) {
         assertEquals(r.l(), list);
         assertEquals(r.s(), set);
         assertEquals(r.m(), map);

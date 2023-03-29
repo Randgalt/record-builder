@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,5 +24,6 @@ import javax.validation.constraints.NotNull;
 @RecordBuilder
 @RecordBuilder.Options(useValidationApi = true)
 public record RequestWithValid(@NotNull @Valid Part part) implements RequestWithValidBuilder.With {
-  public record Part(@NotBlank String name) {}
+    public record Part(@NotBlank String name) {
+    }
 }

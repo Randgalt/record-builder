@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,6 @@ package io.soabase.recordbuilder.test;
 
 import io.soabase.recordbuilder.core.RecordBuilder;
 
-@RecordBuilder.Template(options = @RecordBuilder.Options(
-        fileComment = "This is a test",
-        withClassName = "Com"
-))
-public @interface MyTemplate
-{
+@RecordBuilder.Template(options = @RecordBuilder.Options(fileComment = "This is a test", withClassName = "Com"))
+public @interface MyTemplate {
 }

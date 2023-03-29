@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,11 +46,9 @@ class TestValidation {
 
     @Test
     void testRequestWithValid() {
-        Assertions.assertDoesNotThrow(() -> RequestWithValidBuilder.builder()
-                .part(new RequestWithValid.Part("jsfjsf"))
-                .build());
-        Assertions.assertThrows(ValidationException.class, () -> RequestWithValidBuilder.builder()
-                .part(new RequestWithValid.Part(""))
-                .build());
+        Assertions.assertDoesNotThrow(
+                () -> RequestWithValidBuilder.builder().part(new RequestWithValid.Part("jsfjsf")).build());
+        Assertions.assertThrows(ValidationException.class,
+                () -> RequestWithValidBuilder.builder().part(new RequestWithValid.Part("")).build());
     }
 }

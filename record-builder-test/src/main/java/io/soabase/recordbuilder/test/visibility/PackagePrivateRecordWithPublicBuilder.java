@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,7 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 
 import javax.lang.model.element.Modifier;
 
-
-@RecordBuilder.Options(builderClassModifiers = {Modifier.PUBLIC})
+@RecordBuilder.Options(builderClassModifiers = { Modifier.PUBLIC })
 @RecordBuilder
 record PackagePrivateRecordWithPublicBuilder(String value) {
 }

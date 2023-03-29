@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,6 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 import io.soabase.recordbuilder.test.CustomMethodNamesBuilder.Bean;
 
 @RecordBuilder
-@RecordBuilder.Options(
-    setterPrefix = "set", getterPrefix = "get", booleanPrefix = "is", beanClassName = "Bean")
-public record CustomMethodNames(
-    int theValue,
-    List<Integer> theList,
-    boolean theBoolean) implements Bean {
+@RecordBuilder.Options(setterPrefix = "set", getterPrefix = "get", booleanPrefix = "is", beanClassName = "Bean")
+public record CustomMethodNames(int theValue, List<Integer> theList, boolean theBoolean) implements Bean {
 }

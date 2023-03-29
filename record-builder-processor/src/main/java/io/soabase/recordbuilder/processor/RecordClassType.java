@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,9 @@ public class RecordClassType extends ClassType {
     private final List<? extends AnnotationMirror> accessorAnnotations;
     private final List<? extends AnnotationMirror> canonicalConstructorAnnotations;
 
-    public RecordClassType(TypeName typeName, TypeName rawTypeName, String name, List<? extends AnnotationMirror> accessorAnnotations, List<? extends AnnotationMirror> canonicalConstructorAnnotations) {
+    public RecordClassType(TypeName typeName, TypeName rawTypeName, String name,
+            List<? extends AnnotationMirror> accessorAnnotations,
+            List<? extends AnnotationMirror> canonicalConstructorAnnotations) {
         super(typeName, name);
         this.rawTypeName = rawTypeName;
         this.accessorAnnotations = accessorAnnotations;

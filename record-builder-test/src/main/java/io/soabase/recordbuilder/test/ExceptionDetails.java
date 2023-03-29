@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,8 @@ import javax.lang.model.type.ErrorType;
 import java.util.List;
 
 @RecordBuilder
-public record ExceptionDetails(
-        String internalMessage, String endUserMessage, String httpStatus,
-        ErrorType errorType, List<String> jsonProblems, Throwable cause
-) {
+public record ExceptionDetails(String internalMessage, String endUserMessage, String httpStatus, ErrorType errorType,
+        List<String> jsonProblems, Throwable cause) {
     @Override
     public List<String> jsonProblems() {
         if (jsonProblems == null) {

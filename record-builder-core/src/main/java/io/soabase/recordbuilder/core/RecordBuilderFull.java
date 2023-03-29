@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,9 @@ package io.soabase.recordbuilder.core;
 import java.lang.annotation.*;
 
 /**
- * An alternate form of {@code @RecordBuilder} that has most
- * optional features turned on
+ * An alternate form of {@code @RecordBuilder} that has most optional features turned on
  */
-@RecordBuilder.Template(options = @RecordBuilder.Options(
-        interpretNotNulls = true,
-        useImmutableCollections = true,
-        addSingleItemCollectionBuilders = true,
-        addFunctionalMethodsToWith = true,
-        addClassRetainedGenerated = true
-))
+@RecordBuilder.Template(options = @RecordBuilder.Options(interpretNotNulls = true, useImmutableCollections = true, addSingleItemCollectionBuilders = true, addFunctionalMethodsToWith = true, addClassRetainedGenerated = true))
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
 @Inherited

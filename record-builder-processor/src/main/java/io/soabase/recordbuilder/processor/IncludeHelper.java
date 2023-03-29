@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,8 @@ class IncludeHelper {
     private final List<TypeElement> classTypeElements;
     private final Map<? extends ExecutableElement, ? extends AnnotationValue> annotationValues;
 
-    IncludeHelper(ProcessingEnvironment processingEnv, Element element, AnnotationMirror annotationMirror, boolean packagesSupported) {
+    IncludeHelper(ProcessingEnvironment processingEnv, Element element, AnnotationMirror annotationMirror,
+            boolean packagesSupported) {
         annotationValues = processingEnv.getElementUtils().getElementValuesWithDefaults(annotationMirror);
         var value = ElementUtils.getAnnotationValue(annotationValues, "value");
         var classes = ElementUtils.getAnnotationValue(annotationValues, "classes");
@@ -41,9 +42,11 @@ class IncludeHelper {
             var packagesList = packages.map(ElementUtils::getAttributeStringList).orElseGet(List::of);
             if (valueList.isEmpty() && classesList.isEmpty() && packagesList.isEmpty()) {
                 if (packagesSupported) {
-                    processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "At least one of \"value\", \"classes\" or \"packages\" required", element);
+                    processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                            "At least one of \"value\", \"classes\" or \"packages\" required", element);
                 } else {
-                    processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "At least one of \"value\" or \"classes\" required", element);
+                    processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                            "At least one of \"value\" or \"classes\" required", element);
                 }
                 isValid = false;
             }
@@ -51,7 +54,8 @@ class IncludeHelper {
             isValid = processList(processingEnv, isValid, element, classesList, classTypeElements);
             packages.ifPresent(annotationValue -> processPackages(processingEnv, classTypeElements, packagesList));
         } else {
-            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Could not read attribute for annotation", element);
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Could not read attribute for annotation",
+                    element);
             isValid = false;
         }
         this.isValid = isValid;
@@ -70,11 +74,13 @@ class IncludeHelper {
         return classTypeElements;
     }
 
-    private boolean processList(ProcessingEnvironment processingEnv, boolean isValid, Element element, List<TypeMirror> list, ArrayList<TypeElement> classTypeElements) {
+    private boolean processList(ProcessingEnvironment processingEnv, boolean isValid, Element element,
+            List<TypeMirror> list, ArrayList<TypeElement> classTypeElements) {
         for (var typeMirror : list) {
             TypeElement typeElement = (TypeElement) processingEnv.getTypeUtils().asElement(typeMirror);
             if (typeElement == null) {
-                processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Could not get element for: " + typeMirror, element);
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                        "Could not get element for: " + typeMirror, element);
                 isValid = false;
             } else {
                 classTypeElements.add(typeElement);
@@ -83,7 +89,8 @@ class IncludeHelper {
         return isValid;
     }
 
-    private void processPackages(ProcessingEnvironment processingEnv, List<TypeElement> classTypeElements, List<String> packagesList) {
+    private void processPackages(ProcessingEnvironment processingEnv, List<TypeElement> classTypeElements,
+            List<String> packagesList) {
         for (var packageName : packagesList) {
             var packageElement = processingEnv.getElementUtils().getPackageElement(packageName);
             for (var child : packageElement.getEnclosedElements()) {

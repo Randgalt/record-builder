@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jordan Zimmerman
+ * Copyright 2019 The original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,5 +24,6 @@ import java.util.Set;
 
 @RecordBuilder
 @RecordBuilder.Options(useImmutableCollections = true)
-public record CollectionRecordConflicts(List<String> __list, Set<String> __set, Map<String, String> __map, Collection<String> __collection) implements CollectionRecordConflictsBuilder.With {
+public record CollectionRecordConflicts(List<String> __list, Set<String> __set, Map<String, String> __map,
+        Collection<String> __collection) implements CollectionRecordConflictsBuilder.With {
 }
