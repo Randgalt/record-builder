@@ -173,8 +173,7 @@ class InternalRecordBuilderProcessor {
         if (metaData.addClassRetainedGenerated()) {
             classBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
-        recordComponents
-                .forEach(component -> addNestedGetterMethod(classBuilder, component, prefixedName(component, true)));
+        recordComponents.forEach(component -> addNestedGetterMethod(classBuilder, component, component.name()));
         addWithBuilderMethod(classBuilder);
         addWithSuppliedBuilderMethod(classBuilder);
         IntStream.range(0, recordComponents.size())
@@ -235,7 +234,7 @@ class InternalRecordBuilderProcessor {
          */
         var codeBlockBuilder = CodeBlock.builder().add("return new $L$L(", builderClassType.name(),
                 typeVariables.isEmpty() ? "" : "<>");
-        addComponentCallsAsArguments(-1, codeBlockBuilder);
+        addComponentCallsAsArguments(-1, codeBlockBuilder, false);
         codeBlockBuilder.add(");");
         var methodSpec = MethodSpec.methodBuilder(metaData.withClassMethodPrefix())
                 .addAnnotation(generatedRecordBuilderAnnotation)
@@ -268,7 +267,7 @@ class InternalRecordBuilderProcessor {
             codeBlockBuilder.add("$T.validate(", validatorTypeName);
         }
         codeBlockBuilder.add("new $T(", recordClassType.typeName());
-        addComponentCallsAsArguments(index, codeBlockBuilder);
+        addComponentCallsAsArguments(index, codeBlockBuilder, false);
         codeBlockBuilder.add(")");
         if (metaData.useValidationApi()) {
             codeBlockBuilder.add(")");
@@ -303,7 +302,7 @@ class InternalRecordBuilderProcessor {
         classBuilder.addMethod(methodSpec);
     }
 
-    private void addComponentCallsAsArguments(int index, CodeBlock.Builder codeBlockBuilder) {
+    private void addComponentCallsAsArguments(int index, CodeBlock.Builder codeBlockBuilder, boolean usePrefixedName) {
         IntStream.range(0, recordComponents.size()).forEach(parameterIndex -> {
             if (parameterIndex > 0) {
                 codeBlockBuilder.add(", ");
@@ -312,7 +311,8 @@ class InternalRecordBuilderProcessor {
             if (parameterIndex == index) {
                 collectionBuilderUtils.addShimCall(codeBlockBuilder, parameterComponent);
             } else {
-                codeBlockBuilder.add("$L()", prefixedName(parameterComponent, true));
+                codeBlockBuilder.add("$L()",
+                        usePrefixedName ? prefixedName(parameterComponent, true) : parameterComponent.name());
             }
         });
     }
@@ -546,8 +546,8 @@ class InternalRecordBuilderProcessor {
 
         IntStream.range(0, recordComponents.size()).forEach(index -> {
             var component = recordComponents.get(index);
-            MethodSpec methodSpec = MethodSpec.methodBuilder(prefixedName(component, true))
-                    .returns(component.typeName()).addAnnotation(Override.class).addModifiers(Modifier.PUBLIC)
+            MethodSpec methodSpec = MethodSpec.methodBuilder(component.name()).returns(component.typeName())
+                    .addAnnotation(Override.class).addModifiers(Modifier.PUBLIC)
                     .addStatement("return from.$L()", component.name()).addAnnotation(generatedRecordBuilderAnnotation)
                     .build();
             fromWithClassBuilder.addMethod(methodSpec);
@@ -914,7 +914,7 @@ class InternalRecordBuilderProcessor {
             methodBuilder.addJavadoc("Perform an operation on record components");
         }
         codeBlockBuilder.add("proc.apply(");
-        addComponentCallsAsArguments(-1, codeBlockBuilder);
+        addComponentCallsAsArguments(-1, codeBlockBuilder, true);
         codeBlockBuilder.add(");");
         methodBuilder.addCode(codeBlockBuilder.build());
         return methodBuilder.build();
