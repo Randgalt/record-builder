@@ -63,7 +63,7 @@ public @interface RecordBuilder {
     }
 
     @Retention(RetentionPolicy.SOURCE)
-    @Target({ElementType.TYPE, ElementType.PACKAGE})
+    @Target({ ElementType.TYPE, ElementType.PACKAGE })
     @Inherited
     @interface Options {
         /**

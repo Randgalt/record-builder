@@ -25,7 +25,8 @@ import org.junit.jupiter.api.Test;
 class TestOptionsOnPackage {
     @Test
     void testOptionsOnInclude() throws IOException {
-      String text= Files.readString(Path.of("target/generated-sources/annotations/io/soabase/recordbuilder/test/foo/PairBuilder.java"));
-      Assertions.assertTrue(text.contains("// MyLicense - Auto generated"));
+        String text = Files.readString(
+                Path.of("target/generated-sources/annotations/io/soabase/recordbuilder/test/foo/PairBuilder.java"));
+        Assertions.assertTrue(text.contains("// MyLicense - Auto generated"));
     }
 }
