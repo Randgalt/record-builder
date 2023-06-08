@@ -164,6 +164,9 @@ public class RecordBuilderProcessor extends AbstractProcessor {
                     "RecordInterface only valid for interfaces.", element);
             return;
         }
+
+        validateMetaData(metaData, element);
+
         var internalProcessor = new InternalRecordInterfaceProcessor(processingEnv, element, addRecordBuilder, metaData,
                 packageName, fromTemplate);
         if (!internalProcessor.isValid()) {
@@ -184,9 +187,23 @@ public class RecordBuilderProcessor extends AbstractProcessor {
                     record);
             return;
         }
+
+        validateMetaData(metaData, record);
+
         var internalProcessor = new InternalRecordBuilderProcessor(processingEnv, record, metaData, packageName);
         writeRecordBuilderJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(),
                 internalProcessor.builderType(), metaData);
+    }
+
+    private void validateMetaData(RecordBuilder.Options metaData, Element record) {
+        var useImmutableCollections = metaData.useImmutableCollections();
+        var useUnmodifiableCollections = metaData.useUnmodifiableCollections();
+
+        if (useImmutableCollections && useUnmodifiableCollections) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.MANDATORY_WARNING,
+                    "Options.useUnmodifiableCollections property is ignored as Options.useImmutableCollections is set to true",
+                    record);
+        }
     }
 
     private void writeRecordBuilderJavaFile(TypeElement record, String packageName, ClassType builderClassType,

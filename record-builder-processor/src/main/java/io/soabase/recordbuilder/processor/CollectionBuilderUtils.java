@@ -26,6 +26,7 @@ import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBu
 
 class CollectionBuilderUtils {
     private final boolean useImmutableCollections;
+    private final boolean useUnmodifiableCollections;
     private final boolean addSingleItemCollectionBuilders;
     private final boolean addClassRetainedGenerated;
     private final String listShimName;
@@ -50,10 +51,12 @@ class CollectionBuilderUtils {
     private static final Class<?> mapType = Map.class;
     private static final Class<?> setType = Set.class;
     private static final Class<?> collectionType = Collection.class;
+    private static final Class<?> collectionsType = Collections.class;
     private static final TypeName listTypeName = TypeName.get(listType);
     private static final TypeName mapTypeName = TypeName.get(mapType);
     private static final TypeName setTypeName = TypeName.get(setType);
     private static final TypeName collectionTypeName = TypeName.get(collectionType);
+    private static final TypeName collectionsTypeName = TypeName.get(collectionsType);
 
     private static final TypeVariableName tType = TypeVariableName.get("T");
     private static final TypeVariableName kType = TypeVariableName.get("K");
@@ -79,6 +82,7 @@ class CollectionBuilderUtils {
 
     CollectionBuilderUtils(List<RecordClassType> recordComponents, RecordBuilder.Options metaData) {
         useImmutableCollections = metaData.useImmutableCollections();
+        useUnmodifiableCollections = !useImmutableCollections && metaData.useUnmodifiableCollections();
         addSingleItemCollectionBuilders = metaData.addSingleItemCollectionBuilders();
         addClassRetainedGenerated = metaData.addClassRetainedGenerated();
 
@@ -154,8 +158,8 @@ class CollectionBuilderUtils {
     }
 
     boolean isImmutableCollection(RecordClassType component) {
-        return useImmutableCollections && (isList(component) || isMap(component) || isSet(component)
-                || component.rawTypeName().equals(collectionTypeName));
+        return (useImmutableCollections || useUnmodifiableCollections)
+                && (isList(component) || isMap(component) || isSet(component) || isCollection(component));
     }
 
     boolean isList(RecordClassType component) {
@@ -170,8 +174,12 @@ class CollectionBuilderUtils {
         return component.rawTypeName().equals(setTypeName);
     }
 
+    private boolean isCollection(RecordClassType component) {
+        return component.rawTypeName().equals(collectionTypeName);
+    }
+
     void addShimCall(CodeBlock.Builder builder, RecordClassType component) {
-        if (useImmutableCollections) {
+        if (useImmutableCollections || useUnmodifiableCollections) {
             if (isList(component)) {
                 needsListShim = true;
                 needsListMutableMaker = true;
@@ -184,7 +192,7 @@ class CollectionBuilderUtils {
                 needsSetShim = true;
                 needsSetMutableMaker = true;
                 builder.add("$L($L)", setShimName, component.name());
-            } else if (component.rawTypeName().equals(collectionTypeName)) {
+            } else if (isCollection(component)) {
                 needsCollectionShim = true;
                 builder.add("$L($L)", collectionShimName, component.name());
             } else {
@@ -202,7 +210,7 @@ class CollectionBuilderUtils {
             return mapShimName;
         } else if (isSet(component)) {
             return setShimName;
-        } else if (component.rawTypeName().equals(collectionTypeName)) {
+        } else if (isCollection(component)) {
             return collectionShimName;
         } else {
             throw new IllegalArgumentException(component + " is not a supported collection type");
@@ -222,7 +230,7 @@ class CollectionBuilderUtils {
     }
 
     void addShims(TypeSpec.Builder builder) {
-        if (!useImmutableCollections) {
+        if (!useImmutableCollections && !useUnmodifiableCollections) {
             return;
         }
 
@@ -242,7 +250,7 @@ class CollectionBuilderUtils {
     }
 
     void addMutableMakers(TypeSpec.Builder builder) {
-        if (!useImmutableCollections) {
+        if (!useImmutableCollections && !useUnmodifiableCollections) {
             return;
         }
 
@@ -298,13 +306,37 @@ class CollectionBuilderUtils {
 
     private MethodSpec buildShimMethod(String name, TypeName mainType, Class<?> abstractType,
             ParameterizedTypeName parameterizedType, TypeVariableName... typeVariables) {
-        var code = CodeBlock.of("return (o != null) ? $T.copyOf(o) : $T.of()", mainType, mainType);
+        var code = buildShimMethodBody(mainType, parameterizedType);
+
         TypeName[] wildCardTypeArguments = parameterizedType.typeArguments.stream().map(WildcardTypeName::subtypeOf)
                 .toList().toArray(new TypeName[0]);
         var extendedParameterizedType = ParameterizedTypeName.get(ClassName.get(abstractType), wildCardTypeArguments);
         return MethodSpec.methodBuilder(name).addAnnotation(generatedRecordBuilderAnnotation)
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC).addTypeVariables(Arrays.asList(typeVariables))
                 .returns(parameterizedType).addParameter(extendedParameterizedType, "o").addStatement(code).build();
+    }
+
+    private CodeBlock buildShimMethodBody(TypeName mainType, ParameterizedTypeName parameterizedType) {
+        if (!useUnmodifiableCollections) {
+            return CodeBlock.of("return (o != null) ? $T.copyOf(o) : $T.of()", mainType, mainType);
+        }
+
+        if (mainType.equals(listTypeName)) {
+            return CodeBlock.of("return (o != null) ?  $T.<$T>unmodifiableList(($T) o) : $T.<$T>emptyList()",
+                    collectionsTypeName, tType, parameterizedType, collectionsTypeName, tType);
+        }
+
+        if (mainType.equals(setTypeName)) {
+            return CodeBlock.of("return (o != null) ?  $T.<$T>unmodifiableSet(($T) o) : $T.<$T>emptySet()",
+                    collectionsTypeName, tType, parameterizedType, collectionsTypeName, tType);
+        }
+
+        if (mainType.equals(mapTypeName)) {
+            return CodeBlock.of("return (o != null) ?  $T.<$T, $T>unmodifiableMap(($T) o) : $T.<$T, $T>emptyMap()",
+                    collectionsTypeName, kType, vType, parameterizedType, collectionsTypeName, kType, vType);
+        }
+
+        throw new IllegalStateException("Cannot build shim method for" + mainType);
     }
 
     private MethodSpec buildMutableMakerMethod(String name, String mutableCollectionType,
@@ -340,12 +372,25 @@ class CollectionBuilderUtils {
     }
 
     private MethodSpec buildCollectionsShimMethod() {
-        var code = CodeBlock.builder().add("if (o instanceof Set) {\n").indent()
-                .addStatement("return $T.copyOf(o)", setTypeName).unindent().addStatement("}")
-                .addStatement("return (o != null) ? $T.copyOf(o) : $T.of()", listTypeName, listTypeName).build();
+        var code = buildCollectionShimMethodBody();
         return MethodSpec.methodBuilder(collectionShimName).addAnnotation(generatedRecordBuilderAnnotation)
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC).addTypeVariable(tType)
                 .returns(parameterizedCollectionType).addParameter(parameterizedCollectionType, "o").addCode(code)
                 .build();
+    }
+
+    private CodeBlock buildCollectionShimMethodBody() {
+        if (!useUnmodifiableCollections) {
+            return CodeBlock.builder().add("if (o instanceof Set) {\n").indent()
+                    .addStatement("return $T.copyOf(o)", setTypeName).unindent().addStatement("}")
+                    .addStatement("return (o != null) ? $T.copyOf(o) : $T.of()", listTypeName, listTypeName).build();
+        }
+
+        return CodeBlock.builder().beginControlFlow("if (o instanceof $T)", listType)
+                .addStatement("return $T.<$T>unmodifiableList(($T) o)", collectionsTypeName, tType,
+                        parameterizedListType)
+                .endControlFlow().beginControlFlow("if (o instanceof $T)", setType)
+                .addStatement("return $T.<$T>unmodifiableSet(($T) o)", collectionsTypeName, tType, parameterizedSetType)
+                .endControlFlow().addStatement("return $T.<$T>emptyList()", collectionsTypeName, tType).build();
     }
 }
