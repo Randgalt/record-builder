@@ -183,8 +183,26 @@ public @interface RecordBuilder {
          * {@link java.util.Map} and {@link java.util.Collection}. When the record is built, any components of these
          * types are passed through an added shim method that uses the corresponding immutable collection (e.g.
          * {@code List.copyOf(o)}) or an empty immutable collection if the component is {@code null}.
+         *
+         * @see #useUnmodifiableCollections()
          */
         boolean useImmutableCollections() default false;
+
+        /**
+         * Adds special handling for record components of type: {@link java.util.List}, {@link java.util.Set},
+         * {@link java.util.Map} and {@link java.util.Collection}. When the record is built, any components of these
+         * types are passed through an added shim method that uses the corresponding unmodifiable collection (e.g.
+         * {@code Collections.unmodifiableList(o)}) or an empty immutable collection if the component is {@code null}.
+         *
+         * <p>
+         * For backward compatibility, when {@link #useImmutableCollections()} returns {@code true}, this property is
+         * ignored.
+         *
+         * @see #useImmutableCollections()
+         *
+         * @since 37
+         */
+        boolean useUnmodifiableCollections() default false;
 
         /**
          * When enabled, collection types ({@code List}, {@code Set} and {@code Map}) are handled specially. The setters
