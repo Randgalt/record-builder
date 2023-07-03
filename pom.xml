@@ -22,7 +22,7 @@
     <groupId>io.soabase.record-builder</groupId>
     <artifactId>record-builder</artifactId>
     <packaging>pom</packaging>
-    <version>37-SNAPSHOT</version>
+    <version>37</version>
 
     <modules>
         <module>record-builder-core</module>
@@ -99,7 +99,7 @@
         <url>https://github.com/randgalt/record-builder</url>
         <connection>scm:git:https://github.com/randgalt/record-builder.git</connection>
         <developerConnection>scm:git:git@github.com:randgalt/record-builder.git</developerConnection>
-        <tag>record-builder-1.16</tag>
+        <tag>record-builder-37</tag>
     </scm>
 
     <issueManagement>
