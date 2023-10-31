@@ -20,19 +20,31 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 
 import javax.lang.model.element.Modifier;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
 
 class CollectionBuilderUtils {
+
     private final boolean useImmutableCollections;
     private final boolean useUnmodifiableCollections;
+    private final boolean allowNullableCollections;
     private final boolean addSingleItemCollectionBuilders;
     private final boolean addClassRetainedGenerated;
+
+    private final boolean interpretNotNulls;
+    private final Pattern notNullPattern;
+
     private final String listShimName;
     private final String mapShimName;
     private final String setShimName;
     private final String collectionShimName;
+
+    private final String nullableListShimName;
+    private final String nullableMapShimName;
+    private final String nullableSetShimName;
+    private final String nullableCollectionShimName;
 
     private final String listMakerMethodName;
     private final String mapMakerMethodName;
@@ -42,6 +54,11 @@ class CollectionBuilderUtils {
     private boolean needsMapShim;
     private boolean needsSetShim;
     private boolean needsCollectionShim;
+
+    private boolean needsNullableListShim;
+    private boolean needsNullableMapShim;
+    private boolean needsNullableSetShim;
+    private boolean needsNullableCollectionShim;
 
     private boolean needsListMutableMaker;
     private boolean needsMapMutableMaker;
@@ -83,13 +100,22 @@ class CollectionBuilderUtils {
     CollectionBuilderUtils(List<RecordClassType> recordComponents, RecordBuilder.Options metaData) {
         useImmutableCollections = metaData.useImmutableCollections();
         useUnmodifiableCollections = !useImmutableCollections && metaData.useUnmodifiableCollections();
+        allowNullableCollections = metaData.allowNullableCollections();
         addSingleItemCollectionBuilders = metaData.addSingleItemCollectionBuilders();
         addClassRetainedGenerated = metaData.addClassRetainedGenerated();
+
+        interpretNotNulls = metaData.interpretNotNulls();
+        notNullPattern = Pattern.compile(metaData.interpretNotNullsPattern());
 
         listShimName = disambiguateGeneratedMethodName(recordComponents, "__list", 0);
         mapShimName = disambiguateGeneratedMethodName(recordComponents, "__map", 0);
         setShimName = disambiguateGeneratedMethodName(recordComponents, "__set", 0);
         collectionShimName = disambiguateGeneratedMethodName(recordComponents, "__collection", 0);
+
+        nullableListShimName = disambiguateGeneratedMethodName(recordComponents, "__nullableList", 0);
+        nullableMapShimName = disambiguateGeneratedMethodName(recordComponents, "__nullableMap", 0);
+        nullableSetShimName = disambiguateGeneratedMethodName(recordComponents, "__nullableSet", 0);
+        nullableCollectionShimName = disambiguateGeneratedMethodName(recordComponents, "__nullableCollection", 0);
 
         listMakerMethodName = disambiguateGeneratedMethodName(recordComponents, "__ensureListMutable", 0);
         setMakerMethodName = disambiguateGeneratedMethodName(recordComponents, "__ensureSetMutable", 0);
@@ -162,6 +188,16 @@ class CollectionBuilderUtils {
                 && (isList(component) || isMap(component) || isSet(component) || isCollection(component));
     }
 
+    boolean isNullableCollection(RecordClassType component) {
+        return allowNullableCollections && (!interpretNotNulls || !isNotNullAnnotated(component))
+                && (isList(component) || isMap(component) || isSet(component) || isCollection(component));
+    }
+
+    private boolean isNotNullAnnotated(RecordClassType component) {
+        return component.getCanonicalConstructorAnnotations().stream().anyMatch(annotation -> notNullPattern
+                .matcher(annotation.getAnnotationType().asElement().getSimpleName().toString()).matches());
+    }
+
     boolean isList(RecordClassType component) {
         return component.rawTypeName().equals(listTypeName);
     }
@@ -181,20 +217,40 @@ class CollectionBuilderUtils {
     void addShimCall(CodeBlock.Builder builder, RecordClassType component) {
         if (useImmutableCollections || useUnmodifiableCollections) {
             if (isList(component)) {
-                needsListShim = true;
-                needsListMutableMaker = true;
-                builder.add("$L($L)", listShimName, component.name());
+                if (isNullableCollection(component)) {
+                    needsNullableListShim = true;
+                    builder.add("$L($L)", nullableListShimName, component.name());
+                } else {
+                    needsListShim = true;
+                    needsListMutableMaker = true;
+                    builder.add("$L($L)", listShimName, component.name());
+                }
             } else if (isMap(component)) {
-                needsMapShim = true;
-                needsMapMutableMaker = true;
-                builder.add("$L($L)", mapShimName, component.name());
+                if (isNullableCollection(component)) {
+                    needsNullableMapShim = true;
+                    builder.add("$L($L)", nullableMapShimName, component.name());
+                } else {
+                    needsMapShim = true;
+                    needsMapMutableMaker = true;
+                    builder.add("$L($L)", mapShimName, component.name());
+                }
             } else if (isSet(component)) {
-                needsSetShim = true;
-                needsSetMutableMaker = true;
-                builder.add("$L($L)", setShimName, component.name());
+                if (isNullableCollection(component)) {
+                    needsNullableSetShim = true;
+                    builder.add("$L($L)", nullableSetShimName, component.name());
+                } else {
+                    needsSetShim = true;
+                    needsSetMutableMaker = true;
+                    builder.add("$L($L)", setShimName, component.name());
+                }
             } else if (isCollection(component)) {
-                needsCollectionShim = true;
-                builder.add("$L($L)", collectionShimName, component.name());
+                if (isNullableCollection(component)) {
+                    needsNullableCollectionShim = true;
+                    builder.add("$L($L)", nullableCollectionShimName, component.name());
+                } else {
+                    needsCollectionShim = true;
+                    builder.add("$L($L)", collectionShimName, component.name());
+                }
             } else {
                 builder.add("$L", component.name());
             }
@@ -205,13 +261,13 @@ class CollectionBuilderUtils {
 
     String shimName(RecordClassType component) {
         if (isList(component)) {
-            return listShimName;
+            return isNullableCollection(component) ? nullableListShimName : listShimName;
         } else if (isMap(component)) {
-            return mapShimName;
+            return isNullableCollection(component) ? nullableMapShimName : mapShimName;
         } else if (isSet(component)) {
-            return setShimName;
+            return isNullableCollection(component) ? nullableSetShimName : setShimName;
         } else if (isCollection(component)) {
-            return collectionShimName;
+            return isNullableCollection(component) ? nullableCollectionShimName : collectionShimName;
         } else {
             throw new IllegalArgumentException(component + " is not a supported collection type");
         }
@@ -238,14 +294,32 @@ class CollectionBuilderUtils {
             builder.addMethod(
                     buildShimMethod(listShimName, listTypeName, collectionType, parameterizedListType, tType));
         }
+        if (needsNullableListShim) {
+            builder.addMethod(buildNullableShimMethod(nullableListShimName, listTypeName, collectionType,
+                    parameterizedListType, tType));
+        }
+
         if (needsSetShim) {
             builder.addMethod(buildShimMethod(setShimName, setTypeName, collectionType, parameterizedSetType, tType));
         }
+        if (needsNullableSetShim) {
+            builder.addMethod(buildNullableShimMethod(nullableSetShimName, setTypeName, collectionType,
+                    parameterizedSetType, tType));
+        }
+
         if (needsMapShim) {
             builder.addMethod(buildShimMethod(mapShimName, mapTypeName, mapType, parameterizedMapType, kType, vType));
         }
+        if (needsNullableMapShim) {
+            builder.addMethod(buildNullableShimMethod(nullableMapShimName, mapTypeName, mapType, parameterizedMapType,
+                    kType, vType));
+        }
+
         if (needsCollectionShim) {
             builder.addMethod(buildCollectionsShimMethod());
+        }
+        if (needsNullableCollectionShim) {
+            builder.addMethod(buildNullableCollectionsShimMethod());
         }
     }
 
@@ -339,6 +413,41 @@ class CollectionBuilderUtils {
         throw new IllegalStateException("Cannot build shim method for" + mainType);
     }
 
+    private MethodSpec buildNullableShimMethod(String name, TypeName mainType, Class<?> abstractType,
+            ParameterizedTypeName parameterizedType, TypeVariableName... typeVariables) {
+        var code = buildNullableShimMethodBody(mainType, parameterizedType);
+
+        TypeName[] wildCardTypeArguments = parameterizedType.typeArguments.stream().map(WildcardTypeName::subtypeOf)
+                .toList().toArray(new TypeName[0]);
+        var extendedParameterizedType = ParameterizedTypeName.get(ClassName.get(abstractType), wildCardTypeArguments);
+        return MethodSpec.methodBuilder(name).addAnnotation(generatedRecordBuilderAnnotation)
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC).addTypeVariables(Arrays.asList(typeVariables))
+                .returns(parameterizedType).addParameter(extendedParameterizedType, "o").addStatement(code).build();
+    }
+
+    private CodeBlock buildNullableShimMethodBody(TypeName mainType, ParameterizedTypeName parameterizedType) {
+        if (!useUnmodifiableCollections) {
+            return CodeBlock.of("return (o != null) ? $T.copyOf(o) : null", mainType);
+        }
+
+        if (mainType.equals(listTypeName)) {
+            return CodeBlock.of("return (o != null) ?  $T.<$T>unmodifiableList(($T) o) : null", collectionsTypeName,
+                    tType, parameterizedType);
+        }
+
+        if (mainType.equals(setTypeName)) {
+            return CodeBlock.of("return (o != null) ?  $T.<$T>unmodifiableSet(($T) o) : null", collectionsTypeName,
+                    tType, parameterizedType);
+        }
+
+        if (mainType.equals(mapTypeName)) {
+            return CodeBlock.of("return (o != null) ?  $T.<$T>unmodifiableMap(($T) o) : null", collectionsTypeName,
+                    tType, parameterizedType);
+        }
+
+        throw new IllegalStateException("Cannot build shim method for" + mainType);
+    }
+
     private MethodSpec buildMutableMakerMethod(String name, String mutableCollectionType,
             ParameterizedTypeName parameterizedType, TypeVariableName... typeVariables) {
         var nullCase = CodeBlock.of("if (o == null) return new $L<>()", mutableCollectionType);
@@ -392,5 +501,29 @@ class CollectionBuilderUtils {
                 .endControlFlow().beginControlFlow("if (o instanceof $T)", setType)
                 .addStatement("return $T.<$T>unmodifiableSet(($T) o)", collectionsTypeName, tType, parameterizedSetType)
                 .endControlFlow().addStatement("return $T.<$T>emptyList()", collectionsTypeName, tType).build();
+    }
+
+    private MethodSpec buildNullableCollectionsShimMethod() {
+        var code = buildNullableCollectionShimMethodBody();
+
+        return MethodSpec.methodBuilder(nullableCollectionShimName).addAnnotation(generatedRecordBuilderAnnotation)
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC).addTypeVariable(tType)
+                .returns(parameterizedCollectionType).addParameter(parameterizedCollectionType, "o").addCode(code)
+                .build();
+    }
+
+    private CodeBlock buildNullableCollectionShimMethodBody() {
+        if (!useUnmodifiableCollections) {
+            return CodeBlock.builder().add("if (o instanceof Set) {\n").indent()
+                    .addStatement("return $T.copyOf(o)", setTypeName).unindent().addStatement("}")
+                    .addStatement("return (o != null) ? $T.copyOf(o) : null", listTypeName).build();
+        }
+
+        return CodeBlock.builder().beginControlFlow("if (o instanceof $T)", listType)
+                .addStatement("return $T.<$T>unmodifiableList(($T) o)", collectionsTypeName, tType,
+                        parameterizedListType)
+                .endControlFlow().beginControlFlow("if (o instanceof $T)", setType)
+                .addStatement("return $T.<$T>unmodifiableSet(($T) o)", collectionsTypeName, tType, parameterizedSetType)
+                .endControlFlow().addStatement("return null").build();
     }
 }
