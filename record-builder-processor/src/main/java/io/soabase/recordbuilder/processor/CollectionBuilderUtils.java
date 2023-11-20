@@ -26,7 +26,6 @@ import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generate
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
 
 class CollectionBuilderUtils {
-
     private final boolean useImmutableCollections;
     private final boolean useUnmodifiableCollections;
     private final boolean allowNullableCollections;
@@ -410,7 +409,7 @@ class CollectionBuilderUtils {
                     collectionsTypeName, kType, vType, parameterizedType, collectionsTypeName, kType, vType);
         }
 
-        throw new IllegalStateException("Cannot build shim method for" + mainType);
+        throw new IllegalStateException("Cannot build shim method for " + mainType);
     }
 
     private MethodSpec buildNullableShimMethod(String name, TypeName mainType, Class<?> abstractType,
@@ -445,7 +444,7 @@ class CollectionBuilderUtils {
                     tType, parameterizedType);
         }
 
-        throw new IllegalStateException("Cannot build shim method for" + mainType);
+        throw new IllegalStateException("Cannot build shim method for " + mainType);
     }
 
     private MethodSpec buildMutableMakerMethod(String name, String mutableCollectionType,
