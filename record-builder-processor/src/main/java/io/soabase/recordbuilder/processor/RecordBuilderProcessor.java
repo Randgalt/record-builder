@@ -198,10 +198,15 @@ public class RecordBuilderProcessor extends AbstractProcessor {
     private void validateMetaData(RecordBuilder.Options metaData, Element record) {
         var useImmutableCollections = metaData.useImmutableCollections();
         var useUnmodifiableCollections = metaData.useUnmodifiableCollections();
+        var allowNullableCollections = metaData.allowNullableCollections();
 
         if (useImmutableCollections && useUnmodifiableCollections) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.MANDATORY_WARNING,
                     "Options.useUnmodifiableCollections property is ignored as Options.useImmutableCollections is set to true",
+                    record);
+        } else if (!useImmutableCollections && !useUnmodifiableCollections && allowNullableCollections) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.MANDATORY_WARNING,
+                    "Options.allowNullableCollections property will have no effect as Options.useImmutableCollections and Options.useUnmodifiableCollections are set to false",
                     record);
         }
     }
