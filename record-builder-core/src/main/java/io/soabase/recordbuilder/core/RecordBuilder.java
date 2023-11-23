@@ -205,6 +205,16 @@ public @interface RecordBuilder {
         boolean useUnmodifiableCollections() default false;
 
         /**
+         * Adds special handling for record components of type: {@link java.util.List}, {@link java.util.Set},
+         * {@link java.util.Map} and {@link java.util.Collection}. When the record is built, any components of these
+         * types are passed through an added shim method that uses the corresponding immutable collection (e.g.
+         * {@code List.copyOf(o)}), or {@code null} if the component is {@code null}. If nulls are interpreted (see
+         * {@link #interpretNotNulls()}), the record component will return {@code null} only if it's NOT annotated by
+         * any of the not-null annotations (defined by {@link #interpretNotNullsPattern()}).
+         */
+        boolean allowNullableCollections() default false;
+
+        /**
          * When enabled, collection types ({@code List}, {@code Set} and {@code Map}) are handled specially. The setters
          * for these types now create an internal collection and items are added to that collection. Additionally,
          * "adder" methods prefixed with {@link #singleItemBuilderPrefix()} are created to add single items to these
