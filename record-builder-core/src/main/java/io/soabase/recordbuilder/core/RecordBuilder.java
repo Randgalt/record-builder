@@ -306,6 +306,11 @@ public @interface RecordBuilder {
          * make the builder public when the record is package protect.
          */
         Modifier[] builderClassModifiers() default {};
+
+        /**
+         * Makes the generated builder's constructors public
+         */
+        boolean publicBuilderConstructors() default false;
     }
 
     @Retention(RetentionPolicy.CLASS)

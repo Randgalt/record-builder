@@ -15,12 +15,8 @@
  */
 package io.soabase.recordbuilder.processor;
 
-import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.EXCLUDE_WILDCARD_TYPES;
-import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.STANDARD_FOR_SETTER;
-import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
-import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
+import com.squareup.javapoet.*;
+import io.soabase.recordbuilder.core.RecordBuilder;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
@@ -33,8 +29,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import com.squareup.javapoet.*;
-import io.soabase.recordbuilder.core.RecordBuilder;
+import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.EXCLUDE_WILDCARD_TYPES;
+import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.STANDARD_FOR_SETTER;
+import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
+import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
 
 class InternalRecordBuilderProcessor {
     private final RecordBuilder.Options metaData;
@@ -55,6 +55,7 @@ class InternalRecordBuilderProcessor {
             "RecordBuilderValidator");
     private static final TypeVariableName rType = TypeVariableName.get("R");
     private final ProcessingEnvironment processingEnv;
+    private final Modifier constructorVisibilityModifier;
 
     InternalRecordBuilderProcessor(ProcessingEnvironment processingEnv, TypeElement record,
             RecordBuilder.Options metaData, Optional<String> packageNameOpt) {
@@ -70,6 +71,7 @@ class InternalRecordBuilderProcessor {
         uniqueVarName = getUniqueVarName();
         notNullPattern = Pattern.compile(metaData.interpretNotNullsPattern());
         collectionBuilderUtils = new CollectionBuilderUtils(recordComponents, this.metaData);
+        constructorVisibilityModifier = metaData.publicBuilderConstructors() ? Modifier.PUBLIC : Modifier.PRIVATE;
 
         builder = TypeSpec.classBuilder(builderClassType.name()).addAnnotation(generatedRecordBuilderAnnotation)
                 .addModifiers(metaData.builderClassModifiers()).addTypeVariables(typeVariables);
@@ -323,7 +325,7 @@ class InternalRecordBuilderProcessor {
          *
          * private MyRecordBuilder() { }
          */
-        var constructor = MethodSpec.constructorBuilder().addModifiers(Modifier.PRIVATE)
+        var constructor = MethodSpec.constructorBuilder().addModifiers(constructorVisibilityModifier)
                 .addAnnotation(generatedRecordBuilderAnnotation).build();
         builder.addMethod(constructor);
     }
@@ -378,7 +380,7 @@ class InternalRecordBuilderProcessor {
          *
          * private MyRecordBuilder(int p1, T p2, ...) { this.p1 = p1; this.p2 = p2; ... }
          */
-        var constructorBuilder = MethodSpec.constructorBuilder().addModifiers(Modifier.PRIVATE)
+        var constructorBuilder = MethodSpec.constructorBuilder().addModifiers(constructorVisibilityModifier)
                 .addAnnotation(generatedRecordBuilderAnnotation);
         recordComponents.forEach(component -> {
             constructorBuilder.addParameter(component.typeName(), component.name());
