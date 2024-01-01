@@ -111,6 +111,15 @@ public class ElementUtils {
         return new ClassType(ParameterizedTypeName.get(builderClassName, typeNames), builderClassName.simpleName());
     }
 
+    public static ClassType getClassTypeFromNames(ClassName builderClassName,
+            List<? extends TypeVariableName> typeVariableNames) {
+        if (typeVariableNames.isEmpty()) {
+            return new ClassType(builderClassName, builderClassName.simpleName());
+        }
+        TypeName[] typeNames = typeVariableNames.toArray(TypeName[]::new);
+        return new ClassType(ParameterizedTypeName.get(builderClassName, typeNames), builderClassName.simpleName());
+    }
+
     public static RecordClassType getRecordClassType(ProcessingEnvironment processingEnv,
             RecordComponentElement recordComponent, List<? extends AnnotationMirror> accessorAnnotations,
             List<? extends AnnotationMirror> canonicalConstructorAnnotations) {

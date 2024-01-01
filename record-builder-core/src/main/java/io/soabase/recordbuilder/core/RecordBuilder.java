@@ -15,13 +15,8 @@
  */
 package io.soabase.recordbuilder.core;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Inherited;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
 import javax.lang.model.element.Modifier;
+import java.lang.annotation.*;
 
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
@@ -311,6 +306,21 @@ public @interface RecordBuilder {
          * Makes the generated builder's constructors public
          */
         boolean publicBuilderConstructors() default false;
+
+        /**
+         * Whether to add standard builder, staged builder or both
+         */
+        BuilderMode builderMode() default BuilderMode.STANDARD;
+
+        /**
+         * The name to use for the staged builder if present
+         */
+        String stagedBuilderMethodName() default "stagedBuilder";
+
+        /**
+         * The suffix to use for the staged builder interfaces if present
+         */
+        String stagedBuilderMethodSuffix() default "Stage";
     }
 
     @Retention(RetentionPolicy.CLASS)
@@ -320,5 +330,9 @@ public @interface RecordBuilder {
         RecordBuilder.Options options();
 
         boolean asRecordInterface() default false;
+    }
+
+    enum BuilderMode {
+        STANDARD, STAGED, STANDARD_AND_STAGED,
     }
 }

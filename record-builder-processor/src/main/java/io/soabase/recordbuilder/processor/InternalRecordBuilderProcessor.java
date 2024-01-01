@@ -17,6 +17,8 @@ package io.soabase.recordbuilder.processor;
 
 import com.squareup.javapoet.*;
 import io.soabase.recordbuilder.core.RecordBuilder;
+import io.soabase.recordbuilder.core.RecordBuilder.BuilderMode;
+import io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaData;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
@@ -31,8 +33,7 @@ import java.util.stream.Stream;
 
 import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.EXCLUDE_WILDCARD_TYPES;
 import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.STANDARD_FOR_SETTER;
-import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
-import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
+import static io.soabase.recordbuilder.processor.ElementUtils.*;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
 
@@ -85,6 +86,11 @@ class InternalRecordBuilderProcessor {
         if (!metaData.beanClassName().isEmpty()) {
             addBeanNestedClass();
         }
+        if (metaData.builderMode() != BuilderMode.STANDARD) {
+            addStagedBuilderClasses();
+            addStaticStagedBuilderMethod((metaData.builderMode() == BuilderMode.STANDARD_AND_STAGED)
+                    ? metaData.stagedBuilderMethodName() : metaData.builderMethodName());
+        }
         addDefaultConstructor();
         if (metaData.addStaticBuilder()) {
             addStaticBuilder();
@@ -92,7 +98,9 @@ class InternalRecordBuilderProcessor {
         if (recordComponents.size() > 0) {
             addAllArgsConstructor();
         }
-        addStaticDefaultBuilderMethod();
+        if (metaData.builderMode() != BuilderMode.STAGED) {
+            addStaticDefaultBuilderMethod();
+        }
         addStaticCopyBuilderMethod();
         if (metaData.enableWither()) {
             addStaticFromWithMethod();
@@ -136,7 +144,7 @@ class InternalRecordBuilderProcessor {
             if (modifiers.contains(Modifier.PUBLIC) || modifiers.contains(Modifier.PRIVATE)
                     || modifiers.contains(Modifier.PROTECTED)) {
                 builder.addModifiers(Modifier.PUBLIC); // builders are top level classes - can only be public or
-                                                       // package-private
+                // package-private
             }
             // is package-private
         } else {
@@ -160,6 +168,76 @@ class InternalRecordBuilderProcessor {
             return ElementUtils.getRecordClassType(processingEnv, recordComponents.get(index), thisAccessorAnnotations,
                     thisCanonicalConstructorAnnotations);
         }).collect(Collectors.toList());
+    }
+
+    public void addStagedBuilderClasses() {
+        if (recordComponents.size() < 2) {
+            return;
+        }
+
+        IntStream.range(0, recordComponents.size()).forEach(index -> {
+            Optional<RecordClassType> nextComponent = ((index + 1) < recordComponents.size())
+                    ? Optional.of(recordComponents.get(index + 1)) : Optional.empty();
+            add1StagedBuilderClass(recordComponents.get(index), nextComponent);
+        });
+
+        /*
+         * Adds the final builder stage that has the "build" methods similar to:
+         *
+         * public class BuilderStage { PersonBuilder builder();
+         *
+         * default Person build() { return builder().build(); }
+         */
+        var classBuilder = TypeSpec.interfaceBuilder(stagedBuilderName(builderClassType))
+                .addAnnotation(generatedRecordBuilderAnnotation)
+                .addJavadoc("Add final staged builder to {@code $L}\n", recordClassType.name())
+                .addModifiers(Modifier.PUBLIC).addTypeVariables(typeVariables);
+        if (metaData.addClassRetainedGenerated()) {
+            classBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
+        }
+
+        MethodSpec buildMethod = buildMethod().addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .addStatement("return builder().build()").build();
+        classBuilder.addMethod(buildMethod);
+
+        var builderMethod = MethodSpec.methodBuilder(metaData.builderMethodName())
+                .addJavadoc("Return a new builder with all fields set to the current values in this builder\n")
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT).addAnnotation(generatedRecordBuilderAnnotation)
+                .returns(builderClassType.typeName()).build();
+        classBuilder.addMethod(builderMethod);
+
+        builder.addType(classBuilder.build());
+    }
+
+    public void add1StagedBuilderClass(RecordClassType component, Optional<RecordClassType> nextComponent) {
+        /*
+         * Adds a nested interface similar to:
+         *
+         * public class NameStage { AgeStage name(String name); }
+         */
+        var classBuilder = TypeSpec.interfaceBuilder(stagedBuilderName(component))
+                .addAnnotation(generatedRecordBuilderAnnotation)
+                .addJavadoc("Add staged builder to {@code $L} for component {@code $L}\n", recordClassType.name(),
+                        component.name())
+                .addModifiers(Modifier.PUBLIC).addTypeVariables(typeVariables);
+        if (metaData.addClassRetainedGenerated()) {
+            classBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
+        }
+
+        var returnType = nextComponent.map(this::stagedBuilderType)
+                .orElseGet(() -> stagedBuilderType(builderClassType));
+        var methodSpec = MethodSpec.methodBuilder(prefixedName(component, false))
+                .addAnnotation(generatedRecordBuilderAnnotation).returns(returnType.typeName())
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
+
+        methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name());
+        var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
+        addConstructorAnnotations(component, parameterSpecBuilder);
+        methodSpec.addParameter(parameterSpecBuilder.build());
+
+        classBuilder.addMethod(methodSpec.build());
+
+        builder.addType(classBuilder.build());
     }
 
     private void addWithNestedClass() {
@@ -470,11 +548,15 @@ class InternalRecordBuilderProcessor {
          * public MyRecord build() { return new MyRecord(p1, p2, ...); }
          */
         CodeBlock codeBlock = buildCodeBlock();
-        var methodSpec = MethodSpec.methodBuilder(metaData.buildMethodName())
+        MethodSpec methodSpec = buildMethod().addCode(codeBlock).build();
+        builder.addMethod(methodSpec);
+    }
+
+    private MethodSpec.Builder buildMethod() {
+        return MethodSpec.methodBuilder(metaData.buildMethodName())
                 .addJavadoc("Return a new record instance with all fields set to the current values in this builder\n")
                 .addModifiers(Modifier.PUBLIC).addAnnotation(generatedRecordBuilderAnnotation)
-                .returns(recordClassType.typeName()).addCode(codeBlock).build();
-        builder.addMethod(methodSpec);
+                .returns(recordClassType.typeName());
     }
 
     private CodeBlock buildCodeBlock() {
@@ -603,7 +685,7 @@ class InternalRecordBuilderProcessor {
 
     private void addStaticDefaultBuilderMethod() {
         /*
-         * Adds a the default builder method similar to:
+         * Adds the default builder method similar to:
          *
          * public static MyRecordBuilder builder() { return new MyRecordBuilder(); }
          */
@@ -612,6 +694,35 @@ class InternalRecordBuilderProcessor {
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addAnnotation(generatedRecordBuilderAnnotation)
                 .addTypeVariables(typeVariables).returns(builderClassType.typeName())
                 .addStatement("return new $T()", builderClassType.typeName()).build();
+        builder.addMethod(methodSpec);
+    }
+
+    private void addStaticStagedBuilderMethod(String builderMethodName) {
+        if (recordComponents.size() < 2) {
+            return;
+        }
+
+        /*
+         * Adds the staged builder method similar to:
+         *
+         * public static NameStage stagedBuilder() { return name -> age -> () -> new PersonBuilder(name, age).build(); }
+         */
+        CodeBlock.Builder codeBlock = CodeBlock.builder().add("return ");
+        recordComponents.forEach(recordComponent -> codeBlock.add("$L -> ", recordComponent.name()));
+        codeBlock.add("() -> new $T(", builderClassType.typeName());
+        IntStream.range(0, recordComponents.size()).forEach(index -> {
+            if (index > 0) {
+                codeBlock.add(", ");
+            }
+            codeBlock.add("$L", recordComponents.get(index).name());
+        });
+        codeBlock.addStatement(")");
+
+        var methodSpec = MethodSpec.methodBuilder(builderMethodName)
+                .addJavadoc("Return the first stage of a staged builder\n")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addAnnotation(generatedRecordBuilderAnnotation)
+                .addTypeVariables(typeVariables).returns(stagedBuilderType(recordComponents.get(0)).typeName())
+                .addCode(codeBlock.build()).build();
         builder.addMethod(methodSpec);
     }
 
@@ -701,7 +812,7 @@ class InternalRecordBuilderProcessor {
         return (s.length() < 2) ? s.toUpperCase(Locale.ROOT) : (Character.toUpperCase(s.charAt(0)) + s.substring(1));
     }
 
-    private void add1CollectionBuilders(CollectionBuilderUtils.SingleItemsMetaData meta, RecordClassType component) {
+    private void add1CollectionBuilders(SingleItemsMetaData meta, RecordClassType component) {
         if (collectionBuilderUtils.isList(component) || collectionBuilderUtils.isSet(component)) {
             add1ListBuilder(meta, component);
         } else if (collectionBuilderUtils.isMap(component)) {
@@ -709,7 +820,7 @@ class InternalRecordBuilderProcessor {
         }
     }
 
-    private void add1MapBuilder(CollectionBuilderUtils.SingleItemsMetaData meta, RecordClassType component) {
+    private void add1MapBuilder(SingleItemsMetaData meta, RecordClassType component) {
         /*
          * For a single map record component, add a methods similar to:
          *
@@ -757,7 +868,7 @@ class InternalRecordBuilderProcessor {
         }
     }
 
-    private void add1ListBuilder(CollectionBuilderUtils.SingleItemsMetaData meta, RecordClassType component) {
+    private void add1ListBuilder(SingleItemsMetaData meta, RecordClassType component) {
         /*
          * For a single list or set record component, add methods similar to:
          *
@@ -954,5 +1065,13 @@ class InternalRecordBuilderProcessor {
             return prefixer.apply(metaData.getterPrefix(), component.name());
         }
         return prefixer.apply(metaData.setterPrefix(), component.name());
+    }
+
+    private String stagedBuilderName(ClassType component) {
+        return capitalize(component.name()) + metaData.stagedBuilderMethodSuffix();
+    }
+
+    private ClassType stagedBuilderType(ClassType component) {
+        return getClassTypeFromNames(ClassName.get("", stagedBuilderName(component)), typeVariables);
     }
 }
