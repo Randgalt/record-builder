@@ -22,6 +22,7 @@ _Details:_
 - [Generation Via Includes](#generation-via-includes)
 - [Usage](#usage)
 - [Customizing](customizing.md) (e.g. add immutable collections, etc.)
+- [Options](options.md)
 
 ## RecordBuilder Example
 

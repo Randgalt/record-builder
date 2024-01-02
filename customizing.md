@@ -9,7 +9,7 @@ enable optional features.
 # Customizing RecordBuilder
 
 RecordBuilder can be customized in a number of ways. The types of customizations will change over time. See
-[@RecordBuilder.Options](record-builder-core/src/main/java/io/soabase/recordbuilder/core/RecordBuilder.java)
+[RecordBuilder Options](options.md)
 for the current set of customizations and their default values. For example, the `useImmutableCollections` option
 adds special handling for record components of type `java.util.List`, `java.util.Set`, `java.util.Map` and `java.util.Collection`. When the record is built, any components of these types are passed through an added shim method that uses the corresponding immutable collection (e.g. `List.copyOf(o)`) or an empty immutable collection if the component is `null`.
 
@@ -59,7 +59,7 @@ compilerArgs.addAll(['-AprefixEnclosingClassNames=false', '-AfileComment="someth
 
 ## Customize a single record
 
-To customize a single record, add `@RecordBuilder.Options` in addition to
+To customize a single record, add `@RecordBuilder.Options` ([options details](options.md)) in addition to
 `@RecordBuilder`.
 
 E.g.
