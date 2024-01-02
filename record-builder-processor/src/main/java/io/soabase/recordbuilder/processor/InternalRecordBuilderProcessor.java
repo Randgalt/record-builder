@@ -57,6 +57,7 @@ class InternalRecordBuilderProcessor {
     private static final TypeVariableName rType = TypeVariableName.get("R");
     private final ProcessingEnvironment processingEnv;
     private final Modifier constructorVisibilityModifier;
+    private final Map<String, CodeBlock> initializers;
 
     InternalRecordBuilderProcessor(ProcessingEnvironment processingEnv, TypeElement record,
             RecordBuilder.Options metaData, Optional<String> packageNameOpt) {
@@ -73,6 +74,7 @@ class InternalRecordBuilderProcessor {
         notNullPattern = Pattern.compile(metaData.interpretNotNullsPattern());
         collectionBuilderUtils = new CollectionBuilderUtils(recordComponents, this.metaData);
         constructorVisibilityModifier = metaData.publicBuilderConstructors() ? Modifier.PUBLIC : Modifier.PRIVATE;
+        initializers = InitializerUtil.detectInitializers(processingEnv, record);
 
         builder = TypeSpec.classBuilder(builderClassType.name()).addAnnotation(generatedRecordBuilderAnnotation)
                 .addModifiers(metaData.builderClassModifiers()).addTypeVariables(typeVariables);
@@ -760,13 +762,18 @@ class InternalRecordBuilderProcessor {
          * private T p;
          */
         var fieldSpecBuilder = FieldSpec.builder(component.typeName(), component.name(), Modifier.PRIVATE);
-        if (metaData.emptyDefaultForOptional()) {
+
+        CodeBlock initializer = initializers.get(component.name());
+        if (initializer != null) {
+            fieldSpecBuilder.initializer(initializer);
+        } else if (metaData.emptyDefaultForOptional()) {
             Optional<OptionalType> thisOptionalType = OptionalType.fromClassType(component);
             if (thisOptionalType.isPresent()) {
                 var codeBlock = CodeBlock.builder().add("$T.empty()", thisOptionalType.get().typeName()).build();
                 fieldSpecBuilder.initializer(codeBlock);
             }
         }
+
         builder.addField(fieldSpecBuilder.build());
     }
 
