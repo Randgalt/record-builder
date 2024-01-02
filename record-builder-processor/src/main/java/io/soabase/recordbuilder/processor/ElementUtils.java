@@ -20,15 +20,9 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeVariableName;
 import io.soabase.recordbuilder.core.RecordBuilder;
+
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.AnnotationValue;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.RecordComponentElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.TypeParameterElement;
+import javax.lang.model.element.*;
 import javax.lang.model.type.TypeMirror;
 import java.util.Collections;
 import java.util.List;
@@ -54,6 +48,13 @@ public class ElementUtils {
         List<? extends AnnotationValue> values = (attribute != null)
                 ? (List<? extends AnnotationValue>) attribute.getValue() : Collections.emptyList();
         return values.stream().map(v -> (TypeMirror) v.getValue()).collect(Collectors.toList());
+    }
+
+    public static Optional<TypeMirror> getAttributeTypeMirror(AnnotationValue attribute) {
+        if (attribute == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable((TypeMirror) attribute.getValue());
     }
 
     @SuppressWarnings("unchecked")

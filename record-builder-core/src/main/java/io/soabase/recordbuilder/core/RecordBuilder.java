@@ -335,4 +335,23 @@ public @interface RecordBuilder {
     enum BuilderMode {
         STANDARD, STAGED, STANDARD_AND_STAGED,
     }
+
+    /**
+     * Apply to record components to specify a field initializer for the generated builder
+     */
+    @Retention(RetentionPolicy.CLASS)
+    @Target(ElementType.FIELD)
+    @Inherited
+    @interface Initializer {
+        /**
+         * The name of a public static method or a public static final field in the source to use as the initializer
+         */
+        String value();
+
+        /**
+         * The source class that contains the method/field specified by {@code value()}. If not specified, the target
+         * record is the source class.
+         */
+        Class<?> source() default Object.class;
+    }
 }
