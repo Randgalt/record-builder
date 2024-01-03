@@ -31,6 +31,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static io.soabase.recordbuilder.processor.AnnotationSpecUtil.getAnnotationSpec;
 import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordInterfaceAnnotation;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
@@ -81,11 +82,11 @@ class InternalRecordInterfaceProcessor {
             builder.addAnnotation(RecordBuilder.class);
             builder.addSuperinterface(builderClassType.typeName());
             if (fromTemplate) {
-                builder.addAnnotation(AnnotationSpec.get(metaData));
+                builder.addAnnotation(getAnnotationSpec(metaData, true));
             } else {
                 var options = iface.getAnnotation(RecordBuilder.Options.class);
                 if (options != null) {
-                    builder.addAnnotation(AnnotationSpec.get(options));
+                    builder.addAnnotation(getAnnotationSpec(options, true));
                 }
             }
         }
