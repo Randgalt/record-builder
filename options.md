@@ -66,6 +66,12 @@ The names used for generated methods, classes, etc. can be changed via the follo
 | `@RecordBuilder.Options(useValidationApi = true/false)`              | Pass built records through the Java Validation API if it's available in the classpath. The default is `false`.                    |
 | `@RecordBuilder.Options(builderMode = BuilderMode.XXX)`              | Whether to add standard builder, staged builder or both. The default is `BuilderMode.STANDARD`.                                   |
 
+### Staged Builders
+
+Use `@RecordBuilder.Options(builderMode = BuilderMode.STAGED)` or `@RecordBuilder.Options(builderMode = BuilderMode.STANDARD_AND_STAGED)` to create staged
+builders. Staged builders require that each record component is built in order and that each component is specified. The generated builder ensures
+this via individual staged builders. See [TestStagedBuilder](record-builder-test/src/test/java/io/soabase/recordbuilder/test/staged/TestStagedBuilder.java) for examples.
+
 ## Default Values / Initializers
 
 | option                                                             | details                                                                                                                          |
