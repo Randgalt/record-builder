@@ -64,6 +64,7 @@ The names used for generated methods, classes, etc. can be changed via the follo
 | `@RecordBuilder.Options(inheritComponentAnnotations = true/false)`   | If true, any annotations (if applicable) on record components are copied to the builder methods. The default is `true`.           |
 | `@RecordBuilder.Options(addConcreteSettersForOptional = true/false)` | Add non-optional setter methods for optional record components. The default is `false`.                                           |
 | `@RecordBuilder.Options(useValidationApi = true/false)`              | Pass built records through the Java Validation API if it's available in the classpath. The default is `false`.                    |
+| `@RecordBuilder.Options(builderMode = BuilderMode.XXX)`              | Whether to add standard builder, staged builder or both. The default is `BuilderMode.STANDARD`.                                   |
 
 ## Default Values / Initializers
 
