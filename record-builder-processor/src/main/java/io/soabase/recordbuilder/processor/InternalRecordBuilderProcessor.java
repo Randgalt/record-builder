@@ -107,14 +107,18 @@ class InternalRecordBuilderProcessor {
         if (metaData.enableWither()) {
             addStaticFromWithMethod();
         }
+        if (metaData.onceOnlyAssignment()) {
+            addOnceOnlySupport();
+        }
         addStaticComponentsMethod();
         addBuildMethod();
         addToStringMethod();
         addHashCodeMethod();
         addEqualsMethod();
-        recordComponents.forEach(component -> {
+        IntStream.range(0, recordComponents.size()).forEach(index -> {
+            RecordClassType component = recordComponents.get(index);
             add1Field(component);
-            add1SetterMethod(component);
+            add1SetterMethod(component, index);
             if (metaData.enableGetters()) {
                 add1GetterMethod(component);
             }
@@ -170,6 +174,25 @@ class InternalRecordBuilderProcessor {
             return ElementUtils.getRecordClassType(processingEnv, recordComponents.get(index), thisAccessorAnnotations,
                     thisCanonicalConstructorAnnotations);
         }).collect(Collectors.toList());
+    }
+
+    private void addOnceOnlySupport() {
+        if (recordComponents.isEmpty()) {
+            return;
+        }
+
+        // per https://www.baeldung.com/java-boolean-array-bitset-performance - simple boolean array is better for a
+        // small number of "bits"
+
+        /*
+         * Adds an array to support once only assignment similar to:
+         *
+         * private final boolean[] _onceOnlyCheck = new boolean[<number of record components>];
+         */
+        FieldSpec onceOnlyField = FieldSpec
+                .builder(boolean[].class, metaData.onceOnlyAssignmentName(), Modifier.PRIVATE, Modifier.FINAL)
+                .initializer(CodeBlock.of("new boolean[$L]", recordComponents.size())).build();
+        builder.addField(onceOnlyField);
     }
 
     private void addStagedBuilderClasses() {
@@ -709,16 +732,30 @@ class InternalRecordBuilderProcessor {
          *
          * public static NameStage stagedBuilder() { return name -> age -> () -> new PersonBuilder(name, age).build(); }
          */
-        CodeBlock.Builder codeBlock = CodeBlock.builder().add("return ");
-        recordComponents.forEach(recordComponent -> codeBlock.add("$L -> ", recordComponent.name()));
-        codeBlock.add("() -> new $T(", builderClassType.typeName());
-        IntStream.range(0, recordComponents.size()).forEach(index -> {
-            if (index > 0) {
-                codeBlock.add(", ");
-            }
-            codeBlock.add("$L", recordComponents.get(index).name());
-        });
-        codeBlock.addStatement(")");
+        var codeBlock = CodeBlock.builder();
+        if (metaData.onceOnlyAssignment()) {
+            codeBlock.addStatement("$T $L = new $T()", builderClassType.typeName(), uniqueVarName,
+                    builderClassType.typeName());
+            codeBlock.add("return ");
+            recordComponents.forEach(recordComponent -> {
+                codeBlock.add("$L -> {\n", recordComponent.name()).indent()
+                        .addStatement("$L.$L($L)", uniqueVarName, recordComponent.name(), recordComponent.name())
+                        .add("return ");
+            });
+            codeBlock.addStatement("() -> $L", uniqueVarName);
+            IntStream.range(0, recordComponents.size()).forEach(__ -> codeBlock.unindent().addStatement("}"));
+        } else {
+            codeBlock.add("return ");
+            recordComponents.forEach(recordComponent -> codeBlock.add("$L -> ", recordComponent.name()));
+            codeBlock.add("() -> new $T(", builderClassType.typeName());
+            IntStream.range(0, recordComponents.size()).forEach(index -> {
+                if (index > 0) {
+                    codeBlock.add(", ");
+                }
+                codeBlock.add("$L", recordComponents.get(index).name());
+            });
+            codeBlock.addStatement(")");
+        }
 
         var methodSpec = MethodSpec.methodBuilder(builderMethodName)
                 .addJavadoc("Return the first stage of a staged builder\n")
@@ -947,7 +984,7 @@ class InternalRecordBuilderProcessor {
         return codeBuilder.build();
     }
 
-    private void add1SetterMethod(RecordClassType component) {
+    private void add1SetterMethod(RecordClassType component, int componentIndex) {
         /*
          * For a single record component, add a setter similar to:
          *
@@ -955,6 +992,16 @@ class InternalRecordBuilderProcessor {
          */
         var methodSpec = MethodSpec.methodBuilder(prefixedName(component, false)).addModifiers(Modifier.PUBLIC)
                 .addAnnotation(generatedRecordBuilderAnnotation).returns(builderClassType.typeName());
+
+        if (metaData.onceOnlyAssignment()) {
+            var onceOnlyCheck = CodeBlock.builder()
+                    .add("if ($L[$L]) {\n", metaData.onceOnlyAssignmentName(), componentIndex).indent()
+                    .addStatement("throw new IllegalStateException(\"A value has already been set for: $L\")",
+                            component.name())
+                    .unindent().add("}\n")
+                    .addStatement("$L[$L] = true", metaData.onceOnlyAssignmentName(), componentIndex).build();
+            methodSpec.addCode(onceOnlyCheck);
+        }
 
         var collectionMetaData = collectionBuilderUtils.singleItemsMetaData(component, STANDARD_FOR_SETTER);
         var parameterSpecBuilder = collectionMetaData.map(meta -> {
@@ -970,8 +1017,10 @@ class InternalRecordBuilderProcessor {
                     component.name()).addStatement("this.$L = $L", component.name(), component.name());
             return ParameterSpec.builder(component.typeName(), component.name());
         });
+
         addConstructorAnnotations(component, parameterSpecBuilder);
         methodSpec.addStatement("return this").addParameter(parameterSpecBuilder.build());
+
         builder.addMethod(methodSpec.build());
     }
 
