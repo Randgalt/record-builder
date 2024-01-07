@@ -321,6 +321,18 @@ public @interface RecordBuilder {
          * The suffix to use for the staged builder interfaces if present
          */
         String stagedBuilderMethodSuffix() default "Stage";
+
+        /**
+         * If true, attributes can be set/assigned only 1 time. Attempts to reassign/reset attributes will throw
+         * {@code java.lang.IllegalStateException}
+         */
+        boolean onceOnlyAssignment() default false;
+
+        /**
+         * {@link #onceOnlyAssignment} method instantiates an internal private boolean array. This is the name of that
+         * array.
+         */
+        String onceOnlyAssignmentName() default "_onceOnlyCheck";
     }
 
     @Retention(RetentionPolicy.CLASS)
