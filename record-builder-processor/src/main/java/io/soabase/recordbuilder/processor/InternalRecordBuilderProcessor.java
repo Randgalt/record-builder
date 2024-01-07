@@ -172,7 +172,7 @@ class InternalRecordBuilderProcessor {
         }).collect(Collectors.toList());
     }
 
-    public void addStagedBuilderClasses() {
+    private void addStagedBuilderClasses() {
         if (recordComponents.size() < 2) {
             return;
         }
@@ -211,7 +211,7 @@ class InternalRecordBuilderProcessor {
         builder.addType(classBuilder.build());
     }
 
-    public void add1StagedBuilderClass(RecordClassType component, Optional<RecordClassType> nextComponent) {
+    private void add1StagedBuilderClass(RecordClassType component, Optional<RecordClassType> nextComponent) {
         /*
          * Adds a nested interface similar to:
          *
