@@ -21,9 +21,9 @@ _Details:_
 - [Record From Interface Details](#RecordInterface-Example)
 - [Generation Via Includes](#generation-via-includes)
 - [Usage](#usage)
-- [Customizing](customizing.md) (e.g. add immutable collections, etc.)
+- [Customizing](docs/customizing.md) (e.g. add immutable collections, etc.)
 - [Examples/Features](docs/features.md)
-- [Options](options.md)
+- [Options](docs/options.md)
 
 ## RecordBuilder Example
 
@@ -357,5 +357,5 @@ Depending on your IDE you are likely to need to enable Annotation Processing in 
 ## Customizing
 
 RecordBuilder can be customized to your needs and you can even create your
-own custom RecordBuilder annotations. See [Customizing RecordBuilder](customizing.md)
+own custom RecordBuilder annotations. See [Customizing RecordBuilder](docs/customizing.md)
 for details.

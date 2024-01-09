@@ -1,4 +1,4 @@
-[◀︎ RecordBuilder](README.md) • Customizing RecordBuilder
+[◀︎ RecordBuilder](../README.md) • Customizing RecordBuilder
 
 # RecordBuilderFull
 

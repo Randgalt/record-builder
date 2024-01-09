@@ -1,4 +1,4 @@
-[◀︎ RecordBuilder](README.md) • RecordBuilder Options
+[◀︎ RecordBuilder](../README.md) • RecordBuilder Options
 
 # RecordBuilder Options
 
