@@ -93,6 +93,9 @@ class InternalRecordBuilderProcessor {
             addStaticStagedBuilderMethod((metaData.builderMode() == BuilderMode.STANDARD_AND_STAGED)
                     ? metaData.stagedBuilderMethodName() : metaData.builderMethodName());
         }
+        if (metaData.addDefaultInstance()) {
+            addDefaultInstance();
+        }
         addDefaultConstructor();
         if (metaData.addStaticBuilder()) {
             addStaticBuilder();
@@ -431,6 +434,14 @@ class InternalRecordBuilderProcessor {
         var constructor = MethodSpec.constructorBuilder().addModifiers(constructorVisibilityModifier)
                 .addAnnotation(generatedRecordBuilderAnnotation).build();
         builder.addMethod(constructor);
+    }
+
+    private void addDefaultInstance() {
+        var field = FieldSpec
+                .builder(recordClassType.typeName(), metaData.defaultInstanceName(), Modifier.PUBLIC, Modifier.STATIC,
+                        Modifier.FINAL)
+                .initializer("$L().$L()", metaData.builderMethodName(), metaData.buildMethodName()).build();
+        builder.addField(field);
     }
 
     private void addStaticBuilder() {

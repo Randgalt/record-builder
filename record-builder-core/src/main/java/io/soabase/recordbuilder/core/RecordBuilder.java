@@ -333,6 +333,10 @@ public @interface RecordBuilder {
          * array.
          */
         String onceOnlyAssignmentName() default "_onceOnlyCheck";
+
+        boolean addDefaultInstance() default false;
+
+        String defaultInstanceName() default "INSTANCE";
     }
 
     @Retention(RetentionPolicy.CLASS)
