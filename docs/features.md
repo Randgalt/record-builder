@@ -10,3 +10,4 @@ The following are examples of various features of RecordBuilder. See the [Main D
 | [Staged Builder](features/staged.md)                       | Staged builder option of RecordBuilder                     |
 | [Once Only Assignment](features/once-only.md)              | Builder that allows assignment once only                   |
 | [Initialization / Default Values](features/initializer.md) | Field initializers/default values in the generated builder |
+| [Collections](features/collections.md)                     | Options for handling collections                           |
