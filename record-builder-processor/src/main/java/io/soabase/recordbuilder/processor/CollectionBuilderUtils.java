@@ -16,7 +16,6 @@
 package io.soabase.recordbuilder.processor;
 
 import com.squareup.javapoet.*;
-import io.soabase.recordbuilder.core.RecordBuilder;
 
 import javax.lang.model.element.Modifier;
 import java.util.*;
@@ -96,7 +95,7 @@ class CollectionBuilderUtils {
     private final TypeSpec mutableSetSpec;
     private final TypeSpec mutableMapSpec;
 
-    CollectionBuilderUtils(List<RecordClassType> recordComponents, RecordBuilder.Options metaData) {
+    CollectionBuilderUtils(List<RecordClassType> recordComponents, InternalOptions metaData) {
         useImmutableCollections = metaData.useImmutableCollections();
         useUnmodifiableCollections = !useImmutableCollections && metaData.useUnmodifiableCollections();
         allowNullableCollections = metaData.allowNullableCollections();

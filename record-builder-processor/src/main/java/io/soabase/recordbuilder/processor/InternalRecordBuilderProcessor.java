@@ -16,7 +16,6 @@
 package io.soabase.recordbuilder.processor;
 
 import com.squareup.javapoet.*;
-import io.soabase.recordbuilder.core.RecordBuilder;
 import io.soabase.recordbuilder.core.RecordBuilder.BuilderMode;
 import io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaData;
 
@@ -38,7 +37,7 @@ import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generate
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
 
 class InternalRecordBuilderProcessor {
-    private final RecordBuilder.Options metaData;
+    private final InternalOptions metaData;
     private final ClassType recordClassType;
     private final String packageName;
     private final ClassType builderClassType;
@@ -59,8 +58,8 @@ class InternalRecordBuilderProcessor {
     private final Modifier constructorVisibilityModifier;
     private final Map<String, CodeBlock> initializers;
 
-    InternalRecordBuilderProcessor(ProcessingEnvironment processingEnv, TypeElement record,
-            RecordBuilder.Options metaData, Optional<String> packageNameOpt) {
+    InternalRecordBuilderProcessor(ProcessingEnvironment processingEnv, TypeElement record, InternalOptions metaData,
+            Optional<String> packageNameOpt) {
         this.processingEnv = processingEnv;
         var recordActualPackage = ElementUtils.getPackageName(record);
         this.metaData = metaData;
