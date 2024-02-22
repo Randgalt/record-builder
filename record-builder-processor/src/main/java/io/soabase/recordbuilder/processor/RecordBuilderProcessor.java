@@ -21,6 +21,7 @@ import com.squareup.javapoet.TypeSpec;
 import io.soabase.recordbuilder.core.RecordBuilder;
 import io.soabase.recordbuilder.core.RecordBuilderGenerated;
 import io.soabase.recordbuilder.core.RecordInterface;
+import io.soabase.recordbuilder.processor.options.InternalBuilderOptions;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
@@ -191,7 +192,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         validateMetaData(metaData, record);
 
         var internalProcessor = new InternalRecordBuilderProcessor(processingEnv, record,
-                InternalOptions.build(metaData), packageName);
+                InternalBuilderOptions.build(metaData), packageName);
         writeRecordBuilderJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(),
                 internalProcessor.builderType(), metaData);
     }

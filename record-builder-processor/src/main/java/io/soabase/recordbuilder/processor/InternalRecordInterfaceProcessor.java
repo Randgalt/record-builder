@@ -18,6 +18,7 @@ package io.soabase.recordbuilder.processor;
 import com.squareup.javapoet.*;
 import io.soabase.recordbuilder.core.IgnoreDefaultMethod;
 import io.soabase.recordbuilder.core.RecordBuilder;
+import io.soabase.recordbuilder.processor.options.InternalBuilderOptions;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ElementKind;
@@ -58,7 +59,7 @@ class InternalRecordInterfaceProcessor {
         recordComponents = getRecordComponents(iface);
         this.iface = iface;
 
-        InternalOptions internalOptions = InternalOptions.build(metaData);
+        InternalBuilderOptions internalOptions = InternalBuilderOptions.build(metaData);
 
         ClassType ifaceClassType = ElementUtils.getClassType(iface, iface.getTypeParameters());
         recordClassType = ElementUtils.getClassType(packageName,

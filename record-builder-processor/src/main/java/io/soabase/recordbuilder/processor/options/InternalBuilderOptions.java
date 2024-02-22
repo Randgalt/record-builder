@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.soabase.recordbuilder.processor;
+package io.soabase.recordbuilder.processor.options;
 
 import io.soabase.recordbuilder.core.RecordBuilder;
 
@@ -21,10 +21,10 @@ import javax.lang.model.element.Modifier;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
-interface InternalOptions {
-    static InternalOptions build(Object source) {
-        return (InternalOptions) Proxy.newProxyInstance(InternalOptions.class.getClassLoader(),
-                new Class[] { InternalOptions.class }, (proxy, method, args) -> {
+public interface InternalBuilderOptions extends WitherOptions, GeneralOptions {
+    static InternalBuilderOptions build(Object source) {
+        return (InternalBuilderOptions) Proxy.newProxyInstance(InternalBuilderOptions.class.getClassLoader(),
+                new Class[] { InternalBuilderOptions.class }, (proxy, method, args) -> {
                     Method sourceMethod = source.getClass().getMethod(method.getName());
                     return sourceMethod.invoke(source);
                 });
@@ -40,21 +40,9 @@ interface InternalOptions {
 
     String buildMethodName();
 
-    String fromMethodName();
-
     String componentsMethodName();
 
     boolean enableWither();
-
-    String withClassName();
-
-    String withClassMethodPrefix();
-
-    String fileComment();
-
-    String fileIndent();
-
-    boolean prefixEnclosingClassNames();
 
     boolean inheritComponentAnnotations();
 
@@ -78,8 +66,6 @@ interface InternalOptions {
 
     String singleItemBuilderPrefix();
 
-    boolean addFunctionalMethodsToWith();
-
     String setterPrefix();
 
     boolean enableGetters();
@@ -89,10 +75,6 @@ interface InternalOptions {
     String booleanPrefix();
 
     String beanClassName();
-
-    boolean addClassRetainedGenerated();
-
-    String fromWithClassName();
 
     boolean addStaticBuilder();
 
