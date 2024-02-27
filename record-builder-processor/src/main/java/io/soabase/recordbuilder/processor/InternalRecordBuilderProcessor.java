@@ -42,9 +42,12 @@ class InternalRecordBuilderProcessor {
     private final ClassType recordClassType;
     private final String packageName;
     private final ClassType builderClassType;
-    private final List<TypeVariableName> typeVariables;
+    private final ClassType builderClassTypeWildcard;
+    private final List<TypeVariableName> recordTypeVariables;
+    private final List<TypeVariableName> builderTypeVariables;
     private final List<RecordClassType> recordComponents;
     private final TypeSpec builderType;
+    private final TypeName setterReturnType;
     private final TypeSpec.Builder builder;
     private final String uniqueVarName;
     private final Pattern notNullPattern;
@@ -66,9 +69,28 @@ class InternalRecordBuilderProcessor {
         this.metaData = metaData;
         recordClassType = ElementUtils.getClassType(record, record.getTypeParameters());
         packageName = packageNameOpt.orElse(recordActualPackage);
-        builderClassType = ElementUtils.getClassType(packageName,
-                getBuilderName(record, metaData, recordClassType, metaData.suffix()), record.getTypeParameters());
-        typeVariables = record.getTypeParameters().stream().map(TypeVariableName::get).collect(Collectors.toList());
+
+        String builderName = getBuilderName(record, metaData, recordClassType, metaData.suffix());
+        recordTypeVariables = toTypeVariableNames(record.getTypeParameters());
+        List<TypeVariableName> builderTypeParams = new ArrayList<>(recordTypeVariables);
+        List<TypeVariableName> builderTypeParamsWildcard = new ArrayList<>(recordTypeVariables);
+        var self = TypeVariableName.get("SELF");
+        ClassName builderClassName = ClassName.get(packageName, builderName);
+        if (metaData.parameterizedBuilder()) {
+            List<TypeName> selfBounds = new ArrayList<>(recordTypeVariables);
+            selfBounds.add(self);
+            builderTypeParams.add(TypeVariableName.get("SELF",
+                    ParameterizedTypeName.get(builderClassName, selfBounds.toArray(new TypeName[0]))));
+            builderTypeParamsWildcard.add(TypeVariableName.get("?"));
+        }
+        builderTypeVariables = builderTypeParams;
+        builderClassType = ElementUtils.getClassTypeFromNames(builderClassName, builderTypeParams);
+        builderClassTypeWildcard = ElementUtils.getClassTypeFromNames(builderClassName, builderTypeParamsWildcard);
+        if (metaData.parameterizedBuilder()) {
+            setterReturnType = self;
+        } else {
+            setterReturnType = builderClassType.typeName();
+        }
         recordComponents = buildRecordComponents(record);
         uniqueVarName = getUniqueVarName();
         notNullPattern = Pattern.compile(metaData.interpretNotNullsPattern());
@@ -77,7 +99,7 @@ class InternalRecordBuilderProcessor {
         initializers = InitializerUtil.detectInitializers(processingEnv, record);
 
         builder = TypeSpec.classBuilder(builderClassType.name()).addAnnotation(generatedRecordBuilderAnnotation)
-                .addModifiers(metaData.builderClassModifiers()).addTypeVariables(typeVariables);
+                .addModifiers(metaData.builderClassModifiers()).addTypeVariables(builderTypeVariables);
         if (metaData.addClassRetainedGenerated()) {
             builder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
@@ -216,7 +238,7 @@ class InternalRecordBuilderProcessor {
         var classBuilder = TypeSpec.interfaceBuilder(stagedBuilderName(builderClassType))
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Add final staged builder to {@code $L}\n", recordClassType.name())
-                .addModifiers(Modifier.PUBLIC).addTypeVariables(typeVariables);
+                .addModifiers(Modifier.PUBLIC).addTypeVariables(recordTypeVariables);
         if (metaData.addClassRetainedGenerated()) {
             classBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
@@ -228,7 +250,7 @@ class InternalRecordBuilderProcessor {
         var builderMethod = MethodSpec.methodBuilder(metaData.builderMethodName())
                 .addJavadoc("Return a new builder with all fields set to the current values in this builder\n")
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT).addAnnotation(generatedRecordBuilderAnnotation)
-                .returns(builderClassType.typeName()).build();
+                .returns(builderClassTypeWildcard.typeName()).build();
         classBuilder.addMethod(builderMethod);
 
         builder.addType(classBuilder.build());
@@ -244,7 +266,7 @@ class InternalRecordBuilderProcessor {
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Add staged builder to {@code $L} for component {@code $L}\n", recordClassType.name(),
                         component.name())
-                .addModifiers(Modifier.PUBLIC).addTypeVariables(typeVariables);
+                .addModifiers(Modifier.PUBLIC).addTypeVariables(recordTypeVariables);
         if (metaData.addClassRetainedGenerated()) {
             classBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
@@ -274,7 +296,7 @@ class InternalRecordBuilderProcessor {
         var classBuilder = TypeSpec.interfaceBuilder(metaData.withClassName())
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Add withers to {@code $L}\n", recordClassType.name()).addModifiers(Modifier.PUBLIC)
-                .addTypeVariables(typeVariables);
+                .addTypeVariables(recordTypeVariables);
         if (metaData.addClassRetainedGenerated()) {
             classBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
@@ -301,7 +323,7 @@ class InternalRecordBuilderProcessor {
         var classBuilder = TypeSpec.interfaceBuilder(metaData.beanClassName())
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Add getters to {@code $L}\n", recordClassType.name()).addModifiers(Modifier.PUBLIC)
-                .addTypeVariables(typeVariables);
+                .addTypeVariables(builderTypeVariables);
         recordComponents.forEach(component -> {
             if (prefixedName(component, true).equals(component.name())) {
                 return;
@@ -319,9 +341,10 @@ class InternalRecordBuilderProcessor {
          * default MyRecord with(Consumer<MyRecordBuilder> consumer) { MyRecordBuilder builder = with();
          * consumer.accept(builder); return builder.build(); }
          */
-        var codeBlockBuilder = CodeBlock.builder().add("$T builder = with();\n", builderClassType.typeName())
+        var codeBlockBuilder = CodeBlock.builder().add("$T builder = with();\n", builderClassTypeWildcard.typeName())
                 .add("consumer.accept(builder);\n").add("return builder.$L();\n", metaData.buildMethodName());
-        var consumerType = ParameterizedTypeName.get(ClassName.get(Consumer.class), builderClassType.typeName());
+        var consumerType = ParameterizedTypeName.get(ClassName.get(Consumer.class),
+                builderClassTypeWildcard.typeName());
         var parameter = ParameterSpec.builder(consumerType, "consumer").build();
         var methodSpec = MethodSpec.methodBuilder(metaData.withClassMethodPrefix())
                 .addAnnotation(generatedRecordBuilderAnnotation)
@@ -338,13 +361,13 @@ class InternalRecordBuilderProcessor {
          * default MyRecordBuilder with() { return MyRecordBuilder.builder(r); }
          */
         var codeBlockBuilder = CodeBlock.builder().add("return new $L$L(", builderClassType.name(),
-                typeVariables.isEmpty() ? "" : "<>");
+                builderTypeVariables.isEmpty() ? "" : "<>");
         addComponentCallsAsArguments(-1, codeBlockBuilder, false);
         codeBlockBuilder.add(");");
         var methodSpec = MethodSpec.methodBuilder(metaData.withClassMethodPrefix())
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Return a new record builder using the current values")
-                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT).returns(builderClassType.typeName())
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT).returns(builderClassTypeWildcard.typeName())
                 .addCode(codeBlockBuilder.build()).build();
         classBuilder.addMethod(methodSpec);
     }
@@ -442,7 +465,7 @@ class InternalRecordBuilderProcessor {
         CodeBlock codeBlock = buildCodeBlock();
         var builder = MethodSpec.methodBuilder(recordClassType.name())
                 .addJavadoc("Static constructor/builder. Can be used instead of new $L(...)\n", recordClassType.name())
-                .addTypeVariables(typeVariables).addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .addTypeVariables(builderTypeVariables).addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addAnnotation(generatedRecordBuilderAnnotation).returns(recordClassType.typeName()).addCode(codeBlock);
         recordComponents.forEach(component -> {
             var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
@@ -544,10 +567,10 @@ class InternalRecordBuilderProcessor {
          */
         var codeBuilder = CodeBlock.builder();
         codeBuilder.add("return (this == o) || (");
-        if (typeVariables.isEmpty()) {
+        if (builderTypeVariables.isEmpty()) {
             codeBuilder.add("(o instanceof $L $L)", builderClassType.name(), uniqueVarName);
         } else {
-            String wildcardList = typeVariables.stream().map(__ -> "?").collect(Collectors.joining(","));
+            String wildcardList = builderTypeVariables.stream().map(__ -> "?").collect(Collectors.joining(","));
             codeBuilder.add("(o instanceof $L<$L> $L)", builderClassType.name(), wildcardList, uniqueVarName);
         }
         recordComponents.forEach(recordComponent -> {
@@ -622,10 +645,10 @@ class InternalRecordBuilderProcessor {
 
     private TypeName buildWithTypeName() {
         ClassName rawTypeName = ClassName.get(packageName, builderClassType.name() + "." + metaData.withClassName());
-        if (typeVariables.isEmpty()) {
+        if (recordTypeVariables.isEmpty()) {
             return rawTypeName;
         }
-        return ParameterizedTypeName.get(rawTypeName, typeVariables.toArray(new TypeName[] {}));
+        return ParameterizedTypeName.get(rawTypeName, recordTypeVariables.toArray(new TypeName[] {}));
     }
 
     private void addFromWithClass() {
@@ -641,7 +664,7 @@ class InternalRecordBuilderProcessor {
 
         var fromWithClassBuilder = TypeSpec.classBuilder(metaData.fromWithClassName())
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
-                .addAnnotation(generatedRecordBuilderAnnotation).addTypeVariables(typeVariables)
+                .addAnnotation(generatedRecordBuilderAnnotation).addTypeVariables(recordTypeVariables)
                 .addSuperinterface(buildWithTypeName());
         if (metaData.addClassRetainedGenerated()) {
             fromWithClassBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
@@ -676,9 +699,10 @@ class InternalRecordBuilderProcessor {
         var methodSpec = MethodSpec.methodBuilder(metaData.fromMethodName())
                 .addJavadoc("Return a \"with\"er for an existing record instance\n")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addAnnotation(generatedRecordBuilderAnnotation)
-                .addTypeVariables(typeVariables).addParameter(recordClassType.typeName(), metaData.fromMethodName())
-                .returns(buildWithTypeName()).addStatement("return new $L$L(from)", metaData.fromWithClassName(),
-                        typeVariables.isEmpty() ? "" : "<>")
+                .addTypeVariables(recordTypeVariables)
+                .addParameter(recordClassType.typeName(), metaData.fromMethodName()).returns(buildWithTypeName())
+                .addStatement("return new $L$L(from)", metaData.fromWithClassName(),
+                        recordTypeVariables.isEmpty() ? "" : "<>")
                 .build();
         builder.addMethod(methodSpec);
     }
@@ -703,7 +727,7 @@ class InternalRecordBuilderProcessor {
                 .addJavadoc(
                         "Return a new builder with all fields set to the values taken from the given record instance\n")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addAnnotation(generatedRecordBuilderAnnotation)
-                .addTypeVariables(typeVariables).addParameter(recordClassType.typeName(), "from")
+                .addTypeVariables(builderTypeVariables).addParameter(recordClassType.typeName(), "from")
                 .returns(builderClassType.typeName()).addStatement(codeBuilder.build()).build();
         builder.addMethod(methodSpec);
     }
@@ -717,7 +741,7 @@ class InternalRecordBuilderProcessor {
         var methodSpec = MethodSpec.methodBuilder(metaData.builderMethodName())
                 .addJavadoc("Return a new builder with all fields set to default Java values\n")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addAnnotation(generatedRecordBuilderAnnotation)
-                .addTypeVariables(typeVariables).returns(builderClassType.typeName())
+                .addTypeVariables(builderTypeVariables).returns(builderClassType.typeName())
                 .addStatement("return new $T()", builderClassType.typeName()).build();
         builder.addMethod(methodSpec);
     }
@@ -760,7 +784,7 @@ class InternalRecordBuilderProcessor {
         var methodSpec = MethodSpec.methodBuilder(builderMethodName)
                 .addJavadoc("Return the first stage of a staged builder\n")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addAnnotation(generatedRecordBuilderAnnotation)
-                .addTypeVariables(typeVariables).returns(stagedBuilderType(recordComponents.get(0)).typeName())
+                .addTypeVariables(builderTypeVariables).returns(stagedBuilderType(recordComponents.get(0)).typeName())
                 .addCode(codeBlock.build()).build();
         builder.addMethod(methodSpec);
     }
@@ -787,8 +811,8 @@ class InternalRecordBuilderProcessor {
         var methodSpec = MethodSpec.methodBuilder(metaData.componentsMethodName()).addJavadoc(
                 "Return a stream of the record components as map entries keyed with the component name and the value as the component value\n")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addParameter(recordClassType.typeName(), "record")
-                .addAnnotation(generatedRecordBuilderAnnotation).addTypeVariables(typeVariables).returns(mapEntryType)
-                .addStatement(codeBuilder.build()).build();
+                .addAnnotation(generatedRecordBuilderAnnotation).addTypeVariables(recordTypeVariables)
+                .returns(mapEntryType).addStatement(codeBuilder.build()).build();
         builder.addMethod(methodSpec);
     }
 
@@ -991,7 +1015,7 @@ class InternalRecordBuilderProcessor {
          * public MyRecordBuilder p(T p) { this.p = p; return this; }
          */
         var methodSpec = MethodSpec.methodBuilder(prefixedName(component, false)).addModifiers(Modifier.PUBLIC)
-                .addAnnotation(generatedRecordBuilderAnnotation).returns(builderClassType.typeName());
+                .addAnnotation(generatedRecordBuilderAnnotation).returns(setterReturnType);
 
         if (metaData.onceOnlyAssignment()) {
             var onceOnlyCheck = CodeBlock.builder()
@@ -1019,7 +1043,12 @@ class InternalRecordBuilderProcessor {
         });
 
         addConstructorAnnotations(component, parameterSpecBuilder);
-        methodSpec.addStatement("return this").addParameter(parameterSpecBuilder.build());
+        if (metaData.parameterizedBuilder()) {
+            methodSpec.addStatement("return (SELF) this");
+        } else {
+            methodSpec.addStatement("return this");
+        }
+        methodSpec.addParameter(parameterSpecBuilder.build());
 
         builder.addMethod(methodSpec.build());
     }
@@ -1058,7 +1087,7 @@ class InternalRecordBuilderProcessor {
     private List<TypeVariableName> typeVariablesWithReturn() {
         var variables = new ArrayList<TypeVariableName>();
         variables.add(rType);
-        variables.addAll(typeVariables);
+        variables.addAll(builderTypeVariables);
         return variables;
     }
 
@@ -1068,7 +1097,7 @@ class InternalRecordBuilderProcessor {
          *
          * default <R> R map(Function<R, T> proc) { return proc.apply(p()); }
          */
-        var localTypeVariables = isMap ? typeVariablesWithReturn() : typeVariables;
+        var localTypeVariables = isMap ? typeVariablesWithReturn() : builderTypeVariables;
         var typeName = localTypeVariables.isEmpty() ? ClassName.get("", className)
                 : ParameterizedTypeName.get(ClassName.get("", className), localTypeVariables.toArray(TypeName[]::new));
         var methodBuilder = MethodSpec.methodBuilder(methodName).addAnnotation(generatedRecordBuilderAnnotation)
@@ -1095,7 +1124,7 @@ class InternalRecordBuilderProcessor {
          *
          * @FunctionalInterface interface Function<R, T> { R apply(T a); }
          */
-        var localTypeVariables = isMap ? typeVariablesWithReturn() : typeVariables;
+        var localTypeVariables = isMap ? typeVariablesWithReturn() : builderTypeVariables;
         var methodBuilder = MethodSpec.methodBuilder("apply").addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
         recordComponents.forEach(component -> {
             var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
@@ -1128,6 +1157,6 @@ class InternalRecordBuilderProcessor {
     }
 
     private ClassType stagedBuilderType(ClassType component) {
-        return getClassTypeFromNames(ClassName.get("", stagedBuilderName(component)), typeVariables);
+        return getClassTypeFromNames(ClassName.get("", stagedBuilderName(component)), recordTypeVariables);
     }
 }
