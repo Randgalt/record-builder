@@ -29,7 +29,7 @@
         <module>record-builder-processor</module>
         <module>record-builder-test</module>
         <module>record-builder-validator</module>
-        <module>record-builder-option</module>
+        <module>record-builder-wrappers</module>
     </modules>
 
     <properties>
@@ -132,6 +132,12 @@
             <dependency>
                 <groupId>io.soabase.record-builder</groupId>
                 <artifactId>record-builder-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.soabase.record-builder</groupId>
+                <artifactId>record-builder-wrappers</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

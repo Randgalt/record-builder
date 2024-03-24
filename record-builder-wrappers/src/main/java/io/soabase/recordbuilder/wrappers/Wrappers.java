@@ -13,26 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.soabase.recordbuilder.option;
+package io.soabase.recordbuilder.wrappers;
 
 import java.util.Optional;
 
-public sealed interface Option<T> permits Some, None {
-    T value();
-
-    static <T> Some<T> some(T value) {
-        return new Some<>(value);
+public class Wrappers {
+    private Wrappers() {
     }
 
-    static <T> None<T> none() {
-        return new None<>();
-    }
-
-    static <T> Option<T> of(T value) {
-        return (value != null) ? some(value) : none();
-    }
-
-    static <T> Option<T> from(Optional<T> optional) {
-        return optional.isPresent() ? some(optional.get()) : none();
+    public static <T> Option<T> deconstruct(Optional<T> optional) {
+        return Option.wrap(optional);
     }
 }

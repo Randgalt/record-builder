@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.soabase.recordbuilder.option;
+package io.soabase.recordbuilder.test.deconstruct;
 
-public record None<T>() implements Option<T> {
-    @Override
-    public T value() {
-        throw new NullPointerException();
-    }
+import io.soabase.recordbuilder.core.RecordBuilderDeconstruct;
+
+import java.util.Optional;
+
+@RecordBuilderDeconstruct
+public record OptionalToOption(String a, Optional<String> b) {
 }

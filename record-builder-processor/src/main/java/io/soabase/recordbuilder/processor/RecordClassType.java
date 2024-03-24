@@ -18,20 +18,27 @@ package io.soabase.recordbuilder.processor;
 import com.squareup.javapoet.TypeName;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.RecordComponentElement;
 import java.util.List;
 
 public class RecordClassType extends ClassType {
     private final TypeName rawTypeName;
+    private final RecordComponentElement recordComponent;
     private final List<? extends AnnotationMirror> accessorAnnotations;
     private final List<? extends AnnotationMirror> canonicalConstructorAnnotations;
 
-    public RecordClassType(TypeName typeName, TypeName rawTypeName, String name,
+    public RecordClassType(TypeName typeName, TypeName rawTypeName, RecordComponentElement recordComponent, String name,
             List<? extends AnnotationMirror> accessorAnnotations,
             List<? extends AnnotationMirror> canonicalConstructorAnnotations) {
         super(typeName, name);
         this.rawTypeName = rawTypeName;
+        this.recordComponent = recordComponent;
         this.accessorAnnotations = accessorAnnotations;
         this.canonicalConstructorAnnotations = canonicalConstructorAnnotations;
+    }
+
+    public RecordComponentElement recordComponent() {
+        return recordComponent;
     }
 
     public TypeName rawTypeName() {

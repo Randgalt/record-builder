@@ -40,6 +40,11 @@
             <groupId>io.soabase.record-builder</groupId>
             <artifactId>record-builder-core</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>io.soabase.record-builder</groupId>
+            <artifactId>record-builder-wrappers</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

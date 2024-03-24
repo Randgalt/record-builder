@@ -68,7 +68,8 @@ class InternalRecordBuilderProcessor {
         recordClassType = ElementUtils.getClassType(record, record.getTypeParameters());
         packageName = packageNameOpt.orElse(recordActualPackage);
         builderClassType = ElementUtils.getClassType(packageName,
-                getBuilderName(record, recordClassType, metaData.suffix(), metaData.prefixEnclosingClassNames()), record.getTypeParameters());
+                getBuilderName(record, recordClassType, metaData.suffix(), metaData.prefixEnclosingClassNames()),
+                record.getTypeParameters());
         typeVariables = record.getTypeParameters().stream().map(TypeVariableName::get).collect(Collectors.toList());
         recordComponents = buildRecordComponents(processingEnv, record);
         uniqueVarName = getUniqueVarName();

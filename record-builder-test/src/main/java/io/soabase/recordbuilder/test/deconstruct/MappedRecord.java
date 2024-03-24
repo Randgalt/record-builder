@@ -13,12 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.soabase.recordbuilder.option;
+package io.soabase.recordbuilder.test.deconstruct;
 
-import static java.util.Objects.requireNonNull;
+import io.soabase.recordbuilder.core.RecordBuilderDeconstruct;
 
-public record Some<T>(T value) implements Option<T> {
-    public Some {
-        requireNonNull(value, "value is null");
+import java.time.Instant;
+
+@RecordBuilderDeconstruct
+public record MappedRecord(int i, double d, Instant dt) {
+    public interface SomeInterface {
+        String getName();
+
+        int getValue();
+    }
+
+    public record SomeInterfaceRecord(String name, int value) {
+    }
+
+    public static SomeInterfaceRecord apply(SomeInterface someInterface) {
+        return new SomeInterfaceRecord(someInterface.getName(), someInterface.getValue());
     }
 }

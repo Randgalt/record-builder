@@ -125,7 +125,7 @@ public class ElementUtils {
             List<? extends AnnotationMirror> canonicalConstructorAnnotations) {
         var typeName = TypeName.get(recordComponent.asType());
         var rawTypeName = TypeName.get(processingEnv.getTypeUtils().erasure(recordComponent.asType()));
-        return new RecordClassType(typeName, rawTypeName, recordComponent.getSimpleName().toString(),
+        return new RecordClassType(typeName, rawTypeName, recordComponent, recordComponent.getSimpleName().toString(),
                 accessorAnnotations, canonicalConstructorAnnotations);
     }
 
@@ -137,12 +137,11 @@ public class ElementUtils {
         return prefix + Character.toUpperCase(name.charAt(0)) + name.substring(1);
     }
 
-    public static String getBuilderName(TypeElement element, ClassType classType,
-                                        String suffix, boolean prefixEnclosingClassNames) {
+    public static String getBuilderName(TypeElement element, ClassType classType, String suffix,
+            boolean prefixEnclosingClassNames) {
         // generate the class name
         var baseName = classType.name() + suffix;
-        return prefixEnclosingClassNames ? (getBuilderNamePrefix(element.getEnclosingElement()) + baseName)
-                : baseName;
+        return prefixEnclosingClassNames ? (getBuilderNamePrefix(element.getEnclosingElement()) + baseName) : baseName;
     }
 
     public static Optional<? extends Element> findCanonicalConstructor(TypeElement record) {

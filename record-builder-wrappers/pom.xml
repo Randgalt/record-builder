@@ -26,9 +26,11 @@
         <version>42-SNAPSHOT</version>
     </parent>
 
-    <artifactId>record-builder-option</artifactId>
+    <artifactId>record-builder-wrappers</artifactId>
 
     <properties>
         <license-file-path>${project.parent.basedir}/src/etc/header.txt</license-file-path>
+
+        <jdk-version>21</jdk-version>
     </properties>
 </project>

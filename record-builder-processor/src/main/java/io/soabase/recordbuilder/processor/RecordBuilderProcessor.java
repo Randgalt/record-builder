@@ -19,6 +19,7 @@ import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
 import io.soabase.recordbuilder.core.RecordBuilder;
+import io.soabase.recordbuilder.core.RecordBuilderDeconstruct;
 import io.soabase.recordbuilder.core.RecordBuilderGenerated;
 import io.soabase.recordbuilder.core.RecordInterface;
 
@@ -42,10 +43,13 @@ import java.util.Set;
 
 public class RecordBuilderProcessor extends AbstractProcessor {
     private static final String RECORD_BUILDER = RecordBuilder.class.getName();
+    private static final String RECORD_BUILDER_DECONSTRUCT = RecordBuilderDeconstruct.class.getName();
     private static final String RECORD_BUILDER_INCLUDE = RecordBuilder.Include.class.getName().replace('$', '.');
     private static final String RECORD_INTERFACE = RecordInterface.class.getName();
     private static final String RECORD_INTERFACE_INCLUDE = RecordInterface.Include.class.getName().replace('$', '.');
 
+    static final AnnotationSpec generatedRecordBuilderDeconstructAnnotation = AnnotationSpec.builder(Generated.class)
+            .addMember("value", "$S", RecordBuilderDeconstruct.class.getName()).build();
     static final AnnotationSpec generatedRecordBuilderAnnotation = AnnotationSpec.builder(Generated.class)
             .addMember("value", "$S", RecordBuilder.class.getName()).build();
     static final AnnotationSpec generatedRecordInterfaceAnnotation = AnnotationSpec.builder(Generated.class)
@@ -85,6 +89,9 @@ public class RecordBuilderProcessor extends AbstractProcessor {
                     getMetaData(typeElement), Optional.empty(), false);
         } else if (annotationClass.equals(RECORD_BUILDER_INCLUDE) || annotationClass.equals(RECORD_INTERFACE_INCLUDE)) {
             processIncludes(element, getMetaData(element), annotationClass);
+        } else if (annotationClass.equals(RECORD_BUILDER_DECONSTRUCT)) {
+            var typeElement = (TypeElement) element;
+            processRecordBuilderDeconstruct(typeElement, getDeconstructMetaData(typeElement), Optional.empty());
         } else {
             var recordBuilderTemplate = annotation.getAnnotation(RecordBuilder.Template.class);
             if (recordBuilderTemplate != null) {
@@ -96,6 +103,12 @@ public class RecordBuilderProcessor extends AbstractProcessor {
                 }
             }
         }
+    }
+
+    private RecordBuilderDeconstruct.Options getDeconstructMetaData(Element element) {
+        var recordSpecificMetaData = element.getAnnotation(RecordBuilderDeconstruct.Options.class);
+        return (recordSpecificMetaData != null) ? recordSpecificMetaData
+                : RecordBuilderOptions.buildDeconstruct(processingEnv.getOptions());
     }
 
     private RecordBuilder.Options getMetaData(Element element) {
@@ -175,7 +188,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
             return;
         }
         writeRecordInterfaceJavaFile(element, internalProcessor.packageName(), internalProcessor.recordClassType(),
-                internalProcessor.recordType(), metaData);
+                internalProcessor.recordType(), metaData.fileIndent(), metaData.fileComment());
     }
 
     private void processRecordBuilder(TypeElement record, RecordBuilder.Options metaData,
@@ -194,7 +207,16 @@ public class RecordBuilderProcessor extends AbstractProcessor {
 
         var internalProcessor = new InternalRecordBuilderProcessor(processingEnv, record, metaData, packageName);
         writeRecordBuilderJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(),
-                internalProcessor.builderType(), metaData);
+                internalProcessor.builderType(), metaData.fileIndent(), metaData.fileComment());
+    }
+
+    private void processRecordBuilderDeconstruct(TypeElement record, RecordBuilderDeconstruct.Options metaData,
+            Optional<String> packageName) {
+        // TODO validateMetaData(metaData, record);
+
+        var internalProcessor = new InternalRecordDeconstructProcessor(processingEnv, record, metaData, packageName);
+        writeRecordBuilderJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(),
+                internalProcessor.builderType(), metaData.fileIndent(), metaData.fileComment());
     }
 
     private void validateMetaData(RecordBuilder.Options metaData, Element record) {
@@ -214,9 +236,9 @@ public class RecordBuilderProcessor extends AbstractProcessor {
     }
 
     private void writeRecordBuilderJavaFile(TypeElement record, String packageName, ClassType builderClassType,
-            TypeSpec builderType, RecordBuilder.Options metaData) {
+            TypeSpec builderType, String fileIndent, String fileComment) {
         // produces the Java file
-        JavaFile javaFile = javaFileBuilder(packageName, builderType, metaData);
+        JavaFile javaFile = javaFileBuilder(packageName, builderType, fileIndent, fileComment);
         Filer filer = processingEnv.getFiler();
         try {
             deletePossibleClassFile(packageName, builderClassType.name());
@@ -233,8 +255,8 @@ public class RecordBuilderProcessor extends AbstractProcessor {
     }
 
     private void writeRecordInterfaceJavaFile(TypeElement element, String packageName, ClassType classType,
-            TypeSpec type, RecordBuilder.Options metaData) {
-        JavaFile javaFile = javaFileBuilder(packageName, type, metaData);
+            TypeSpec type, String fileIndent, String fileComment) {
+        JavaFile javaFile = javaFileBuilder(packageName, type, fileIndent, fileComment);
 
         String recordSourceCode = javaFile.toString();
 
@@ -253,12 +275,10 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         }
     }
 
-    private JavaFile javaFileBuilder(String packageName, TypeSpec type, RecordBuilder.Options metaData) {
-        var javaFileBuilder = JavaFile.builder(packageName, type).skipJavaLangImports(true)
-                .indent(metaData.fileIndent());
-        var comment = metaData.fileComment();
-        if ((comment != null) && !comment.isEmpty()) {
-            javaFileBuilder.addFileComment(comment);
+    private JavaFile javaFileBuilder(String packageName, TypeSpec type, String fileIndent, String fileComment) {
+        var javaFileBuilder = JavaFile.builder(packageName, type).skipJavaLangImports(true).indent(fileIndent);
+        if ((fileComment != null) && !fileComment.isEmpty()) {
+            javaFileBuilder.addFileComment(fileComment);
         }
         return javaFileBuilder.build();
     }
