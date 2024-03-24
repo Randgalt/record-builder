@@ -32,8 +32,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.squareup</groupId>
-            <artifactId>javapoet</artifactId>
+            <groupId>io.soabase.java-composer</groupId>
+            <artifactId>java-composer</artifactId>
         </dependency>
 
         <dependency>

@@ -36,7 +36,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 
 public class RecordBuilderProcessor extends AbstractProcessor {
     private static final String RECORD_BUILDER = RecordBuilder.class.getName();
@@ -173,7 +172,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
             return;
         }
         writeRecordInterfaceJavaFile(element, internalProcessor.packageName(), internalProcessor.recordClassType(),
-                internalProcessor.recordType(), metaData, internalProcessor::toRecord);
+                internalProcessor.recordType(), metaData);
     }
 
     private void processRecordBuilder(TypeElement record, RecordBuilder.Options metaData,
@@ -229,12 +228,10 @@ public class RecordBuilderProcessor extends AbstractProcessor {
     }
 
     private void writeRecordInterfaceJavaFile(TypeElement element, String packageName, ClassType classType,
-            TypeSpec type, RecordBuilder.Options metaData, Function<String, String> toRecordProc) {
+            TypeSpec type, RecordBuilder.Options metaData) {
         JavaFile javaFile = javaFileBuilder(packageName, type, metaData);
 
-        String classSourceCode = javaFile.toString();
-        int generatedIndex = classSourceCode.indexOf("@Generated");
-        String recordSourceCode = toRecordProc.apply(classSourceCode);
+        String recordSourceCode = javaFile.toString();
 
         Filer filer = processingEnv.getFiler();
         try {
