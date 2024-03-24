@@ -21,7 +21,8 @@ import io.soabase.recordbuilder.core.RecordBuilder.BuilderMode;
 import io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaData;
 
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.*;
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -34,6 +35,8 @@ import java.util.stream.Stream;
 import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.EXCLUDE_WILDCARD_TYPES;
 import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.STANDARD_FOR_SETTER;
 import static io.soabase.recordbuilder.processor.ElementUtils.*;
+import static io.soabase.recordbuilder.processor.ProcessorCommon.addVisibility;
+import static io.soabase.recordbuilder.processor.ProcessorCommon.buildRecordComponents;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
 
@@ -55,21 +58,19 @@ class InternalRecordBuilderProcessor {
     private static final TypeName validatorTypeName = ClassName.get("io.soabase.recordbuilder.validator",
             "RecordBuilderValidator");
     private static final TypeVariableName rType = TypeVariableName.get("R");
-    private final ProcessingEnvironment processingEnv;
     private final Modifier constructorVisibilityModifier;
     private final Map<String, CodeBlock> initializers;
 
     InternalRecordBuilderProcessor(ProcessingEnvironment processingEnv, TypeElement record,
             RecordBuilder.Options metaData, Optional<String> packageNameOpt) {
-        this.processingEnv = processingEnv;
         var recordActualPackage = ElementUtils.getPackageName(record);
         this.metaData = metaData;
         recordClassType = ElementUtils.getClassType(record, record.getTypeParameters());
         packageName = packageNameOpt.orElse(recordActualPackage);
         builderClassType = ElementUtils.getClassType(packageName,
-                getBuilderName(record, metaData, recordClassType, metaData.suffix()), record.getTypeParameters());
+                getBuilderName(record, recordClassType, metaData.suffix(), metaData.prefixEnclosingClassNames()), record.getTypeParameters());
         typeVariables = record.getTypeParameters().stream().map(TypeVariableName::get).collect(Collectors.toList());
-        recordComponents = buildRecordComponents(record);
+        recordComponents = buildRecordComponents(processingEnv, record);
         uniqueVarName = getUniqueVarName();
         notNullPattern = Pattern.compile(metaData.interpretNotNullsPattern());
         collectionBuilderUtils = new CollectionBuilderUtils(recordComponents, this.metaData);
@@ -81,7 +82,7 @@ class InternalRecordBuilderProcessor {
         if (metaData.addClassRetainedGenerated()) {
             builder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
-        addVisibility(recordActualPackage.equals(packageName), record.getModifiers());
+        addVisibility(builder, recordActualPackage.equals(packageName), record.getModifiers());
         if (metaData.enableWither()) {
             addWithNestedClass();
         }
@@ -143,37 +144,6 @@ class InternalRecordBuilderProcessor {
 
     TypeSpec builderType() {
         return builderType;
-    }
-
-    private void addVisibility(boolean builderIsInRecordPackage, Set<Modifier> modifiers) {
-        if (builderIsInRecordPackage) {
-            if (modifiers.contains(Modifier.PUBLIC) || modifiers.contains(Modifier.PRIVATE)
-                    || modifiers.contains(Modifier.PROTECTED)) {
-                builder.addModifiers(Modifier.PUBLIC); // builders are top level classes - can only be public or
-                // package-private
-            }
-            // is package-private
-        } else {
-            builder.addModifiers(Modifier.PUBLIC);
-        }
-    }
-
-    private List<RecordClassType> buildRecordComponents(TypeElement record) {
-        var accessorAnnotations = record.getRecordComponents().stream().map(e -> e.getAccessor().getAnnotationMirrors())
-                .collect(Collectors.toList());
-        var canonicalConstructorAnnotations = ElementUtils.findCanonicalConstructor(record)
-                .map(constructor -> ((ExecutableElement) constructor).getParameters().stream()
-                        .map(Element::getAnnotationMirrors).collect(Collectors.toList()))
-                .orElse(List.of());
-        var recordComponents = record.getRecordComponents();
-        return IntStream.range(0, recordComponents.size()).mapToObj(index -> {
-            var thisAccessorAnnotations = (accessorAnnotations.size() > index) ? accessorAnnotations.get(index)
-                    : List.<AnnotationMirror> of();
-            var thisCanonicalConstructorAnnotations = (canonicalConstructorAnnotations.size() > index)
-                    ? canonicalConstructorAnnotations.get(index) : List.<AnnotationMirror> of();
-            return ElementUtils.getRecordClassType(processingEnv, recordComponents.get(index), thisAccessorAnnotations,
-                    thisCanonicalConstructorAnnotations);
-        }).collect(Collectors.toList());
     }
 
     private void addOnceOnlySupport() {

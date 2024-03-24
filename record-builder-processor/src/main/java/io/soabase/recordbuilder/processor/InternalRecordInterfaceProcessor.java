@@ -53,7 +53,7 @@ class InternalRecordInterfaceProcessor {
 
         ClassType ifaceClassType = ElementUtils.getClassType(iface, iface.getTypeParameters());
         recordClassType = ElementUtils.getClassType(packageName,
-                getBuilderName(iface, metaData, ifaceClassType, metaData.interfaceSuffix()), iface.getTypeParameters());
+                getBuilderName(iface, ifaceClassType, metaData.interfaceSuffix(), metaData.prefixEnclosingClassNames()), iface.getTypeParameters());
         List<TypeVariableName> typeVariables = iface.getTypeParameters().stream().map(TypeVariableName::get)
                 .collect(Collectors.toList());
 
@@ -76,7 +76,7 @@ class InternalRecordInterfaceProcessor {
 
         if (addRecordBuilder) {
             ClassType builderClassType = ElementUtils.getClassType(packageName,
-                    getBuilderName(iface, metaData, recordClassType, metaData.suffix()) + "."
+                    getBuilderName(iface, recordClassType, metaData.suffix(), metaData.prefixEnclosingClassNames()) + "."
                             + metaData.withClassName(),
                     iface.getTypeParameters());
             builder.addAnnotation(RecordBuilder.class);
