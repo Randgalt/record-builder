@@ -29,6 +29,7 @@
         <module>record-builder-processor</module>
         <module>record-builder-test</module>
         <module>record-builder-validator</module>
+        <module>record-builder-option</module>
     </modules>
 
     <properties>
