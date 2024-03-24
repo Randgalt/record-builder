@@ -56,7 +56,7 @@
 
         <license-file-path>src/etc/header.txt</license-file-path>
 
-        <javapoet-version>1.12.1</javapoet-version>
+        <java-composer-version>1.0</java-composer-version>
         <junit-jupiter-version>5.5.2</junit-jupiter-version>
         <assertj-core.version>3.24.2</assertj-core.version>
         <asm-version>7.2</asm-version>
@@ -123,9 +123,9 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>com.squareup</groupId>
-                <artifactId>javapoet</artifactId>
-                <version>${javapoet-version}</version>
+                <groupId>io.soabase.java-composer</groupId>
+                <artifactId>java-composer</artifactId>
+                <version>${java-composer-version}</version>
             </dependency>
 
             <dependency>
