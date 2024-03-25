@@ -18,19 +18,14 @@ package io.soabase.recordbuilder.processor;
 import com.squareup.javapoet.*;
 import io.soabase.recordbuilder.core.RecordBuilderDeconstruct;
 import io.soabase.recordbuilder.wrappers.Option;
-import io.soabase.recordbuilder.wrappers.Wrappers;
 
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeMirror;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
 import static io.soabase.recordbuilder.processor.ProcessorCommon.addVisibility;
@@ -43,7 +38,6 @@ class InternalRecordDeconstructProcessor {
     private final List<RecordClassType> recordComponents;
     private final TypeSpec.Builder builder;
     private final ClassType recordClassType;
-    private final List<TypeElement> mapperClasses;
     private final ProcessingEnvironment processingEnv;
 
     private static final TypeName optionalType = TypeName.get(Optional.class);
@@ -62,13 +56,7 @@ class InternalRecordDeconstructProcessor {
                 .collect(Collectors.toList());
         recordComponents = ProcessorCommon.buildRecordComponents(processingEnv, record);
 
-        Class<?>[] mapperClasses = (metaData.mapperClasses().length > 0) ? metaData.mapperClasses()
-                : new Class[] { Wrappers.class };
-        this.mapperClasses = Stream.of(mapperClasses)
-                .map(mapperClass -> processingEnv.getElementUtils().getTypeElement(mapperClass.getName())).toList();
-
-        builder = TypeSpec.recordBuilder(helperClassType.name()).addAnnotation(generatedRecordBuilderAnnotation)
-                .addModifiers(metaData.builderClassModifiers()).addTypeVariables(typeVariables);
+        builder = TypeSpec.recordBuilder(helperClassType.name()).addAnnotation(generatedRecordBuilderAnnotation).addTypeVariables(typeVariables);
         if (metaData.addClassRetainedGenerated()) {
             builder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
@@ -105,46 +93,18 @@ class InternalRecordDeconstructProcessor {
         IntStream.range(0, recordComponents.size()).forEach(index -> {
             RecordClassType recordComponent = recordComponents.get(index);
 
-            Optional<ExecutableElement> mapper = findMapper(recordComponent);
-
             if (index > 0) {
                 codeBlock.add(", ");
             }
 
-            TypeName typeName;
-            if (mapper.isPresent()) {
-                ExecutableElement mapperMethod = mapper.get();
+            codeBlock.add("$L.$L()", methodName, recordComponents.get(index).name());
 
-                typeName = ClassName.get(mapperMethod.getReturnType());
-                codeBlock.add("$T.$L($L.$L())", mapperMethod.getReturnType(), mapperMethod.getSimpleName(), methodName,
-                        recordComponents.get(index).name());
-            } else {
-                typeName = recordComponent.typeName();
-                codeBlock.add("$L.$L()", methodName, recordComponents.get(index).name());
-            }
-
-            builder.addField(typeName, recordComponent.name());
+            builder.addField(recordComponent.typeName(), recordComponent.name());
         });
         codeBlock.addStatement(")");
 
         methodBuilder.addCode(codeBlock.build());
 
         builder.addMethod(methodBuilder.build());
-    }
-
-    private Optional<ExecutableElement> findMapper(RecordClassType recordComponent) {
-        return mapperClasses.stream().flatMap(mapperClass -> mapperClass.getEnclosedElements().stream()
-                .filter(element -> element.getKind() == ElementKind.METHOD).map(element -> (ExecutableElement) element)
-                .filter(executableElement -> executableElement.getModifiers().contains(Modifier.PUBLIC)
-                        && executableElement.getModifiers().contains(Modifier.STATIC))
-                .filter(executableElement -> executableElement.getParameters().size() == 1)
-                .flatMap(executableElement -> {
-                    TypeMirror parameterType = executableElement.getParameters().get(0).asType();
-                    if (processingEnv.getTypeUtils().contains(recordComponent.recordComponent().asType(),
-                            parameterType)) {
-                        return Stream.of(executableElement);
-                    }
-                    return Stream.empty();
-                })).findFirst();
     }
 }

@@ -15,7 +15,6 @@
  */
 package io.soabase.recordbuilder.core;
 
-import javax.lang.model.element.Modifier;
 import java.lang.annotation.*;
 
 @Retention(RetentionPolicy.SOURCE)
@@ -65,13 +64,5 @@ public @interface RecordBuilderDeconstruct {
          * The name to use for the from-to-wither method
          */
         String fromMethodName() default "from";
-
-        Class<?>[] mapperClasses() default {};
-
-        /**
-         * Any additional {@link javax.lang.model.element.Modifier} you wish to apply to the builder. For example to
-         * make the builder public when the record is package protect.
-         */
-        Modifier[] builderClassModifiers() default {};
     }
 }

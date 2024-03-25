@@ -20,5 +20,5 @@ import io.soabase.recordbuilder.core.RecordBuilderDeconstruct;
 import java.util.Optional;
 
 @RecordBuilderDeconstruct
-public record OptionalToOption(String a, Optional<String> b) {
+public record OptionalToOption<T>(String a, Optional<T> b) {
 }

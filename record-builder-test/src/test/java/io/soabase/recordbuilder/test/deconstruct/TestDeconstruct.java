@@ -18,6 +18,7 @@ package io.soabase.recordbuilder.test.deconstruct;
 import io.soabase.recordbuilder.wrappers.Option;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,15 +27,15 @@ public class TestDeconstruct {
     @Test
     public void testOptionalToOption()
     {
-        assertThat(check(new OptionalToOption("a", Optional.of("there")))).isEqualTo("a-there");
-        assertThat(check(new OptionalToOption("b", Optional.of("here")))).isEqualTo("b-here");
-        assertThat(check(new OptionalToOption("0", Optional.empty()))).isEqualTo("0-empty");
+        assertThat(check(new OptionalToOption<>("a", Optional.of("there")))).isEqualTo("a-there");
+        assertThat(check(new OptionalToOption<>("b", Optional.of(Instant.now())))).isEqualTo("b-here");
+        assertThat(check(new OptionalToOption<>("0", Optional.empty()))).isEqualTo("0-empty");
     }
 
-    private static String check(OptionalToOption o) {
+    private static String check(OptionalToOption<?> o) {
         return switch (OptionalToOptionHelper.from(o)) {
-            case OptionalToOptionHelper(var s, Option(var v)) when s.equals("a") && v.equals("there") -> "a-there";
-            case OptionalToOptionHelper(var s, Option(var v)) when s.equals("b") && v.equals("here") -> "b-here";
+            case OptionalToOptionHelper(var s, Option(String v)) when s.equals("a") && v.equals("there") -> "a-there";
+            case OptionalToOptionHelper(var s, Option(Instant i)) when s.equals("b") -> "b-here";
             case OptionalToOptionHelper(var s, Option<?> opt) when s.equals("0") && opt.isEmpty() -> "0-empty";
             default -> "";
         };
