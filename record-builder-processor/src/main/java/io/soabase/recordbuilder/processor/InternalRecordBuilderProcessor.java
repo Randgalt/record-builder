@@ -161,12 +161,13 @@ class InternalRecordBuilderProcessor {
     }
 
     private List<RecordClassType> buildRecordComponents(TypeElement record) {
-        var accessorAnnotations = getRecordComponentAccessorAnnotations(record);
+        List<? extends RecordComponentElement> recordComponents = buildRecordComponentElements(record);
+
+        var accessorAnnotations = getRecordComponentAccessorAnnotations(record, recordComponents);
         var canonicalConstructorAnnotations = ElementUtils.findCanonicalConstructor(record)
                 .map(constructor -> ((ExecutableElement) constructor).getParameters().stream()
                         .map(Element::getAnnotationMirrors).collect(Collectors.toList()))
                 .orElse(List.of());
-        var recordComponents = record.getRecordComponents();
         return IntStream.range(0, recordComponents.size()).mapToObj(index -> {
             var thisAccessorAnnotations = (accessorAnnotations.size() > index) ? accessorAnnotations.get(index)
                     : List.<AnnotationMirror> of();
@@ -177,21 +178,32 @@ class InternalRecordBuilderProcessor {
         }).collect(Collectors.toList());
     }
 
-    private List<? extends List<? extends AnnotationMirror>> getRecordComponentAccessorAnnotations(TypeElement record) {
+    private List<? extends RecordComponentElement> buildRecordComponentElements(TypeElement record) {
+        // for some reason record.getRecordComponents() can contain duplicates - de-dup them
+
+        Set<Name> usedSet = new HashSet<>();
+        return record.getRecordComponents().stream()
+                .filter(recordComponentElement -> usedSet.add(recordComponentElement.getSimpleName())).toList();
+    }
+
+    private List<? extends List<? extends AnnotationMirror>> getRecordComponentAccessorAnnotations(TypeElement record,
+            List<? extends RecordComponentElement> recordComponentElements) {
         // for some reason. RecordComponentElement.getAccessor() is sometimes null - so, find the method manually
 
-        Map<Name, TypeMirror> components = record.getRecordComponents().stream()
+        Map<Name, TypeMirror> components = recordComponentElements.stream()
                 .collect(toMap(RecordComponentElement::getSimpleName, Element::asType));
 
         Map<Name, ? extends List<? extends AnnotationMirror>> annotationMirrors = record.getEnclosedElements().stream()
                 .filter(element -> element.getKind() == ElementKind.METHOD).map(element -> (ExecutableElement) element)
-                .filter(executableElement -> executableElement.getParameters().isEmpty()).filter(executableElement -> {
+                .filter(executableElement -> executableElement.getParameters().isEmpty())
+                .filter(executableElement -> components.get(executableElement.getSimpleName()) != null)
+                .filter(executableElement -> {
                     TypeMirror componentType = components.get(executableElement.getSimpleName());
-                    return (componentType != null) && processingEnv.getTypeUtils()
+                    return processingEnv.getTypeUtils()
                             .isSameType(executableElement.getReturnType(), componentType);
                 }).collect(toMap(ExecutableElement::getSimpleName, Element::getAnnotationMirrors));
 
-        return record.getRecordComponents().stream().map(recordComponentElement -> {
+        return recordComponentElements.stream().map(recordComponentElement -> {
             List<? extends AnnotationMirror> mirrors = annotationMirrors.get(recordComponentElement.getSimpleName());
             return (mirrors != null) ? mirrors : List.<AnnotationMirror> of();
         }).toList();
