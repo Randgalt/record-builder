@@ -22,6 +22,7 @@ import io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMeta
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
+import javax.lang.model.type.TypeMirror;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -36,6 +37,7 @@ import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleIt
 import static io.soabase.recordbuilder.processor.ElementUtils.*;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
+import static java.util.stream.Collectors.toMap;
 
 class InternalRecordBuilderProcessor {
     private final RecordBuilder.Options metaData;
@@ -97,7 +99,7 @@ class InternalRecordBuilderProcessor {
         if (metaData.addStaticBuilder()) {
             addStaticBuilder();
         }
-        if (recordComponents.size() > 0) {
+        if (!recordComponents.isEmpty()) {
             addAllArgsConstructor();
         }
         if (metaData.builderMode() != BuilderMode.STAGED) {
@@ -159,8 +161,7 @@ class InternalRecordBuilderProcessor {
     }
 
     private List<RecordClassType> buildRecordComponents(TypeElement record) {
-        var accessorAnnotations = record.getRecordComponents().stream().map(e -> e.getAccessor().getAnnotationMirrors())
-                .collect(Collectors.toList());
+        var accessorAnnotations = getRecordComponentAccessorAnnotations(record);
         var canonicalConstructorAnnotations = ElementUtils.findCanonicalConstructor(record)
                 .map(constructor -> ((ExecutableElement) constructor).getParameters().stream()
                         .map(Element::getAnnotationMirrors).collect(Collectors.toList()))
@@ -174,6 +175,26 @@ class InternalRecordBuilderProcessor {
             return ElementUtils.getRecordClassType(processingEnv, recordComponents.get(index), thisAccessorAnnotations,
                     thisCanonicalConstructorAnnotations);
         }).collect(Collectors.toList());
+    }
+
+    private List<? extends List<? extends AnnotationMirror>> getRecordComponentAccessorAnnotations(TypeElement record) {
+        // for some reason. RecordComponentElement.getAccessor() is sometimes null - so, find the method manually
+
+        Map<Name, TypeMirror> components = record.getRecordComponents().stream()
+                .collect(toMap(RecordComponentElement::getSimpleName, Element::asType));
+
+        Map<Name, ? extends List<? extends AnnotationMirror>> annotationMirrors = record.getEnclosedElements().stream()
+                .filter(element -> element.getKind() == ElementKind.METHOD).map(element -> (ExecutableElement) element)
+                .filter(executableElement -> executableElement.getParameters().isEmpty()).filter(executableElement -> {
+                    TypeMirror componentType = components.get(executableElement.getSimpleName());
+                    return (componentType != null) && processingEnv.getTypeUtils()
+                            .isSameType(executableElement.getReturnType(), componentType);
+                }).collect(toMap(ExecutableElement::getSimpleName, Element::getAnnotationMirrors));
+
+        return record.getRecordComponents().stream().map(recordComponentElement -> {
+            List<? extends AnnotationMirror> mirrors = annotationMirrors.get(recordComponentElement.getSimpleName());
+            return (mirrors != null) ? mirrors : List.<AnnotationMirror> of();
+        }).toList();
     }
 
     private void addOnceOnlySupport() {
@@ -737,11 +758,9 @@ class InternalRecordBuilderProcessor {
             codeBlock.addStatement("$T $L = new $T()", builderClassType.typeName(), uniqueVarName,
                     builderClassType.typeName());
             codeBlock.add("return ");
-            recordComponents.forEach(recordComponent -> {
-                codeBlock.add("$L -> {\n", recordComponent.name()).indent()
-                        .addStatement("$L.$L($L)", uniqueVarName, recordComponent.name(), recordComponent.name())
-                        .add("return ");
-            });
+            recordComponents.forEach(recordComponent -> codeBlock.add("$L -> {\n", recordComponent.name()).indent()
+                    .addStatement("$L.$L($L)", uniqueVarName, recordComponent.name(), recordComponent.name())
+                    .add("return "));
             codeBlock.addStatement("() -> $L", uniqueVarName);
             IntStream.range(0, recordComponents.size()).forEach(__ -> codeBlock.unindent().addStatement("}"));
         } else {
