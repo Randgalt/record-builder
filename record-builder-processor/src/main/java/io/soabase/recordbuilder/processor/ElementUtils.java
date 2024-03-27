@@ -108,7 +108,7 @@ public class ElementUtils {
         if (typeParameters.isEmpty()) {
             return new ClassType(builderClassName, builderClassName.simpleName());
         }
-        TypeName[] typeNames = typeParameters.stream().map(TypeVariableName::get).toArray(TypeName[]::new);
+        TypeName[] typeNames = toTypeVariableNames(typeParameters).toArray(TypeName[]::new);
         return new ClassType(ParameterizedTypeName.get(builderClassName, typeNames), builderClassName.simpleName());
     }
 
@@ -119,6 +119,10 @@ public class ElementUtils {
         }
         TypeName[] typeNames = typeVariableNames.toArray(TypeName[]::new);
         return new ClassType(ParameterizedTypeName.get(builderClassName, typeNames), builderClassName.simpleName());
+    }
+
+    public static List<TypeVariableName> toTypeVariableNames(List<? extends TypeParameterElement> typeParameters) {
+        return typeParameters.stream().map(TypeVariableName::get).toList();
     }
 
     public static RecordClassType getRecordClassType(ProcessingEnvironment processingEnv,
