@@ -20,6 +20,7 @@ import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
 import io.soabase.recordbuilder.core.RecordBuilder;
 import io.soabase.recordbuilder.core.RecordBuilderGenerated;
+import io.soabase.recordbuilder.core.RecordTuple;
 import io.soabase.recordbuilder.core.RecordInterface;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -45,11 +46,14 @@ public class RecordBuilderProcessor extends AbstractProcessor {
     private static final String RECORD_BUILDER_INCLUDE = RecordBuilder.Include.class.getName().replace('$', '.');
     private static final String RECORD_INTERFACE = RecordInterface.class.getName();
     private static final String RECORD_INTERFACE_INCLUDE = RecordInterface.Include.class.getName().replace('$', '.');
+    private static final String RECORD_TUPLE = RecordTuple.class.getName();
 
     static final AnnotationSpec generatedRecordBuilderAnnotation = AnnotationSpec.builder(Generated.class)
             .addMember("value", "$S", RecordBuilder.class.getName()).build();
     static final AnnotationSpec generatedRecordInterfaceAnnotation = AnnotationSpec.builder(Generated.class)
             .addMember("value", "$S", RecordInterface.class.getName()).build();
+    static final AnnotationSpec generatedRecordTupleAnnotation = AnnotationSpec.builder(Generated.class)
+            .addMember("value", "$S", RecordTuple.class.getName()).build();
     static final AnnotationSpec recordBuilderGeneratedAnnotation = AnnotationSpec.builder(RecordBuilderGenerated.class)
             .build();
 
@@ -83,6 +87,9 @@ public class RecordBuilderProcessor extends AbstractProcessor {
             var typeElement = (TypeElement) element;
             processRecordInterface(typeElement, element.getAnnotation(RecordInterface.class).addRecordBuilder(),
                     getMetaData(typeElement), Optional.empty(), false);
+        } else if (annotationClass.equals(RECORD_TUPLE)) {
+            var typeElement = (TypeElement) element;
+            processRecordTuple(typeElement, getMetaData(typeElement), Optional.empty(), false);
         } else if (annotationClass.equals(RECORD_BUILDER_INCLUDE) || annotationClass.equals(RECORD_INTERFACE_INCLUDE)) {
             processIncludes(element, getMetaData(element), annotationClass);
         } else {
@@ -171,6 +178,19 @@ public class RecordBuilderProcessor extends AbstractProcessor {
 
         var internalProcessor = new InternalRecordInterfaceProcessor(processingEnv, element, addRecordBuilder, metaData,
                 packageName, fromTemplate);
+        if (!internalProcessor.isValid()) {
+            return;
+        }
+        writeRecordInterfaceJavaFile(element, internalProcessor.packageName(), internalProcessor.recordClassType(),
+                internalProcessor.recordType(), metaData);
+    }
+
+    private void processRecordTuple(TypeElement element, RecordBuilder.Options metaData, Optional<String> packageName,
+            boolean fromTemplate) {
+        validateMetaData(metaData, element);
+
+        var internalProcessor = new InternalRecordTupleProcessor(processingEnv, element, metaData, packageName,
+                fromTemplate);
         if (!internalProcessor.isValid()) {
             return;
         }
