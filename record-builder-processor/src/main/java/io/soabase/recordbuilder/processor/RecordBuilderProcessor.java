@@ -31,7 +31,10 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
+import javax.tools.FileObject;
 import javax.tools.JavaFileObject;
+import javax.tools.StandardLocation;
+import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Optional;
@@ -216,6 +219,8 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         JavaFile javaFile = javaFileBuilder(packageName, builderType, metaData);
         Filer filer = processingEnv.getFiler();
         try {
+            deletePossibleClassFile(packageName, builderClassType.name());
+
             String fullyQualifiedName = packageName.isEmpty() ? builderClassType.name()
                     : (packageName + "." + builderClassType.name());
             JavaFileObject sourceFile = filer.createSourceFile(fullyQualifiedName);
@@ -235,6 +240,8 @@ public class RecordBuilderProcessor extends AbstractProcessor {
 
         Filer filer = processingEnv.getFiler();
         try {
+            deletePossibleClassFile(packageName, classType.name());
+
             String fullyQualifiedName = packageName.isEmpty() ? classType.name()
                     : (packageName + "." + classType.name());
             JavaFileObject sourceFile = filer.createSourceFile(fullyQualifiedName);
@@ -262,5 +269,21 @@ public class RecordBuilderProcessor extends AbstractProcessor {
             message = message + ": " + e.getMessage();
         }
         processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, message, element);
+    }
+
+    private void deletePossibleClassFile(String packageName, String className) {
+        try {
+            FileObject resource = processingEnv.getFiler().getResource(StandardLocation.CLASS_OUTPUT, packageName,
+                    className + ".class");
+            File file = new File(resource.toUri());
+            if (file.exists()) {
+                if (!file.delete()) {
+                    processingEnv.getMessager().printMessage(Diagnostic.Kind.MANDATORY_WARNING,
+                            "Could not delete existing class file: %s".formatted(file));
+                }
+            }
+        } catch (IOException e) {
+            // ignore
+        }
     }
 }
