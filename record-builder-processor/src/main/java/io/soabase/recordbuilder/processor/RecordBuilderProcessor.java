@@ -31,7 +31,10 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
+import javax.tools.FileObject;
 import javax.tools.JavaFileObject;
+import javax.tools.StandardLocation;
+import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Optional;
@@ -171,7 +174,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         if (!internalProcessor.isValid()) {
             return;
         }
-        writeRecordInterfaceJavaFile(element, internalProcessor.packageName(), internalProcessor.recordClassType(),
+        writeJavaFile(element, internalProcessor.packageName(), internalProcessor.recordClassType(),
                 internalProcessor.recordType(), metaData);
     }
 
@@ -190,7 +193,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         validateMetaData(metaData, record);
 
         var internalProcessor = new InternalRecordBuilderProcessor(processingEnv, record, metaData, packageName);
-        writeRecordBuilderJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(),
+        writeJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(),
                 internalProcessor.builderType(), metaData);
     }
 
@@ -210,12 +213,14 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         }
     }
 
-    private void writeRecordBuilderJavaFile(TypeElement record, String packageName, ClassType builderClassType,
-            TypeSpec builderType, RecordBuilder.Options metaData) {
+    private void writeJavaFile(TypeElement record, String packageName, ClassType builderClassType, TypeSpec builderType,
+            RecordBuilder.Options metaData) {
         // produces the Java file
         JavaFile javaFile = javaFileBuilder(packageName, builderType, metaData);
         Filer filer = processingEnv.getFiler();
         try {
+            deletePossibleClassFile(packageName, builderClassType.name());
+
             String fullyQualifiedName = packageName.isEmpty() ? builderClassType.name()
                     : (packageName + "." + builderClassType.name());
             JavaFileObject sourceFile = filer.createSourceFile(fullyQualifiedName);
@@ -224,25 +229,6 @@ public class RecordBuilderProcessor extends AbstractProcessor {
             }
         } catch (IOException e) {
             handleWriteError(record, e);
-        }
-    }
-
-    private void writeRecordInterfaceJavaFile(TypeElement element, String packageName, ClassType classType,
-            TypeSpec type, RecordBuilder.Options metaData) {
-        JavaFile javaFile = javaFileBuilder(packageName, type, metaData);
-
-        String recordSourceCode = javaFile.toString();
-
-        Filer filer = processingEnv.getFiler();
-        try {
-            String fullyQualifiedName = packageName.isEmpty() ? classType.name()
-                    : (packageName + "." + classType.name());
-            JavaFileObject sourceFile = filer.createSourceFile(fullyQualifiedName);
-            try (Writer writer = sourceFile.openWriter()) {
-                writer.write(recordSourceCode);
-            }
-        } catch (IOException e) {
-            handleWriteError(element, e);
         }
     }
 
@@ -262,5 +248,21 @@ public class RecordBuilderProcessor extends AbstractProcessor {
             message = message + ": " + e.getMessage();
         }
         processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, message, element);
+    }
+
+    private void deletePossibleClassFile(String packageName, String className) {
+        try {
+            FileObject resource = processingEnv.getFiler().getResource(StandardLocation.CLASS_OUTPUT, packageName,
+                    className + ".class");
+            File file = new File(resource.toUri());
+            if (file.exists()) {
+                if (!file.delete()) {
+                    processingEnv.getMessager().printMessage(Diagnostic.Kind.MANDATORY_WARNING,
+                            "Could not delete existing class file: %s".formatted(file));
+                }
+            }
+        } catch (IOException e) {
+            // ignore
+        }
     }
 }
