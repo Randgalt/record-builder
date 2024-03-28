@@ -74,6 +74,12 @@ public @interface RecordBuilder {
         String interfaceSuffix() default "Record";
 
         /**
+         * Used by {@code RecordTuple}. The generated record will have the same name as the annotated element plus this
+         * suffix. E.g. if the element name is "Foo", the record will be named "FooTuple".
+         */
+        String tupleSuffix() default "Tuple";
+
+        /**
          * The name to use for the copy builder
          */
         String copyMethodName() default "builder";

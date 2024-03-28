@@ -24,13 +24,12 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import javax.lang.model.type.TypeMirror;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ElementUtils {
+    private static final Set<String> javaBeanPrefixes = Set.of("get", "is");
+
     public static Optional<? extends AnnotationMirror> findAnnotationMirror(ProcessingEnvironment processingEnv,
             Element element, String annotationClass) {
         return processingEnv.getElementUtils().getAllAnnotationMirrors(element).stream()
@@ -162,6 +161,14 @@ public class ElementUtils {
                             .collect(Collectors.toList());
                     return componentList.equals(parametersList);
                 }).findFirst();
+    }
+
+    public static Optional<String> stripBeanPrefix(String name) {
+        return javaBeanPrefixes.stream().filter(prefix -> name.startsWith(prefix) && (name.length() > prefix.length()))
+                .findFirst().map(prefix -> {
+                    var stripped = name.substring(prefix.length());
+                    return Character.toLowerCase(stripped.charAt(0)) + stripped.substring(1);
+                });
     }
 
     private static String getBuilderNamePrefix(Element element) {

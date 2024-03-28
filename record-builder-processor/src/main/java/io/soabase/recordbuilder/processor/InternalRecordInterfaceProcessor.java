@@ -40,8 +40,6 @@ class InternalRecordInterfaceProcessor {
     private final List<Component> recordComponents;
     private final ClassType recordClassType;
 
-    private static final Set<String> javaBeanPrefixes = Set.of("get", "is");
-
     private record Component(ExecutableElement element, Optional<String> alternateName) {
     }
 
@@ -154,7 +152,6 @@ class InternalRecordInterfaceProcessor {
         public IllegalInterface(String message) {
             super(message);
         }
-
     }
 
     private void getRecordComponents(TypeElement iface, Collection<Component> components, Set<String> visitedSet,
@@ -183,19 +180,12 @@ class InternalRecordInterfaceProcessor {
                                         iface.getSimpleName(), element.getSimpleName()));
                     }
                 }).filter(element -> usedNames.add(element.getSimpleName().toString()))
-                .map(element -> new Component(element, stripBeanPrefix(element.getSimpleName().toString())))
+                .map(element -> new Component(element,
+                        ElementUtils.stripBeanPrefix(element.getSimpleName().toString())))
                 .collect(Collectors.toCollection(() -> components));
         iface.getInterfaces().forEach(parentIface -> {
             TypeElement parentIfaceElement = (TypeElement) processingEnv.getTypeUtils().asElement(parentIface);
             getRecordComponents(parentIfaceElement, components, visitedSet, usedNames);
         });
-    }
-
-    private Optional<String> stripBeanPrefix(String name) {
-        return javaBeanPrefixes.stream().filter(prefix -> name.startsWith(prefix) && (name.length() > prefix.length()))
-                .findFirst().map(prefix -> {
-                    var stripped = name.substring(prefix.length());
-                    return Character.toLowerCase(stripped.charAt(0)) + stripped.substring(1);
-                });
     }
 }
