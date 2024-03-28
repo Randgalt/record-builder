@@ -174,7 +174,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         if (!internalProcessor.isValid()) {
             return;
         }
-        writeRecordInterfaceJavaFile(element, internalProcessor.packageName(), internalProcessor.recordClassType(),
+        writeJavaFile(element, internalProcessor.packageName(), internalProcessor.recordClassType(),
                 internalProcessor.recordType(), metaData);
     }
 
@@ -193,7 +193,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         validateMetaData(metaData, record);
 
         var internalProcessor = new InternalRecordBuilderProcessor(processingEnv, record, metaData, packageName);
-        writeRecordBuilderJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(),
+        writeJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(),
                 internalProcessor.builderType(), metaData);
     }
 
@@ -213,8 +213,8 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         }
     }
 
-    private void writeRecordBuilderJavaFile(TypeElement record, String packageName, ClassType builderClassType,
-            TypeSpec builderType, RecordBuilder.Options metaData) {
+    private void writeJavaFile(TypeElement record, String packageName, ClassType builderClassType, TypeSpec builderType,
+            RecordBuilder.Options metaData) {
         // produces the Java file
         JavaFile javaFile = javaFileBuilder(packageName, builderType, metaData);
         Filer filer = processingEnv.getFiler();
@@ -229,27 +229,6 @@ public class RecordBuilderProcessor extends AbstractProcessor {
             }
         } catch (IOException e) {
             handleWriteError(record, e);
-        }
-    }
-
-    private void writeRecordInterfaceJavaFile(TypeElement element, String packageName, ClassType classType,
-            TypeSpec type, RecordBuilder.Options metaData) {
-        JavaFile javaFile = javaFileBuilder(packageName, type, metaData);
-
-        String recordSourceCode = javaFile.toString();
-
-        Filer filer = processingEnv.getFiler();
-        try {
-            deletePossibleClassFile(packageName, classType.name());
-
-            String fullyQualifiedName = packageName.isEmpty() ? classType.name()
-                    : (packageName + "." + classType.name());
-            JavaFileObject sourceFile = filer.createSourceFile(fullyQualifiedName);
-            try (Writer writer = sourceFile.openWriter()) {
-                writer.write(recordSourceCode);
-            }
-        } catch (IOException e) {
-            handleWriteError(element, e);
         }
     }
 
