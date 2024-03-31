@@ -40,6 +40,8 @@ import java.io.Writer;
 import java.util.Optional;
 import java.util.Set;
 
+import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
+
 public class RecordBuilderProcessor extends AbstractProcessor {
     private static final String RECORD_BUILDER = RecordBuilder.class.getName();
     private static final String RECORD_BUILDER_INCLUDE = RecordBuilder.Include.class.getName().replace('$', '.');
@@ -174,6 +176,13 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         if (!internalProcessor.isValid()) {
             return;
         }
+
+        ClassType ifaceClassType = ElementUtils.getClassType(element, element.getTypeParameters());
+        String actualPackageName = packageName.orElseGet(() -> ElementUtils.getPackageName(element));
+        getBuilderName(element, metaData, ifaceClassType, metaData.interfaceSuffix());
+        deletePossibleClassFile(actualPackageName, ifaceClassType.name());
+        deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.suffix());
+
         writeJavaFile(element, internalProcessor.packageName(), internalProcessor.recordClassType(),
                 internalProcessor.recordType(), metaData);
     }
@@ -219,8 +228,6 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         JavaFile javaFile = javaFileBuilder(packageName, builderType, metaData);
         Filer filer = processingEnv.getFiler();
         try {
-            deletePossibleClassFile(packageName, builderClassType.name());
-
             String fullyQualifiedName = packageName.isEmpty() ? builderClassType.name()
                     : (packageName + "." + builderClassType.name());
             JavaFileObject sourceFile = filer.createSourceFile(fullyQualifiedName);
@@ -251,11 +258,12 @@ public class RecordBuilderProcessor extends AbstractProcessor {
     }
 
     private void deletePossibleClassFile(String packageName, String className) {
-/*
         try {
-            FileObject resource = processingEnv.getFiler().getResource(StandardLocation.CLASS_OUTPUT, packageName,
-                    className + ".class");
+            FileObject resource = processingEnv.getFiler().getResource(StandardLocation.SOURCE_PATH, packageName,
+                    className + ".java");
             File file = new File(resource.toUri());
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.MANDATORY_WARNING,
+                    "Exists: %s - File %s".formatted(file.exists(), file));
             if (file.exists()) {
                 if (!file.delete()) {
                     processingEnv.getMessager().printMessage(Diagnostic.Kind.MANDATORY_WARNING,
@@ -265,6 +273,5 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         } catch (IOException e) {
             // ignore
         }
-*/
     }
 }
