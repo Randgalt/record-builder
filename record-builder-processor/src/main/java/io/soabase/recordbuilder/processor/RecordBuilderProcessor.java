@@ -180,7 +180,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         ClassType ifaceClassType = ElementUtils.getClassType(element, element.getTypeParameters());
         String actualPackageName = packageName.orElseGet(() -> ElementUtils.getPackageName(element));
         getBuilderName(element, metaData, ifaceClassType, metaData.interfaceSuffix());
-        deletePossibleClassFile(actualPackageName, ifaceClassType.name());
+        deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix());
         deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.suffix());
 
         writeJavaFile(element, internalProcessor.packageName(), internalProcessor.recordClassType(),
@@ -259,7 +259,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
 
     private void deletePossibleClassFile(String packageName, String className) {
         try {
-            FileObject resource = processingEnv.getFiler().getResource(StandardLocation.SOURCE_PATH, packageName,
+            FileObject resource = processingEnv.getFiler().getResource(StandardLocation.SOURCE_OUTPUT, packageName,
                     className + ".java");
             File file = new File(resource.toUri());
             processingEnv.getMessager().printMessage(Diagnostic.Kind.MANDATORY_WARNING,
