@@ -180,8 +180,10 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         ClassType ifaceClassType = ElementUtils.getClassType(element, element.getTypeParameters());
         String actualPackageName = packageName.orElseGet(() -> ElementUtils.getPackageName(element));
         getBuilderName(element, metaData, ifaceClassType, metaData.interfaceSuffix());
-        deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix());
-        deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.suffix());
+        deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix(), StandardLocation.SOURCE_OUTPUT);
+        deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix() + metaData.suffix(), StandardLocation.SOURCE_OUTPUT);
+        deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix(), StandardLocation.CLASS_OUTPUT);
+        deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix() + metaData.suffix(), StandardLocation.CLASS_OUTPUT);
 
         writeJavaFile(element, internalProcessor.packageName(), internalProcessor.recordClassType(),
                 internalProcessor.recordType(), metaData);
@@ -257,10 +259,11 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, message, element);
     }
 
-    private void deletePossibleClassFile(String packageName, String className) {
+    private void deletePossibleClassFile(String packageName, String className, StandardLocation location) {
+        String extension = (location == StandardLocation.CLASS_OUTPUT) ? ".class" : ".java";
         try {
-            FileObject resource = processingEnv.getFiler().getResource(StandardLocation.SOURCE_OUTPUT, packageName,
-                    className + ".java");
+            FileObject resource = processingEnv.getFiler().getResource(location, packageName,
+                    className + extension);
             File file = new File(resource.toUri());
             processingEnv.getMessager().printMessage(Diagnostic.Kind.MANDATORY_WARNING,
                     "Exists: %s - File %s".formatted(file.exists(), file));
