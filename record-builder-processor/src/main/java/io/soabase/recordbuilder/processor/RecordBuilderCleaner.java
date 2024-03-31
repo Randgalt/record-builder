@@ -64,7 +64,7 @@ public class RecordBuilderCleaner extends AbstractProcessor {
             processRecordInterface(typeElement, element.getAnnotation(RecordInterface.class).addRecordBuilder(),
                     getMetaData(processingEnv, typeElement), Optional.empty(), false);
         } else if (annotationClass.equals(RECORD_INTERFACE_INCLUDE)) {
-        //    processIncludes(element, getMetaData(processingEnv, element), annotationClass); TODO
+            // processIncludes(element, getMetaData(processingEnv, element), annotationClass); TODO
         } else {
             var recordBuilderTemplate = annotation.getAnnotation(RecordBuilder.Template.class);
             if (recordBuilderTemplate != null) {
@@ -77,15 +77,19 @@ public class RecordBuilderCleaner extends AbstractProcessor {
     }
 
     private void processRecordInterface(TypeElement element, boolean addRecordBuilder, RecordBuilder.Options metaData,
-                                        Optional<String> packageName, boolean fromTemplate) {
+            Optional<String> packageName, boolean fromTemplate) {
         ClassType ifaceClassType = ElementUtils.getClassType(element, element.getTypeParameters());
         String actualPackageName = packageName.orElseGet(() -> ElementUtils.getPackageName(element));
         getBuilderName(element, metaData, ifaceClassType, metaData.interfaceSuffix());
 
-        boolean b1 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix(), StandardLocation.SOURCE_OUTPUT);
-        boolean b2 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix() + metaData.suffix(), StandardLocation.SOURCE_OUTPUT);
-        //boolean b3 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix(), StandardLocation.CLASS_OUTPUT);
-        //boolean b4 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix() + metaData.suffix(), StandardLocation.CLASS_OUTPUT);
+        boolean b1 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix(),
+                StandardLocation.SOURCE_OUTPUT);
+        boolean b2 = deletePossibleClassFile(actualPackageName,
+                ifaceClassType.name() + metaData.interfaceSuffix() + metaData.suffix(), StandardLocation.SOURCE_OUTPUT);
+        // boolean b3 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix(),
+        // StandardLocation.CLASS_OUTPUT);
+        // boolean b4 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix() +
+        // metaData.suffix(), StandardLocation.CLASS_OUTPUT);
     }
 
     private boolean deletePossibleClassFile(String packageName, String className, StandardLocation location) {
@@ -96,11 +100,9 @@ public class RecordBuilderCleaner extends AbstractProcessor {
         }
 
         try {
-            FileObject resource = processingEnv.getFiler().getResource(location, packageName,
-                    className + extension);
+            FileObject resource = processingEnv.getFiler().getResource(location, packageName, className + extension);
             File file = new File(resource.toUri());
-            processingEnv.getMessager().printMessage(Diagnostic.Kind.MANDATORY_WARNING,
-                    "Exists: %s - File %s".formatted(file.exists(), file));
+            System.err.println("XXXX Cleaner: Exists: %s - File %s".formatted(file.exists(), file));
             if (file.exists()) {
                 if (!file.delete()) {
                     processingEnv.getMessager().printMessage(Diagnostic.Kind.MANDATORY_WARNING,
