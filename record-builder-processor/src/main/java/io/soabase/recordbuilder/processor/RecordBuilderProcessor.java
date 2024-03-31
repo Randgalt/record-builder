@@ -37,6 +37,7 @@ import javax.tools.StandardLocation;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
@@ -47,6 +48,8 @@ public class RecordBuilderProcessor extends AbstractProcessor {
     private static final String RECORD_BUILDER_INCLUDE = RecordBuilder.Include.class.getName().replace('$', '.');
     private static final String RECORD_INTERFACE = RecordInterface.class.getName();
     private static final String RECORD_INTERFACE_INCLUDE = RecordInterface.Include.class.getName().replace('$', '.');
+
+    private static final Set<String> deletedSet = new HashSet<>();
 
     static final AnnotationSpec generatedRecordBuilderAnnotation = AnnotationSpec.builder(Generated.class)
             .addMember("value", "$S", RecordBuilder.class.getName()).build();
@@ -177,12 +180,8 @@ public class RecordBuilderProcessor extends AbstractProcessor {
 
         boolean b1 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix(), StandardLocation.SOURCE_OUTPUT);
         boolean b2 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix() + metaData.suffix(), StandardLocation.SOURCE_OUTPUT);
-        boolean b3 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix(), StandardLocation.CLASS_OUTPUT);
-        boolean b4 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix() + metaData.suffix(), StandardLocation.CLASS_OUTPUT);
-
-        if (b1 || b2 || b3 || b4) {
-            return;
-        }
+        //boolean b3 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix(), StandardLocation.CLASS_OUTPUT);
+        //boolean b4 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix() + metaData.suffix(), StandardLocation.CLASS_OUTPUT);
 
         var internalProcessor = new InternalRecordInterfaceProcessor(processingEnv, element, addRecordBuilder, metaData,
                 packageName, fromTemplate);
@@ -266,6 +265,11 @@ public class RecordBuilderProcessor extends AbstractProcessor {
 
     private boolean deletePossibleClassFile(String packageName, String className, StandardLocation location) {
         String extension = (location == StandardLocation.CLASS_OUTPUT) ? ".class" : ".java";
+
+        if (!deletedSet.add(packageName + "." + className + extension)) {
+            return false;
+        }
+
         try {
             FileObject resource = processingEnv.getFiler().getResource(location, packageName,
                     className + extension);
