@@ -251,6 +251,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
     }
 
     private void deletePossibleClassFile(String packageName, String className) {
+/*
         try {
             FileObject resource = processingEnv.getFiler().getResource(StandardLocation.CLASS_OUTPUT, packageName,
                     className + ".class");
@@ -264,5 +265,6 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         } catch (IOException e) {
             // ignore
         }
+*/
     }
 }
