@@ -29,6 +29,7 @@ import javax.tools.StandardLocation;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -42,9 +43,10 @@ public class RecordBuilderCleaner extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        annotations.forEach(annotation -> roundEnv.getElementsAnnotatedWith(annotation)
-                .forEach(element -> process(annotation, element)));
-        return false;
+        List<Boolean> results = annotations.stream()
+                .flatMap(annotation -> roundEnv.getElementsAnnotatedWith(annotation).stream().map(element -> process(annotation, element)))
+                .toList();
+        return results.stream().allMatch(b -> b);
     }
 
     @Override
@@ -57,11 +59,11 @@ public class RecordBuilderCleaner extends AbstractProcessor {
         return SourceVersion.latest();
     }
 
-    private void process(TypeElement annotation, Element element) {
+    private boolean process(TypeElement annotation, Element element) {
         String annotationClass = annotation.getQualifiedName().toString();
         if (annotationClass.equals(RECORD_INTERFACE)) {
             var typeElement = (TypeElement) element;
-            processRecordInterface(typeElement, element.getAnnotation(RecordInterface.class).addRecordBuilder(),
+            return processRecordInterface(typeElement, element.getAnnotation(RecordInterface.class).addRecordBuilder(),
                     getMetaData(processingEnv, typeElement), Optional.empty(), false);
         } else if (annotationClass.equals(RECORD_INTERFACE_INCLUDE)) {
             // processIncludes(element, getMetaData(processingEnv, element), annotationClass); TODO
@@ -69,14 +71,15 @@ public class RecordBuilderCleaner extends AbstractProcessor {
             var recordBuilderTemplate = annotation.getAnnotation(RecordBuilder.Template.class);
             if (recordBuilderTemplate != null) {
                 if (recordBuilderTemplate.asRecordInterface()) {
-                    processRecordInterface((TypeElement) element, true, recordBuilderTemplate.options(),
+                    return processRecordInterface((TypeElement) element, true, recordBuilderTemplate.options(),
                             Optional.empty(), true);
                 }
             }
         }
+        return false;
     }
 
-    private void processRecordInterface(TypeElement element, boolean addRecordBuilder, RecordBuilder.Options metaData,
+    private boolean processRecordInterface(TypeElement element, boolean addRecordBuilder, RecordBuilder.Options metaData,
             Optional<String> packageName, boolean fromTemplate) {
         ClassType ifaceClassType = ElementUtils.getClassType(element, element.getTypeParameters());
         String actualPackageName = packageName.orElseGet(() -> ElementUtils.getPackageName(element));
@@ -88,6 +91,8 @@ public class RecordBuilderCleaner extends AbstractProcessor {
                 ifaceClassType.name() + metaData.interfaceSuffix() + metaData.suffix(), StandardLocation.SOURCE_OUTPUT);
         boolean b3 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix(), StandardLocation.CLASS_OUTPUT);
         boolean b4 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix() + metaData.suffix(), StandardLocation.CLASS_OUTPUT);
+
+        return b1 || b2 || b3 || b4;
     }
 
     private boolean deletePossibleClassFile(String packageName, String className, StandardLocation location) {
