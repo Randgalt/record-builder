@@ -86,10 +86,8 @@ public class RecordBuilderCleaner extends AbstractProcessor {
                 StandardLocation.SOURCE_OUTPUT);
         boolean b2 = deletePossibleClassFile(actualPackageName,
                 ifaceClassType.name() + metaData.interfaceSuffix() + metaData.suffix(), StandardLocation.SOURCE_OUTPUT);
-        // boolean b3 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix(),
-        // StandardLocation.CLASS_OUTPUT);
-        // boolean b4 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix() +
-        // metaData.suffix(), StandardLocation.CLASS_OUTPUT);
+        boolean b3 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix(), StandardLocation.CLASS_OUTPUT);
+        boolean b4 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix() + metaData.suffix(), StandardLocation.CLASS_OUTPUT);
     }
 
     private boolean deletePossibleClassFile(String packageName, String className, StandardLocation location) {
