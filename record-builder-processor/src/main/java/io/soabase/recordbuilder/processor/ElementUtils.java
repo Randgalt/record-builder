@@ -174,4 +174,10 @@ public class ElementUtils {
 
     private ElementUtils() {
     }
+
+    static RecordBuilder.Options getMetaData(ProcessingEnvironment processingEnv, Element element) {
+        var recordSpecificMetaData = element.getAnnotation(RecordBuilder.Options.class);
+        return (recordSpecificMetaData != null) ? recordSpecificMetaData
+                : RecordBuilderOptions.build(processingEnv.getOptions());
+    }
 }

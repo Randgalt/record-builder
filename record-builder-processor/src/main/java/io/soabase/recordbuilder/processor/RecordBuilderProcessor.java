@@ -22,10 +22,7 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 import io.soabase.recordbuilder.core.RecordBuilderGenerated;
 import io.soabase.recordbuilder.core.RecordInterface;
 
-import javax.annotation.processing.AbstractProcessor;
-import javax.annotation.processing.Filer;
-import javax.annotation.processing.Generated;
-import javax.annotation.processing.RoundEnvironment;
+import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.PackageElement;
@@ -44,10 +41,10 @@ import java.util.Set;
 import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
 
 public class RecordBuilderProcessor extends AbstractProcessor {
-    private static final String RECORD_BUILDER = RecordBuilder.class.getName();
-    private static final String RECORD_BUILDER_INCLUDE = RecordBuilder.Include.class.getName().replace('$', '.');
-    private static final String RECORD_INTERFACE = RecordInterface.class.getName();
-    private static final String RECORD_INTERFACE_INCLUDE = RecordInterface.Include.class.getName().replace('$', '.');
+    static final String RECORD_BUILDER = RecordBuilder.class.getName();
+    static final String RECORD_BUILDER_INCLUDE = RecordBuilder.Include.class.getName().replace('$', '.');
+    static final String RECORD_INTERFACE = RecordInterface.class.getName();
+    static final String RECORD_INTERFACE_INCLUDE = RecordInterface.Include.class.getName().replace('$', '.');
 
     private static final Set<String> deletedSet = new HashSet<>();
 
@@ -83,13 +80,13 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         String annotationClass = annotation.getQualifiedName().toString();
         if (annotationClass.equals(RECORD_BUILDER)) {
             var typeElement = (TypeElement) element;
-            processRecordBuilder(typeElement, getMetaData(typeElement), Optional.empty());
+            processRecordBuilder(typeElement, ElementUtils.getMetaData(processingEnv, typeElement), Optional.empty());
         } else if (annotationClass.equals(RECORD_INTERFACE)) {
             var typeElement = (TypeElement) element;
             processRecordInterface(typeElement, element.getAnnotation(RecordInterface.class).addRecordBuilder(),
-                    getMetaData(typeElement), Optional.empty(), false);
+                    ElementUtils.getMetaData(processingEnv, typeElement), Optional.empty(), false);
         } else if (annotationClass.equals(RECORD_BUILDER_INCLUDE) || annotationClass.equals(RECORD_INTERFACE_INCLUDE)) {
-            processIncludes(element, getMetaData(element), annotationClass);
+            processIncludes(element, ElementUtils.getMetaData(processingEnv, element), annotationClass);
         } else {
             var recordBuilderTemplate = annotation.getAnnotation(RecordBuilder.Template.class);
             if (recordBuilderTemplate != null) {
@@ -101,12 +98,6 @@ public class RecordBuilderProcessor extends AbstractProcessor {
                 }
             }
         }
-    }
-
-    private RecordBuilder.Options getMetaData(Element element) {
-        var recordSpecificMetaData = element.getAnnotation(RecordBuilder.Options.class);
-        return (recordSpecificMetaData != null) ? recordSpecificMetaData
-                : RecordBuilderOptions.build(processingEnv.getOptions());
     }
 
     private void processIncludes(Element element, RecordBuilder.Options metaData, String annotationClass) {
