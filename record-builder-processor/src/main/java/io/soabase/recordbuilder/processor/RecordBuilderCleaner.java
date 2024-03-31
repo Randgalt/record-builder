@@ -46,7 +46,9 @@ public class RecordBuilderCleaner extends AbstractProcessor {
         List<Boolean> results = annotations.stream()
                 .flatMap(annotation -> roundEnv.getElementsAnnotatedWith(annotation).stream().map(element -> process(annotation, element)))
                 .toList();
-        return results.stream().allMatch(b -> b);
+        boolean result = results.stream().allMatch(b -> b);
+        System.err.println("RecordBuilderCleaner - " + annotations + " - " + result);
+        return result;
     }
 
     @Override

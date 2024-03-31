@@ -57,6 +57,8 @@ public class RecordBuilderProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        System.err.println("RecordBuilderProcessor - " + annotations);
+
         annotations.forEach(annotation -> roundEnv.getElementsAnnotatedWith(annotation)
                 .forEach(element -> process(annotation, element)));
         return false;
