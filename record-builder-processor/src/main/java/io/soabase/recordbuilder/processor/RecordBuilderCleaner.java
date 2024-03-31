@@ -105,6 +105,7 @@ public class RecordBuilderCleaner extends AbstractProcessor {
             System.err.println("XXXX Cleaner: Exists: %s - File %s".formatted(file.exists(), file));
             if (file.exists()) {
                 if (!file.delete()) {
+                    System.err.println("Could not delete existing: Exists: %s - File %s".formatted(file.exists(), file));
                     processingEnv.getMessager().printMessage(Diagnostic.Kind.MANDATORY_WARNING,
                             "Could not delete existing class file: %s".formatted(file));
                     return false;
