@@ -193,6 +193,9 @@
                     <version>${maven-compiler-plugin-version}</version>
                     <configuration>
                         <release>${jdk-version}</release>
+                        <compilerArgs>
+                            <arg>-Xlint:all</arg>
+                        </compilerArgs>
                     </configuration>
                 </plugin>
 

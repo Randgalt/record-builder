@@ -19,11 +19,13 @@ import com.squareup.javapoet.*;
 import io.soabase.recordbuilder.core.RecordBuilder;
 
 import javax.lang.model.element.Modifier;
+import java.io.Serial;
 import java.util.*;
 import java.util.regex.Pattern;
 
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.suppressWarningsAnnotation;
 
 class CollectionBuilderUtils {
     private final boolean useImmutableCollections;
@@ -385,8 +387,9 @@ class CollectionBuilderUtils {
                 .toList().toArray(new TypeName[0]);
         var extendedParameterizedType = ParameterizedTypeName.get(ClassName.get(abstractType), wildCardTypeArguments);
         return MethodSpec.methodBuilder(name).addAnnotation(generatedRecordBuilderAnnotation)
-                .addModifiers(Modifier.PRIVATE, Modifier.STATIC).addTypeVariables(Arrays.asList(typeVariables))
-                .returns(parameterizedType).addParameter(extendedParameterizedType, "o").addStatement(code).build();
+                .addAnnotation(suppressWarningsAnnotation).addModifiers(Modifier.PRIVATE, Modifier.STATIC)
+                .addTypeVariables(Arrays.asList(typeVariables)).returns(parameterizedType)
+                .addParameter(extendedParameterizedType, "o").addStatement(code).build();
     }
 
     private CodeBlock buildShimMethodBody(TypeName mainType, ParameterizedTypeName parameterizedType) {
@@ -467,6 +470,9 @@ class CollectionBuilderUtils {
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
                 .superclass(ParameterizedTypeName.get(mutableCollectionType, typeArguments))
                 .addTypeVariables(Arrays.asList(typeVariables))
+                .addField(FieldSpec
+                        .builder(TypeName.LONG, "serialVersionUID", Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
+                        .addAnnotation(Serial.class).initializer("1L").build())
                 .addMethod(MethodSpec.constructorBuilder().addAnnotation(generatedRecordBuilderAnnotation)
                         .addStatement("super()").build())
                 .addMethod(MethodSpec.constructorBuilder().addAnnotation(generatedRecordBuilderAnnotation)
