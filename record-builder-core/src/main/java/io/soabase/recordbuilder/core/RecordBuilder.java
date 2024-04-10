@@ -308,6 +308,12 @@ public @interface RecordBuilder {
         boolean publicBuilderConstructors() default false;
 
         /**
+         * Parameterizes the generated builder on the builder type itself. Builder setters will return the type
+         * parameter. This is useful when extending the builder.
+         */
+        boolean parameterizedBuilder() default false;
+
+        /**
          * Whether to add standard builder, staged builder or both
          */
         BuilderMode builderMode() default BuilderMode.STANDARD;
