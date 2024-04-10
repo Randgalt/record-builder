@@ -394,9 +394,6 @@ class CollectionBuilderUtils {
         return methodBuilder.addAnnotation(generatedRecordBuilderAnnotation)
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC).addTypeVariables(Arrays.asList(typeVariables))
                 .returns(parameterizedType).addParameter(extendedParameterizedType, "o").addStatement(code).build();
-                .addAnnotation(suppressWarningsAnnotation).addModifiers(Modifier.PRIVATE, Modifier.STATIC)
-                .addTypeVariables(Arrays.asList(typeVariables)).returns(parameterizedType)
-                .addParameter(extendedParameterizedType, "o").addStatement(code).build();
     }
 
     private CodeBlock buildShimMethodBody(TypeName mainType, ParameterizedTypeName parameterizedType) {
