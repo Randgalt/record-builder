@@ -386,7 +386,14 @@ class CollectionBuilderUtils {
         TypeName[] wildCardTypeArguments = parameterizedType.typeArguments.stream().map(WildcardTypeName::subtypeOf)
                 .toList().toArray(new TypeName[0]);
         var extendedParameterizedType = ParameterizedTypeName.get(ClassName.get(abstractType), wildCardTypeArguments);
-        return MethodSpec.methodBuilder(name).addAnnotation(generatedRecordBuilderAnnotation)
+
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(name);
+        if (!useImmutableCollections) {
+            methodBuilder.addAnnotation(suppressWarningsAnnotation);
+        }
+        return methodBuilder.addAnnotation(generatedRecordBuilderAnnotation)
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC).addTypeVariables(Arrays.asList(typeVariables))
+                .returns(parameterizedType).addParameter(extendedParameterizedType, "o").addStatement(code).build();
                 .addAnnotation(suppressWarningsAnnotation).addModifiers(Modifier.PRIVATE, Modifier.STATIC)
                 .addTypeVariables(Arrays.asList(typeVariables)).returns(parameterizedType)
                 .addParameter(extendedParameterizedType, "o").addStatement(code).build();
