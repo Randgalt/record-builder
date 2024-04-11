@@ -196,10 +196,6 @@ class InternalRecordBuilderProcessor {
     }
 
     private void addStagedBuilderClasses() {
-        if (recordComponents.size() < 2) {
-            return;
-        }
-
         IntStream.range(0, recordComponents.size()).forEach(index -> {
             Optional<RecordClassType> nextComponent = ((index + 1) < recordComponents.size())
                     ? Optional.of(recordComponents.get(index + 1)) : Optional.empty();
@@ -723,10 +719,6 @@ class InternalRecordBuilderProcessor {
     }
 
     private void addStaticStagedBuilderMethod(String builderMethodName) {
-        if (recordComponents.size() < 2) {
-            return;
-        }
-
         /*
          * Adds the staged builder method similar to:
          *
@@ -757,11 +749,12 @@ class InternalRecordBuilderProcessor {
             codeBlock.addStatement(")");
         }
 
+        var returnType = stagedBuilderType(recordComponents.isEmpty() ? builderClassType : recordComponents.get(0));
+
         var methodSpec = MethodSpec.methodBuilder(builderMethodName)
                 .addJavadoc("Return the first stage of a staged builder\n")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addAnnotation(generatedRecordBuilderAnnotation)
-                .addTypeVariables(typeVariables).returns(stagedBuilderType(recordComponents.get(0)).typeName())
-                .addCode(codeBlock.build()).build();
+                .addTypeVariables(typeVariables).returns(returnType.typeName()).addCode(codeBlock.build()).build();
         builder.addMethod(methodSpec);
     }
 

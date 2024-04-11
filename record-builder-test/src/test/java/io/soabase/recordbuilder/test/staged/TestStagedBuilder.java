@@ -61,4 +61,16 @@ public class TestStagedBuilder {
                 .aT(new GenericStaged<>("other", builder.build(), BigInteger.TEN)).theUThing(BigDecimal.ONE).build();
         assertEquals(obj1, obj2);
     }
+
+    @Test
+    void testSingleField() {
+        SingleFieldStaged obj = SingleFieldStagedBuilder.builder().i(1).build();
+        assertEquals(new SingleFieldStaged(1), obj);
+    }
+
+    @Test
+    void testNoFields() {
+        NoFieldsStaged obj = NoFieldsStagedBuilder.builder().build();
+        assertEquals(new NoFieldsStaged(), obj);
+    }
 }
