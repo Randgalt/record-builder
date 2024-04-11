@@ -323,6 +323,12 @@ public @interface RecordBuilder {
         String stagedBuilderMethodSuffix() default "Stage";
 
         /**
+         * If {@link #builderMode()} is `STAGED_REQUIRED_ONLY` or `STANDARD_AND_STAGED_REQUIRED_ONLY, this is the regex
+         * pattern used to determine if an annotation name means "null-able"
+         */
+        String nullablePattern() default "(?i)^((null)|(nullable))$";
+
+        /**
          * If true, attributes can be set/assigned only 1 time. Attempts to reassign/reset attributes will throw
          * {@code java.lang.IllegalStateException}
          */
@@ -345,7 +351,7 @@ public @interface RecordBuilder {
     }
 
     enum BuilderMode {
-        STANDARD, STAGED, STANDARD_AND_STAGED,
+        STANDARD, STAGED, STAGED_REQUIRED_ONLY, STANDARD_AND_STAGED, STANDARD_AND_STAGED_REQUIRED_ONLY,
     }
 
     /**

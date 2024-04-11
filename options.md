@@ -74,6 +74,12 @@ Use `@RecordBuilder.Options(builderMode = BuilderMode.STAGED)` or `@RecordBuilde
 builders. Staged builders require that each record component is built in order and that each component is specified. The generated builder ensures
 this via individual staged builders. See [TestStagedBuilder](record-builder-test/src/test/java/io/soabase/recordbuilder/test/staged/TestStagedBuilder.java) for examples.
 
+A variant of staged builders is available that only stages required record components. Use `BuilderMode.STAGED_REQUIRED_ONLY` or `BuilderMode.STANDARD_AND_STAGED_REQUIRED_ONLY`. 
+The following are not staged and are added to the final stage:
+- optional components (when `addConcreteSettersForOptional` is enabled)  
+- Any collections matching enabled [Collection options](#collections)  
+- Any annotated compontents that match the `nullablePattern()` pattern option (e.g. `@Nullable`)
+
 ## Default Values / Initializers
 
 | option                                                             | details                                                                                                                          |
@@ -88,11 +94,12 @@ for an example.
 
 ## Null Handling
 
-| option                                                          | details                                                                                                       |
-|-----------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
-| `@RecordBuilder.Options(interpretNotNulls = true/false)`        | Add not-null checks for record components annotated with any null-pattern annotation. The default is `false`. |
-| `@RecordBuilder.Options(interpretNotNullsPattern = "regex")`    | The regex pattern used to determine if an annotation name means non-null.                                     |
-| `@RecordBuilder.Options(allowNullableCollections = true/false)` | Adds special null handling for record collectioncomponents. The default is `false`.                           |
+| option                                                          | details                                                                                                          |
+|-----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| `@RecordBuilder.Options(interpretNotNulls = true/false)`        | Add not-null checks for record components annotated with any null-pattern annotation. The default is `false`.    |
+| `@RecordBuilder.Options(interpretNotNullsPattern = "regex")`    | The regex pattern used to determine if an annotation name means non-null.                                        |
+| `@RecordBuilder.Options(allowNullableCollections = true/false)` | Adds special null handling for record collectioncomponents. The default is `false`.                              |
+| `@RecordBuilder.Options(nullablePattern = "regex")`             | Regex pattern to use for `BuilderMode.STAGED_REQUIRED_ONLY` and `BuilderMode.STANDARD_AND_STAGED_REQUIRED_ONLY`. |
 
 ## Collections
 
