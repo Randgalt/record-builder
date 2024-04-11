@@ -48,8 +48,10 @@ class InternalRecordBuilderProcessor {
     private final TypeSpec.Builder builder;
     private final String uniqueVarName;
     private final Pattern notNullPattern;
+    private final Pattern nullablePattern;
     private final CollectionBuilderUtils collectionBuilderUtils;
 
+    private static final TypeName optionalType = TypeName.get(Optional.class);
     private static final TypeName overrideType = TypeName.get(Override.class);
     private static final TypeName validType = ClassName.get("javax.validation", "Valid");
     private static final TypeName validatorTypeName = ClassName.get("io.soabase.recordbuilder.validator",
@@ -72,6 +74,7 @@ class InternalRecordBuilderProcessor {
         recordComponents = buildRecordComponents(record);
         uniqueVarName = getUniqueVarName();
         notNullPattern = Pattern.compile(metaData.interpretNotNullsPattern());
+        nullablePattern = Pattern.compile(metaData.nullablePattern());
         collectionBuilderUtils = new CollectionBuilderUtils(recordComponents, this.metaData);
         constructorVisibilityModifier = metaData.publicBuilderConstructors() ? Modifier.PUBLIC : Modifier.PRIVATE;
         initializers = InitializerUtil.detectInitializers(processingEnv, record);
@@ -90,8 +93,9 @@ class InternalRecordBuilderProcessor {
         }
         if (metaData.builderMode() != BuilderMode.STANDARD) {
             addStagedBuilderClasses();
-            addStaticStagedBuilderMethod((metaData.builderMode() == BuilderMode.STANDARD_AND_STAGED)
-                    ? metaData.stagedBuilderMethodName() : metaData.builderMethodName());
+            addStaticStagedBuilderMethod(((metaData.builderMode() == BuilderMode.STANDARD_AND_STAGED)
+                    || (metaData.builderMode() == BuilderMode.STANDARD_AND_STAGED_REQUIRED_ONLY))
+                            ? metaData.stagedBuilderMethodName() : metaData.builderMethodName());
         }
         addDefaultConstructor();
         if (metaData.addStaticBuilder()) {
@@ -100,7 +104,8 @@ class InternalRecordBuilderProcessor {
         if (recordComponents.size() > 0) {
             addAllArgsConstructor();
         }
-        if (metaData.builderMode() != BuilderMode.STAGED) {
+        if ((metaData.builderMode() != BuilderMode.STAGED)
+                && (metaData.builderMode() != BuilderMode.STAGED_REQUIRED_ONLY)) {
             addStaticDefaultBuilderMethod();
         }
         addStaticCopyBuilderMethod();
@@ -195,11 +200,32 @@ class InternalRecordBuilderProcessor {
         builder.addField(onceOnlyField);
     }
 
+    private boolean isRequiredStage(RecordClassType recordComponent) {
+        if ((metaData.builderMode() != BuilderMode.STAGED_REQUIRED_ONLY)
+                && (metaData.builderMode() != BuilderMode.STANDARD_AND_STAGED_REQUIRED_ONLY)) {
+            return true;
+        }
+
+        if (collectionBuilderUtils.isNullableCollection(recordComponent)
+                || collectionBuilderUtils.isImmutableCollection(recordComponent)) {
+            return false;
+        }
+
+        if (isNullableAnnotated(recordComponent)) {
+            return false;
+        }
+
+        return !metaData.emptyDefaultForOptional() || !recordComponent.rawTypeName().equals(optionalType);
+    }
+
     private void addStagedBuilderClasses() {
-        IntStream.range(0, recordComponents.size()).forEach(index -> {
-            Optional<RecordClassType> nextComponent = ((index + 1) < recordComponents.size())
-                    ? Optional.of(recordComponents.get(index + 1)) : Optional.empty();
-            add1StagedBuilderClass(recordComponents.get(index), nextComponent);
+        List<RecordClassType> filteredRecordComponents = recordComponents.stream().filter(this::isRequiredStage)
+                .toList();
+
+        IntStream.range(0, filteredRecordComponents.size()).forEach(index -> {
+            Optional<RecordClassType> nextComponent = ((index + 1) < filteredRecordComponents.size())
+                    ? Optional.of(filteredRecordComponents.get(index + 1)) : Optional.empty();
+            add1StagedBuilderClass(filteredRecordComponents.get(index), nextComponent);
         });
 
         /*
@@ -218,8 +244,24 @@ class InternalRecordBuilderProcessor {
         }
 
         MethodSpec buildMethod = buildMethod().addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
-                .addStatement("return builder().build()").build();
+                .addStatement("return $L().$L()", metaData.builderMethodName(), metaData.buildMethodName()).build();
         classBuilder.addMethod(buildMethod);
+
+        recordComponents.stream().filter(recordComponent -> !isRequiredStage(recordComponent))
+                .forEach(optionalComponent -> {
+                    var codeBlock = CodeBlock.builder().add("return $L().$L($L);", metaData.builderMethodName(),
+                            optionalComponent.name(), optionalComponent.name()).build();
+
+                    var parameterSpecBuilder = ParameterSpec.builder(optionalComponent.typeName(),
+                            optionalComponent.name());
+                    addConstructorAnnotations(optionalComponent, parameterSpecBuilder);
+                    var methodSpec = MethodSpec.methodBuilder(optionalComponent.name())
+                            .addAnnotation(generatedRecordBuilderAnnotation)
+                            .addJavadoc("Call builder for optional component {@code $L}", optionalComponent.name())
+                            .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT).addParameter(parameterSpecBuilder.build())
+                            .addCode(codeBlock).returns(builderClassType.typeName()).build();
+                    classBuilder.addMethod(methodSpec);
+                });
 
         var builderMethod = MethodSpec.methodBuilder(metaData.builderMethodName())
                 .addJavadoc("Return a new builder with all fields set to the current values in this builder\n")
@@ -460,7 +502,7 @@ class InternalRecordBuilderProcessor {
         if (metaData.interpretNotNulls()) {
             var component = recordComponents.get(index);
             if (!collectionBuilderUtils.isImmutableCollection(component)) {
-                if (!component.typeName().isPrimitive() && isNullAnnotated(component)) {
+                if (!component.typeName().isPrimitive() && isNotNullAnnotated(component)) {
                     builder.addStatement("$T.requireNonNull($L, $S)", Objects.class, component.name(),
                             component.name() + " is required");
                 }
@@ -468,8 +510,13 @@ class InternalRecordBuilderProcessor {
         }
     }
 
-    private boolean isNullAnnotated(RecordClassType component) {
+    private boolean isNotNullAnnotated(RecordClassType component) {
         return component.getCanonicalConstructorAnnotations().stream().anyMatch(annotation -> notNullPattern
+                .matcher(annotation.getAnnotationType().asElement().getSimpleName().toString()).matches());
+    }
+
+    private boolean isNullableAnnotated(RecordClassType component) {
+        return component.getCanonicalConstructorAnnotations().stream().anyMatch(annotation -> nullablePattern
                 .matcher(annotation.getAnnotationType().asElement().getSimpleName().toString()).matches());
     }
 
@@ -724,32 +771,24 @@ class InternalRecordBuilderProcessor {
          *
          * public static NameStage stagedBuilder() { return name -> age -> () -> new PersonBuilder(name, age).build(); }
          */
-        var codeBlock = CodeBlock.builder();
-        if (metaData.onceOnlyAssignment()) {
-            codeBlock.addStatement("$T $L = new $T()", builderClassType.typeName(), uniqueVarName,
-                    builderClassType.typeName());
-            codeBlock.add("return ");
-            recordComponents.forEach(recordComponent -> {
-                codeBlock.add("$L -> {\n", recordComponent.name()).indent()
-                        .addStatement("$L.$L($L)", uniqueVarName, recordComponent.name(), recordComponent.name())
-                        .add("return ");
-            });
-            codeBlock.addStatement("() -> $L", uniqueVarName);
-            IntStream.range(0, recordComponents.size()).forEach(__ -> codeBlock.unindent().addStatement("}"));
-        } else {
-            codeBlock.add("return ");
-            recordComponents.forEach(recordComponent -> codeBlock.add("$L -> ", recordComponent.name()));
-            codeBlock.add("() -> new $T(", builderClassType.typeName());
-            IntStream.range(0, recordComponents.size()).forEach(index -> {
-                if (index > 0) {
-                    codeBlock.add(", ");
-                }
-                codeBlock.add("$L", recordComponents.get(index).name());
-            });
-            codeBlock.addStatement(")");
-        }
 
-        var returnType = stagedBuilderType(recordComponents.isEmpty() ? builderClassType : recordComponents.get(0));
+        List<RecordClassType> filteredRecordComponents = recordComponents.stream().filter(this::isRequiredStage)
+                .toList();
+
+        var codeBlock = CodeBlock.builder();
+        codeBlock.addStatement("$T $L = new $T()", builderClassType.typeName(), uniqueVarName,
+                builderClassType.typeName());
+        codeBlock.add("return ");
+        filteredRecordComponents.forEach(recordComponent -> {
+            codeBlock.add("$L -> {\n", recordComponent.name()).indent()
+                    .addStatement("$L.$L($L)", uniqueVarName, recordComponent.name(), recordComponent.name())
+                    .add("return ");
+        });
+        codeBlock.addStatement("() -> $L", uniqueVarName);
+        IntStream.range(0, filteredRecordComponents.size()).forEach(__ -> codeBlock.unindent().addStatement("}"));
+
+        var returnType = stagedBuilderType(
+                filteredRecordComponents.isEmpty() ? builderClassType : filteredRecordComponents.get(0));
 
         var methodSpec = MethodSpec.methodBuilder(builderMethodName)
                 .addJavadoc("Return the first stage of a staged builder\n")

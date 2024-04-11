@@ -20,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -72,5 +74,15 @@ public class TestStagedBuilder {
     void testNoFields() {
         NoFieldsStaged obj = NoFieldsStagedBuilder.builder().build();
         assertEquals(new NoFieldsStaged(), obj);
+    }
+
+    @Test
+    void testOptionalList() {
+        OptionalListStaged obj = OptionalListStagedBuilder.builder().a(1).c(1.1).f("ffff").b(Optional.of("bbbb"))
+                .d(List.of(Instant.EPOCH)).e("eeee").build();
+        assertEquals(new OptionalListStaged(1, Optional.of("bbbb"), 1.1, List.of(Instant.EPOCH), "eeee", "ffff"), obj);
+
+        obj = OptionalListStagedBuilder.builder().a(1).c(1.1).f("ffff").build();
+        assertEquals(new OptionalListStaged(1, Optional.empty(), 1.1, List.of(), null, "ffff"), obj);
     }
 }
