@@ -17,10 +17,11 @@ package io.soabase.recordbuilder.test.staged;
 
 import io.soabase.recordbuilder.core.RecordBuilder;
 
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Null;
 import java.util.Set;
 
 @RecordBuilder
-@RecordBuilder.Options(useImmutableCollections = true, builderMode = RecordBuilder.BuilderMode.STANDARD_AND_STAGED_REQUIRED_ONLY)
-public record CombinedSimpleStagedRequiredOnly(Set<Integer> numbers, @Null String foo) {
+@RecordBuilder.Options(useImmutableCollections = true, builderMode = RecordBuilder.BuilderMode.STANDARD_AND_STAGED_REQUIRED_ONLY, allowNullableCollections = true, interpretNotNulls = true)
+public record CombinedSimpleStagedRequiredOnly(Set<Integer> numbers, @Null String foo, @NotNull Set<Integer> requiredNumbers) {
 }

@@ -91,9 +91,16 @@ public class TestStagedBuilder {
     void testCombinedSimpleStagedRequiredOnly() {
         CombinedSimpleStagedRequiredOnly obj = CombinedSimpleStagedRequiredOnlyBuilder.stagedBuilder()
                 .numbers(Set.of(5, 4)).build();
-        assertEquals(new CombinedSimpleStagedRequiredOnly(Set.of(5, 4), null), obj);
+        assertEquals(new CombinedSimpleStagedRequiredOnly(Set.of(5, 4), null, Set.of()), obj);
 
-        obj = CombinedSimpleStagedRequiredOnlyBuilder.stagedBuilder().foo("ok").numbers(Set.of(5, 2)).build();
-        assertEquals(new CombinedSimpleStagedRequiredOnly(Set.of(5, 2), "ok"), obj);
+        obj = CombinedSimpleStagedRequiredOnlyBuilder.stagedBuilder().build();
+        assertEquals(new CombinedSimpleStagedRequiredOnly(null, null, Set.of()), obj);
+
+        obj = CombinedSimpleStagedRequiredOnlyBuilder.stagedBuilder()
+                .foo("ok")
+                .numbers(Set.of(5, 2))
+                .requiredNumbers(Set.of())
+                .build();
+        assertEquals(new CombinedSimpleStagedRequiredOnly(Set.of(5, 2), "ok", Set.of()), obj);
     }
 }
