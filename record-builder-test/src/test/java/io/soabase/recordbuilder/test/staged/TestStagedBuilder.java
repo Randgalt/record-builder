@@ -22,6 +22,7 @@ import java.math.BigInteger;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -84,5 +85,15 @@ public class TestStagedBuilder {
 
         obj = OptionalListStagedBuilder.builder().a(1).c(1.1).f("ffff").build();
         assertEquals(new OptionalListStaged(1, Optional.empty(), 1.1, List.of(), null, "ffff"), obj);
+    }
+
+    @Test
+    void testCombinedSimpleStagedRequiredOnly() {
+        CombinedSimpleStagedRequiredOnly obj = CombinedSimpleStagedRequiredOnlyBuilder.stagedBuilder()
+                .numbers(Set.of(5, 4)).build();
+        assertEquals(new CombinedSimpleStagedRequiredOnly(Set.of(5, 4), null), obj);
+
+        obj = CombinedSimpleStagedRequiredOnlyBuilder.stagedBuilder().foo("ok").numbers(Set.of(5, 2)).build();
+        assertEquals(new CombinedSimpleStagedRequiredOnly(Set.of(5, 2), "ok"), obj);
     }
 }

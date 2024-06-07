@@ -18,11 +18,9 @@ package io.soabase.recordbuilder.test.staged;
 import io.soabase.recordbuilder.core.RecordBuilder;
 
 import javax.validation.constraints.Null;
-import java.io.IOException;
-import java.time.Instant;
 import java.util.Set;
 
 @RecordBuilder
 @RecordBuilder.Options(useImmutableCollections = true, builderMode = RecordBuilder.BuilderMode.STANDARD_AND_STAGED_REQUIRED_ONLY)
-public record CombinedSimpleStagedRequiredOnly(Set<Integer> retryableStatusCodes, String retryIntervalConfiguration) {
+public record CombinedSimpleStagedRequiredOnly(Set<Integer> numbers, @Null String foo) {
 }
