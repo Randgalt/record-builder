@@ -787,7 +787,8 @@ class InternalRecordBuilderProcessor {
         codeBlock.addStatement("() -> $L", uniqueVarName);
         IntStream.range(0, filteredRecordComponents.size()).forEach(__ -> codeBlock.unindent().addStatement("}"));
 
-        var returnType = stagedBuilderType(recordComponents.isEmpty() ? builderClassType : recordComponents.get(0));
+        var returnType = stagedBuilderType(
+                filteredRecordComponents.isEmpty() ? builderClassType : filteredRecordComponents.get(0));
 
         var methodSpec = MethodSpec.methodBuilder(builderMethodName)
                 .addJavadoc("Return the first stage of a staged builder\n")
