@@ -94,12 +94,13 @@ for an example.
 
 ## Null Handling
 
-| option                                                          | details                                                                                                          |
-|-----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
-| `@RecordBuilder.Options(interpretNotNulls = true/false)`        | Add not-null checks for record components annotated with any null-pattern annotation. The default is `false`.    |
-| `@RecordBuilder.Options(interpretNotNullsPattern = "regex")`    | The regex pattern used to determine if an annotation name means non-null.                                        |
-| `@RecordBuilder.Options(allowNullableCollections = true/false)` | Adds special null handling for record collectioncomponents. The default is `false`.                              |
-| `@RecordBuilder.Options(nullablePattern = "regex")`             | Regex pattern to use for `BuilderMode.STAGED_REQUIRED_ONLY` and `BuilderMode.STANDARD_AND_STAGED_REQUIRED_ONLY`. |
+| option                                                          | details                                                                                                                      |
+|-----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
+| `@RecordBuilder.Options(interpretNotNulls = true/false)`        | Add not-null checks for record components annotated with any null-pattern annotation. The default is `false`.                |
+| `@RecordBuilder.Options(interpretNotNullsPattern = "regex")`    | The regex pattern used to determine if an annotation name means non-null.                                                    |
+| `@RecordBuilder.Options(allowNullableCollections = true/false)` | Adds special null handling for record collectioncomponents. The default is `false`.                                          |
+| `@RecordBuilder.Options(nullablePattern = "regex")`             | Regex pattern to use for `BuilderMode.STAGED_REQUIRED_ONLY` and `BuilderMode.STANDARD_AND_STAGED_REQUIRED_ONLY`.             |
+| `@RecordBuilder.Options(defaultNotNull = true/false)`           | Add not-null checks for all record components unless annotated with any non-null-pattern annotation. The default is `false`. |
 
 ## Collections
 
