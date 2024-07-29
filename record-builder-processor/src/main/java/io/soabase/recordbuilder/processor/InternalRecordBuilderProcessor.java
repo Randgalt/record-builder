@@ -491,7 +491,7 @@ class InternalRecordBuilderProcessor {
     }
 
     private void addNullCheckCodeBlock(CodeBlock.Builder builder) {
-        if (metaData.interpretNotNulls()) {
+        if (metaData.interpretNotNulls() || metaData.defaultNotNull()) {
             for (int i = 0; i < recordComponents.size(); ++i) {
                 addNullCheckCodeBlock(builder, i);
             }
@@ -499,10 +499,12 @@ class InternalRecordBuilderProcessor {
     }
 
     private void addNullCheckCodeBlock(CodeBlock.Builder builder, int index) {
-        if (metaData.interpretNotNulls()) {
+        if (metaData.interpretNotNulls() || metaData.defaultNotNull()) {
             var component = recordComponents.get(index);
             if (!collectionBuilderUtils.isImmutableCollection(component)) {
-                if (!component.typeName().isPrimitive() && isNotNullAnnotated(component)) {
+                if (!component.typeName().isPrimitive()
+                        && (metaData.interpretNotNulls() && isNotNullAnnotated(component)
+                                || metaData.defaultNotNull() && !isNullableAnnotated(component))) {
                     builder.addStatement("$T.requireNonNull($L, $S)", Objects.class, component.name(),
                             component.name() + " is required");
                 }

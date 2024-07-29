@@ -339,6 +339,13 @@ public @interface RecordBuilder {
          * array.
          */
         String onceOnlyAssignmentName() default "_onceOnlyCheck";
+
+        /**
+         * Assumes that all fields are non-null, unless explicitly marked as null.
+         *
+         * @see #nullablePattern
+         */
+        boolean defaultNotNull() default false;
     }
 
     @Retention(RetentionPolicy.CLASS)
