@@ -23,7 +23,8 @@ import javax.validation.constraints.NotNull;
 
 @RecordBuilder
 @RecordBuilder.Options(useValidationApi = true)
-public record RequestWithValid(@NotNull @Valid Part part) implements RequestWithValidBuilder.With {
+public record RequestWithValid(@NotNull @Valid @jakarta.validation.Valid Part part)
+        implements RequestWithValidBuilder.With {
     public record Part(@NotBlank String name) {
     }
 }

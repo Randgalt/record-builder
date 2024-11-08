@@ -53,7 +53,8 @@ class InternalRecordBuilderProcessor {
 
     private static final TypeName optionalType = TypeName.get(Optional.class);
     private static final TypeName overrideType = TypeName.get(Override.class);
-    private static final TypeName validType = ClassName.get("javax.validation", "Valid");
+    private static final TypeName javaxValidType = ClassName.get("javax.validation", "Valid");
+    private static final TypeName jakartaValidType = ClassName.get("jakarta.validation", "Valid");
     private static final TypeName validatorTypeName = ClassName.get("io.soabase.recordbuilder.validator",
             "RecordBuilderValidator");
     private static final TypeVariableName rType = TypeVariableName.get("R");
@@ -868,7 +869,7 @@ class InternalRecordBuilderProcessor {
     }
 
     private boolean filterOutValid(AnnotationSpec annotationSpec) {
-        return !annotationSpec.type.equals(validType);
+        return !annotationSpec.type.equals(javaxValidType) && !annotationSpec.type.equals(jakartaValidType);
     }
 
     private void addConstructorAnnotations(RecordClassType component, ParameterSpec.Builder parameterSpecBuilder) {

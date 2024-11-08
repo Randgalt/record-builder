@@ -18,6 +18,7 @@ package io.soabase.recordbuilder.test;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import javax.validation.Valid;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
@@ -29,6 +30,18 @@ class TestAnnotated {
     void testInheritComponentAnnotationsFalse() throws NoSuchMethodException {
         var method = IgnoreAnnotatedBuilder.class.getMethod("s");
         Assertions.assertNull(method.getAnnotation(NotNull.class));
+    }
+
+    @Test
+    void testFiltersOutJavaXValid() throws NoSuchMethodException {
+        var method = RequestWithValidBuilder.With.class.getMethod("part");
+        Assertions.assertNull(method.getAnnotation(Valid.class));
+    }
+
+    @Test
+    void testFiltersOutJakartaValid() throws NoSuchMethodException {
+        var method = RequestWithValidBuilder.With.class.getMethod("part");
+        Assertions.assertNull(method.getAnnotation(jakarta.validation.Valid.class));
     }
 
     @Test

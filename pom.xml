@@ -62,6 +62,7 @@
         <asm-version>7.2</asm-version>
         <validation-api-version>2.0.1.Final</validation-api-version>
         <hibernate-validator-version>6.2.0.Final</hibernate-validator-version>
+        <jakarta-validation-api-version>3.1.0</jakarta-validation-api-version>
         <javax-el-version>3.0.1-b09</javax-el-version>
     </properties>
 
@@ -162,6 +163,12 @@
                 <groupId>javax.validation</groupId>
                 <artifactId>validation-api</artifactId>
                 <version>${validation-api-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>jakarta.validation</groupId>
+                <artifactId>jakarta.validation-api</artifactId>
+                <version>${jakarta-validation-api-version}</version>
             </dependency>
 
             <dependency>
