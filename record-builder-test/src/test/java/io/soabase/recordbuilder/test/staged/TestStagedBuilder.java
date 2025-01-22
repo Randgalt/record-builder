@@ -85,4 +85,10 @@ public class TestStagedBuilder {
         obj = OptionalListStagedBuilder.builder().a(1).c(1.1).f("ffff").build();
         assertEquals(new OptionalListStaged(1, Optional.empty(), 1.1, List.of(), null, "ffff"), obj);
     }
+
+    @Test
+    void testInitialized() {
+        InitializedStaged obj = InitializedStagedBuilder.builder().name("foo").age(42).build();
+        assertEquals(new InitializedStaged(42, "foo"), obj);
+    }
 }
