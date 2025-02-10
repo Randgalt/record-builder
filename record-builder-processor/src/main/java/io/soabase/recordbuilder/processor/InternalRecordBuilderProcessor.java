@@ -1118,7 +1118,7 @@ class InternalRecordBuilderProcessor {
             methodBuilder.addJavadoc("Perform an operation on record components");
         }
         codeBlockBuilder.add("proc.apply(");
-        addComponentCallsAsArguments(-1, codeBlockBuilder, true);
+        addComponentCallsAsArguments(-1, codeBlockBuilder, false);
         codeBlockBuilder.add(");");
         methodBuilder.addCode(codeBlockBuilder.build());
         return methodBuilder.build();
