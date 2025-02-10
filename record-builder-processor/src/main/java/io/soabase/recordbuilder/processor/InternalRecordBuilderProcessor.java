@@ -216,7 +216,7 @@ class InternalRecordBuilderProcessor {
             return false;
         }
 
-        if (metaData.skipStagingForInitializedComponents() && initializers.get(recordComponent.name()) != null) {
+        if (metaData.skipStagingForInitializedComponents() && initializers.containsKey(recordComponent.name())) {
             return false;
         }
 
