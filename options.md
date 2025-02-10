@@ -78,13 +78,15 @@ A variant of staged builders is available that only stages required record compo
 The following are not staged and are added to the final stage:
 - optional components (when `addConcreteSettersForOptional` is enabled)  
 - Any collections matching enabled [Collection options](#collections)  
-- Any annotated compontents that match the `nullablePattern()` pattern option (e.g. `@Nullable`)
+- Any annotated components that match the `nullablePattern()` pattern option (e.g. `@Nullable`)
+- Any components with initializers (annotated with `@RecordBuilder.Initializer(...)`) when `skipStagingForInitializedComponents` is enabled
 
 ## Default Values / Initializers
 
-| option                                                             | details                                                                                                                          |
-|--------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
-| `@RecordBuilder.Options(emptyDefaultForOptional = true/false)` | Set the default value of `Optional` record components to `Optional.empty()`. The default is `true`.           |
+| option                                                                     | details                                                                                                                                                                                                                                          |
+|----------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `@RecordBuilder.Options(emptyDefaultForOptional = true/false)`             | Set the default value of `Optional` record components to `Optional.empty()`. The default is `true`.                                                                                                                                              |
+| `@RecordBuilder.Options(skipStagingForInitializedComponents = true/false)` | If true, components with initializers (`@RecordBuilder.Initializer`) are excluded from staging when `builderMode` is `STAGED_REQUIRED_ONLY` or `STANDARD_AND_STAGED_REQUIRED_ONLY` and are only included in the final stage. Default is `false`. |
 
 ### `@RecordBuilder.Initializer`
 

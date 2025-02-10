@@ -329,6 +329,13 @@ public @interface RecordBuilder {
         String nullablePattern() default "(?i)^((null)|(nullable))$";
 
         /**
+         * If true, components with initializers (annotated with {@link RecordBuilder.Initializer}) are excluded from
+         * staging when {@link #builderMode()} is `STAGED_REQUIRED_ONLY` or `STANDARD_AND_STAGED_REQUIRED_ONLY` and are
+         * only included in the final stage. Default is false, meaning initialized components are considered required.
+         */
+        boolean skipStagingForInitializedComponents() default false;
+
+        /**
          * If true, attributes can be set/assigned only 1 time. Attempts to reassign/reset attributes will throw
          * {@code java.lang.IllegalStateException}
          */

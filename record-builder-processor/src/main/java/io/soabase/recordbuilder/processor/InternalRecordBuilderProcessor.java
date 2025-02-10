@@ -216,6 +216,10 @@ class InternalRecordBuilderProcessor {
             return false;
         }
 
+        if (metaData.skipStagingForInitializedComponents() && initializers.containsKey(recordComponent.name())) {
+            return false;
+        }
+
         return !metaData.emptyDefaultForOptional() || !recordComponent.rawTypeName().equals(optionalType);
     }
 
