@@ -22,26 +22,31 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 import io.soabase.recordbuilder.core.RecordBuilderGenerated;
 import io.soabase.recordbuilder.core.RecordInterface;
 
-import javax.annotation.processing.AbstractProcessor;
-import javax.annotation.processing.Filer;
-import javax.annotation.processing.Generated;
-import javax.annotation.processing.RoundEnvironment;
+import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
+import javax.tools.FileObject;
 import javax.tools.JavaFileObject;
+import javax.tools.StandardLocation;
+import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
+import static io.soabase.recordbuilder.processor.ElementUtils.getBuilderName;
+
 public class RecordBuilderProcessor extends AbstractProcessor {
-    private static final String RECORD_BUILDER = RecordBuilder.class.getName();
-    private static final String RECORD_BUILDER_INCLUDE = RecordBuilder.Include.class.getName().replace('$', '.');
-    private static final String RECORD_INTERFACE = RecordInterface.class.getName();
-    private static final String RECORD_INTERFACE_INCLUDE = RecordInterface.Include.class.getName().replace('$', '.');
+    static final String RECORD_BUILDER = RecordBuilder.class.getName();
+    static final String RECORD_BUILDER_INCLUDE = RecordBuilder.Include.class.getName().replace('$', '.');
+    static final String RECORD_INTERFACE = RecordInterface.class.getName();
+    static final String RECORD_INTERFACE_INCLUDE = RecordInterface.Include.class.getName().replace('$', '.');
+
+    private static final Set<String> deletedSet = new HashSet<>();
 
     static final AnnotationSpec generatedRecordBuilderAnnotation = AnnotationSpec.builder(Generated.class)
             .addMember("value", "$S", RecordBuilder.class.getName()).build();
@@ -54,6 +59,8 @@ public class RecordBuilderProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        System.err.println("RecordBuilderProcessor - " + annotations);
+
         annotations.forEach(annotation -> roundEnv.getElementsAnnotatedWith(annotation)
                 .forEach(element -> process(annotation, element)));
         return false;
@@ -77,13 +84,13 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         String annotationClass = annotation.getQualifiedName().toString();
         if (annotationClass.equals(RECORD_BUILDER)) {
             var typeElement = (TypeElement) element;
-            processRecordBuilder(typeElement, getMetaData(typeElement), Optional.empty());
+            processRecordBuilder(typeElement, ElementUtils.getMetaData(processingEnv, typeElement), Optional.empty());
         } else if (annotationClass.equals(RECORD_INTERFACE)) {
             var typeElement = (TypeElement) element;
             processRecordInterface(typeElement, element.getAnnotation(RecordInterface.class).addRecordBuilder(),
-                    getMetaData(typeElement), Optional.empty(), false);
+                    ElementUtils.getMetaData(processingEnv, typeElement), Optional.empty(), false);
         } else if (annotationClass.equals(RECORD_BUILDER_INCLUDE) || annotationClass.equals(RECORD_INTERFACE_INCLUDE)) {
-            processIncludes(element, getMetaData(element), annotationClass);
+            processIncludes(element, ElementUtils.getMetaData(processingEnv, element), annotationClass);
         } else {
             var recordBuilderTemplate = annotation.getAnnotation(RecordBuilder.Template.class);
             if (recordBuilderTemplate != null) {
@@ -95,12 +102,6 @@ public class RecordBuilderProcessor extends AbstractProcessor {
                 }
             }
         }
-    }
-
-    private RecordBuilder.Options getMetaData(Element element) {
-        var recordSpecificMetaData = element.getAnnotation(RecordBuilder.Options.class);
-        return (recordSpecificMetaData != null) ? recordSpecificMetaData
-                : RecordBuilderOptions.build(processingEnv.getOptions());
     }
 
     private void processIncludes(Element element, RecordBuilder.Options metaData, String annotationClass) {
@@ -168,12 +169,26 @@ public class RecordBuilderProcessor extends AbstractProcessor {
 
         validateMetaData(metaData, element);
 
+        ClassType ifaceClassType = ElementUtils.getClassType(element, element.getTypeParameters());
+        String actualPackageName = packageName.orElseGet(() -> ElementUtils.getPackageName(element));
+        getBuilderName(element, metaData, ifaceClassType, metaData.interfaceSuffix());
+
+        boolean b1 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix(),
+                StandardLocation.SOURCE_OUTPUT);
+        boolean b2 = deletePossibleClassFile(actualPackageName,
+                ifaceClassType.name() + metaData.interfaceSuffix() + metaData.suffix(), StandardLocation.SOURCE_OUTPUT);
+        // boolean b3 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix(),
+        // StandardLocation.CLASS_OUTPUT);
+        // boolean b4 = deletePossibleClassFile(actualPackageName, ifaceClassType.name() + metaData.interfaceSuffix() +
+        // metaData.suffix(), StandardLocation.CLASS_OUTPUT);
+
         var internalProcessor = new InternalRecordInterfaceProcessor(processingEnv, element, addRecordBuilder, metaData,
                 packageName, fromTemplate);
         if (!internalProcessor.isValid()) {
             return;
         }
-        writeRecordInterfaceJavaFile(element, internalProcessor.packageName(), internalProcessor.recordClassType(),
+
+        writeJavaFile(element, internalProcessor.packageName(), internalProcessor.recordClassType(),
                 internalProcessor.recordType(), metaData);
     }
 
@@ -192,7 +207,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         validateMetaData(metaData, record);
 
         var internalProcessor = new InternalRecordBuilderProcessor(processingEnv, record, metaData, packageName);
-        writeRecordBuilderJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(),
+        writeJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(),
                 internalProcessor.builderType(), metaData);
     }
 
@@ -212,8 +227,8 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         }
     }
 
-    private void writeRecordBuilderJavaFile(TypeElement record, String packageName, ClassType builderClassType,
-            TypeSpec builderType, RecordBuilder.Options metaData) {
+    private void writeJavaFile(TypeElement record, String packageName, ClassType builderClassType, TypeSpec builderType,
+            RecordBuilder.Options metaData) {
         // produces the Java file
         JavaFile javaFile = javaFileBuilder(packageName, builderType, metaData);
         Filer filer = processingEnv.getFiler();
@@ -226,25 +241,6 @@ public class RecordBuilderProcessor extends AbstractProcessor {
             }
         } catch (IOException e) {
             handleWriteError(record, e);
-        }
-    }
-
-    private void writeRecordInterfaceJavaFile(TypeElement element, String packageName, ClassType classType,
-            TypeSpec type, RecordBuilder.Options metaData) {
-        JavaFile javaFile = javaFileBuilder(packageName, type, metaData);
-
-        String recordSourceCode = javaFile.toString();
-
-        Filer filer = processingEnv.getFiler();
-        try {
-            String fullyQualifiedName = packageName.isEmpty() ? classType.name()
-                    : (packageName + "." + classType.name());
-            JavaFileObject sourceFile = filer.createSourceFile(fullyQualifiedName);
-            try (Writer writer = sourceFile.openWriter()) {
-                writer.write(recordSourceCode);
-            }
-        } catch (IOException e) {
-            handleWriteError(element, e);
         }
     }
 
@@ -264,5 +260,32 @@ public class RecordBuilderProcessor extends AbstractProcessor {
             message = message + ": " + e.getMessage();
         }
         processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, message, element);
+    }
+
+    private boolean deletePossibleClassFile(String packageName, String className, StandardLocation location) {
+        String extension = (location == StandardLocation.CLASS_OUTPUT) ? ".class" : ".java";
+
+        if (!deletedSet.add(packageName + "." + className + extension)) {
+            return false;
+        }
+
+        try {
+            FileObject resource = processingEnv.getFiler().getResource(location, packageName, className + extension);
+            File file = new File(resource.toUri());
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.MANDATORY_WARNING,
+                    "Exists: %s - File %s".formatted(file.exists(), file));
+            if (file.exists()) {
+                if (!file.delete()) {
+                    processingEnv.getMessager().printMessage(Diagnostic.Kind.MANDATORY_WARNING,
+                            "Could not delete existing class file: %s".formatted(file));
+                    return false;
+                }
+                return true;
+            }
+            return false;
+        } catch (IOException e) {
+            // ignore
+        }
+        return false;
     }
 }
