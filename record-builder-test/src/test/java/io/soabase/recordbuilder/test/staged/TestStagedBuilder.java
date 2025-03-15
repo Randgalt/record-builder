@@ -91,4 +91,16 @@ public class TestStagedBuilder {
         InitializedStaged obj = InitializedStagedBuilder.builder().name("foo").age(42).build();
         assertEquals(new InitializedStaged(42, "foo"), obj);
     }
+
+    @Test
+    void testOptionalStagedRequiredOnlyConcreteSetter() {
+        OptionalStagedRequiredOnly obj = OptionalStagedRequiredOnlyBuilder.builder().a(1).c("cccc").build();
+        assertEquals(new OptionalStagedRequiredOnly(1, Optional.empty(), "cccc"), obj);
+
+        obj = OptionalStagedRequiredOnlyBuilder.builder().a(1).c("cccc").b(Optional.of("bbbb")).build();
+        assertEquals(new OptionalStagedRequiredOnly(1, Optional.of("bbbb"), "cccc"), obj);
+
+        obj = OptionalStagedRequiredOnlyBuilder.builder().a(1).c("cccc").b("bbbb").build();
+        assertEquals(new OptionalStagedRequiredOnly(1, Optional.of("bbbb"), "cccc"), obj);
+    }
 }
