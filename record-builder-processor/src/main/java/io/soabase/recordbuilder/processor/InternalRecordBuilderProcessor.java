@@ -266,6 +266,10 @@ class InternalRecordBuilderProcessor {
                             .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT).addParameter(parameterSpecBuilder.build())
                             .addCode(codeBlock).returns(builderClassType.typeName()).build();
                     classBuilder.addMethod(methodSpec);
+
+                    if (metaData.addConcreteSettersForOptional()) {
+                        add1ConcreteOptionalSetterMethodToFinalStage(optionalComponent, classBuilder);
+                    }
                 });
 
         var builderMethod = MethodSpec.methodBuilder(metaData.builderMethodName())
@@ -306,6 +310,23 @@ class InternalRecordBuilderProcessor {
         classBuilder.addMethod(methodSpec.build());
 
         builder.addType(classBuilder.build());
+    }
+
+    private void add1ConcreteOptionalSetterMethodToFinalStage(RecordClassType optionalComponent,
+            TypeSpec.Builder classBuilder) {
+        var optionalType = OptionalType.fromClassType(optionalComponent);
+        if (optionalType.isPresent()) {
+            var type = optionalType.get();
+            var concreteCodeBlock = CodeBlock.builder().add("return $L().$L($L);", metaData.builderMethodName(),
+                    optionalComponent.name(), optionalComponent.name()).build();
+            var concreteParameterSpecBuilder = ParameterSpec.builder(type.valueType(), optionalComponent.name());
+            var concreteMethodSpec = MethodSpec.methodBuilder(optionalComponent.name())
+                    .addAnnotation(generatedRecordBuilderAnnotation)
+                    .addJavadoc("Call builder for optional component {@code $L}", optionalComponent.name())
+                    .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT).addParameter(concreteParameterSpecBuilder.build())
+                    .addCode(concreteCodeBlock).returns(builderClassType.typeName()).build();
+            classBuilder.addMethod(concreteMethodSpec);
+        }
     }
 
     private void addWithNestedClass() {
