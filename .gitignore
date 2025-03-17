@@ -1,4 +1,6 @@
 # Default ignored files
 .idea
+.classpath
+.project
+.settings/
 **/target/**
-
