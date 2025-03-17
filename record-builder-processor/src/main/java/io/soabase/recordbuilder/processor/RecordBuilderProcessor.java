@@ -60,6 +60,11 @@ public class RecordBuilderProcessor extends AbstractProcessor {
     }
 
     @Override
+    public Set<String> getSupportedOptions() {
+        return RecordBuilderOptions.optionNames();
+    }
+
+    @Override
     public Set<String> getSupportedAnnotationTypes() {
         return Set.of("*");
     }
