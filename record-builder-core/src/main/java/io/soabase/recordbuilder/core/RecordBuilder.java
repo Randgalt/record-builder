@@ -386,4 +386,13 @@ public @interface RecordBuilder {
          */
         Class<?> source() default Object.class;
     }
+
+    /**
+     * Apply to record components to specify required components for the generated builder.
+     */
+    @Retention(RetentionPolicy.CLASS)
+    @Target(ElementType.FIELD)
+    @Inherited
+    @interface Required {
+    }
 }
