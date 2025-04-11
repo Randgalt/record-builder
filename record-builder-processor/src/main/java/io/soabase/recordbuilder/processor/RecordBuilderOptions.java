@@ -46,6 +46,9 @@ class RecordBuilderOptions {
                         if (defaultValue instanceof Double) {
                             return Double.parseDouble(option);
                         }
+                        if (defaultValue instanceof RecordBuilder.BuilderMode) {
+                            return RecordBuilder.BuilderMode.valueOf(option);
+                        }
                         throw new IllegalArgumentException("Unhandled option type: " + defaultValue.getClass());
                     }
                     return defaultValue;
