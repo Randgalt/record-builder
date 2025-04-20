@@ -196,7 +196,8 @@ public class RecordBuilderProcessor extends AbstractProcessor {
 
         validateMetaData(metaData, record);
 
-        var internalProcessor = new InternalRecordBuilderProcessor(processingEnv, record, metaData, packageName);
+        var recordFacade = RecordFacade.fromTypeElement(processingEnv, record, packageName, metaData);
+        var internalProcessor = new InternalRecordBuilderProcessor(recordFacade, metaData);
         writeRecordBuilderJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(),
                 internalProcessor.builderType(), metaData);
     }

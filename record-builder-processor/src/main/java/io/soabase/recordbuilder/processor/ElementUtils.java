@@ -19,7 +19,6 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeVariableName;
-import io.soabase.recordbuilder.core.RecordBuilder;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
@@ -138,12 +137,11 @@ public class ElementUtils {
         return prefix + Character.toUpperCase(name.charAt(0)) + name.substring(1);
     }
 
-    public static String getBuilderName(TypeElement element, RecordBuilder.Options metaData, ClassType classType,
-            String suffix) {
+    public static String generateName(TypeElement element, ClassType classType, String suffix,
+            boolean prefixEnclosingClassNames) {
         // generate the class name
         var baseName = classType.name() + suffix;
-        return metaData.prefixEnclosingClassNames() ? (getBuilderNamePrefix(element.getEnclosingElement()) + baseName)
-                : baseName;
+        return prefixEnclosingClassNames ? (getNamePrefix(element.getEnclosingElement()) + baseName) : baseName;
     }
 
     public static Optional<? extends Element> findCanonicalConstructor(TypeElement record) {
@@ -164,10 +162,10 @@ public class ElementUtils {
                 }).findFirst();
     }
 
-    private static String getBuilderNamePrefix(Element element) {
+    private static String getNamePrefix(Element element) {
         // prefix enclosing class names if nested in a class
         if (element instanceof TypeElement) {
-            return getBuilderNamePrefix(element.getEnclosingElement()) + element.getSimpleName().toString();
+            return getNamePrefix(element.getEnclosingElement()) + element.getSimpleName().toString();
         }
         return "";
     }
