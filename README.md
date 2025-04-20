@@ -5,6 +5,8 @@
 
 ## What is RecordBuilder
 
+### ___**NEW!! [Deconstructors](deconstructors.md)**___
+
 Java 16 introduces [Records](https://openjdk.java.net/jeps/395). While this version of records is fantastic, 
 it's currently missing some important features normally found in data classes: a builder 
 and "with"ers. This project is an annotation processor that creates:
@@ -23,6 +25,7 @@ _Details:_
 - [Usage](#usage)
 - [Customizing](customizing.md) (e.g. add immutable collections, etc.)
 - [Options](options.md)
+- [Deconstructors](deconstructors.md)
 
 ## RecordBuilder Example
 
@@ -378,3 +381,8 @@ Depending on your IDE you are likely to need to enable Annotation Processing in 
 RecordBuilder can be customized to your needs and you can even create your
 own custom RecordBuilder annotations. See [Customizing RecordBuilder](customizing.md)
 for details.
+
+## Deconstructors
+
+RecordBuilder can generate records and builders from deconstructor-style methods in any
+Java class. See [Deconstructors](deconstructors.md) for details.

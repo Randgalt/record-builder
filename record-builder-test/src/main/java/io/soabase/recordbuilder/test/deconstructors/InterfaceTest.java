@@ -13,16 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.soabase.recordbuilder.core;
+package io.soabase.recordbuilder.test.deconstructors;
 
-import java.lang.annotation.*;
+import io.soabase.recordbuilder.core.RecordBuilder.Deconstructor;
 
-/**
- * An alternate form of {@code @RecordBuilder} that has most optional features turned on
- */
-@RecordBuilder.Template(options = @RecordBuilder.Options(interpretNotNulls = true, useImmutableCollections = true, addSingleItemCollectionBuilders = true, addFunctionalMethodsToWith = true, addClassRetainedGenerated = true))
-@Retention(RetentionPolicy.SOURCE)
-@Target({ ElementType.TYPE, ElementType.METHOD })
-@Inherited
-public @interface RecordBuilderFull {
+import java.time.Instant;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
+
+public interface InterfaceTest {
+    @Deconstructor
+    void deconstructor1(Consumer<String> string, IntConsumer integer, Consumer<Instant> instant);
+
+    @Deconstructor(prefix = "MeMeMe")
+    void deconstructor2(Consumer<String> string);
 }

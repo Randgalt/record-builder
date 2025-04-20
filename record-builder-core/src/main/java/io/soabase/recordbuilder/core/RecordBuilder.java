@@ -58,7 +58,7 @@ public @interface RecordBuilder {
     }
 
     @Retention(RetentionPolicy.SOURCE)
-    @Target({ ElementType.TYPE, ElementType.PACKAGE })
+    @Target({ ElementType.TYPE, ElementType.PACKAGE, ElementType.METHOD })
     @Inherited
     @interface Options {
         /**
@@ -385,5 +385,48 @@ public @interface RecordBuilder {
          * record is the source class.
          */
         Class<?> source() default Object.class;
+    }
+
+    @Retention(RetentionPolicy.SOURCE)
+    @Target(ElementType.METHOD)
+    @Inherited
+    @interface Deconstructor {
+        /**
+         * The prefix for the generated record. If the value is an empty string, the method's class name is used.
+         */
+        String prefix() default "";
+
+        /**
+         * The generated record will be the {@link #prefix()} (prefixed with any enclosing class) plus this suffix. E.g.
+         * if the class name is "Foo", the record will be named "FooDao".
+         */
+        String suffix() default "Dao";
+
+        /**
+         * In the generated record, the name for the static factory method that creates the record from an instance of
+         * the class
+         */
+        String deconstructorMethodName() default "from";
+
+        /**
+         * Create a record builder for the generated record
+         */
+        boolean addRecordBuilder() default true;
+
+        /**
+         * If true, any annotations (if applicable) on parameters are copied to the generated record
+         *
+         * @return true/false
+         */
+        boolean inheritAnnotations() default true;
+    }
+
+    @Retention(RetentionPolicy.CLASS)
+    @Target(ElementType.ANNOTATION_TYPE)
+    @Inherited
+    @interface DeconstructorTemplate {
+        RecordBuilder.Deconstructor value() default @RecordBuilder.Deconstructor;
+
+        RecordBuilder.Options options() default @RecordBuilder.Options;
     }
 }
