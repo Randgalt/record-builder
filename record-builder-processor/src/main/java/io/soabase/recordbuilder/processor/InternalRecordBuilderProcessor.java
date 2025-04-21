@@ -107,10 +107,11 @@ class InternalRecordBuilderProcessor {
         }
         if ((metaData.builderMode() != BuilderMode.STAGED)
                 && (metaData.builderMode() != BuilderMode.STAGED_REQUIRED_ONLY)) {
-            addStaticDefaultBuilderMethod();
             if (record.getEnclosedElements().stream()
                     .anyMatch(element -> element.getAnnotation(RecordBuilder.Required.class) != null)) {
                 addStaticRequiredComponentsBuilderMethod(record);
+            } else {
+                addStaticDefaultBuilderMethod();
             }
         }
         addStaticCopyBuilderMethod();
