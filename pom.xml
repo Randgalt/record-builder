@@ -64,6 +64,7 @@
         <hibernate-validator-version>6.2.0.Final</hibernate-validator-version>
         <jakarta-validation-api-version>3.1.0</jakarta-validation-api-version>
         <javax-el-version>3.0.1-b09</javax-el-version>
+        <central-publishing-maven-plugin-version>0.7.0</central-publishing-maven-plugin-version>
     </properties>
 
     <name>Record Builder</name>
@@ -107,19 +108,6 @@
         <system>Github</system>
         <url>https://github.com/randgalt/record-builder/issues</url>
     </issueManagement>
-
-    <distributionManagement>
-        <repository>
-            <id>sonatype-nexus-staging</id>
-            <name>Sonatype Nexus Staging</name>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-        </repository>
-        <snapshotRepository>
-            <id>sonatype-nexus-snapshots</id>
-            <name>Sonatype Nexus Snapshots</name>
-            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-        </snapshotRepository>
-    </distributionManagement>
 
     <dependencyManagement>
         <dependencies>
@@ -455,6 +443,17 @@
                                 <phase>verify</phase>
                             </execution>
                         </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central-publishing-maven-plugin-version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
