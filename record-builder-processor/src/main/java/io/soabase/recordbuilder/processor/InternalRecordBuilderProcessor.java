@@ -403,7 +403,7 @@ class InternalRecordBuilderProcessor {
          */
         var codeBlockBuilder = CodeBlock.builder().add("return new $L$L(", builderClassType.name(),
                 typeVariables.isEmpty() ? "" : "<>");
-        addComponentCallsAsArguments(-1, codeBlockBuilder, false);
+        addComponentCallsAsArguments(-1, codeBlockBuilder);
         codeBlockBuilder.add(");");
         var methodSpec = MethodSpec.methodBuilder(metaData.withClassMethodPrefix())
                 .addAnnotation(generatedRecordBuilderAnnotation)
@@ -436,7 +436,7 @@ class InternalRecordBuilderProcessor {
             codeBlockBuilder.add("$T.validate(", validatorTypeName);
         }
         codeBlockBuilder.add("new $T(", recordClassType.typeName());
-        addComponentCallsAsArguments(index, codeBlockBuilder, false);
+        addComponentCallsAsArguments(index, codeBlockBuilder);
         codeBlockBuilder.add(")");
         if (metaData.useValidationApi()) {
             codeBlockBuilder.add(")");
@@ -471,7 +471,7 @@ class InternalRecordBuilderProcessor {
         classBuilder.addMethod(methodSpec);
     }
 
-    private void addComponentCallsAsArguments(int index, CodeBlock.Builder codeBlockBuilder, boolean usePrefixedName) {
+    private void addComponentCallsAsArguments(int index, CodeBlock.Builder codeBlockBuilder) {
         IntStream.range(0, recordComponents.size()).forEach(parameterIndex -> {
             if (parameterIndex > 0) {
                 codeBlockBuilder.add(", ");
@@ -480,8 +480,7 @@ class InternalRecordBuilderProcessor {
             if (parameterIndex == index) {
                 collectionBuilderUtils.addShimCall(codeBlockBuilder, parameterComponent);
             } else {
-                codeBlockBuilder.add("$L()",
-                        usePrefixedName ? prefixedName(parameterComponent, true) : parameterComponent.name());
+                codeBlockBuilder.add("$L()", parameterComponent.name());
             }
         });
     }
@@ -1143,7 +1142,7 @@ class InternalRecordBuilderProcessor {
             methodBuilder.addJavadoc("Perform an operation on record components");
         }
         codeBlockBuilder.add("proc.apply(");
-        addComponentCallsAsArguments(-1, codeBlockBuilder, true);
+        addComponentCallsAsArguments(-1, codeBlockBuilder);
         codeBlockBuilder.add(");");
         methodBuilder.addCode(codeBlockBuilder.build());
         return methodBuilder.build();
