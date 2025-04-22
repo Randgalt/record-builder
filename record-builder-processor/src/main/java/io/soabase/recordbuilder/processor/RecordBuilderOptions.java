@@ -20,6 +20,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 class RecordBuilderOptions {
     private static final Map<String, Object> defaultValues = buildDefaultValues();
@@ -53,6 +56,11 @@ class RecordBuilderOptions {
                     }
                     return defaultValue;
                 });
+    }
+
+    static Set<String> optionNames() {
+        return Stream.of(RecordBuilder.Options.class.getDeclaredMethods()).map(Method::getName)
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     private static Map<String, Object> buildDefaultValues() {
