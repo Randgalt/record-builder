@@ -107,7 +107,12 @@ class InternalRecordBuilderProcessor {
         }
         if ((metaData.builderMode() != BuilderMode.STAGED)
                 && (metaData.builderMode() != BuilderMode.STAGED_REQUIRED_ONLY)) {
-            addStaticDefaultBuilderMethod();
+            if (record.getEnclosedElements().stream()
+                    .anyMatch(element -> element.getAnnotation(RecordBuilder.Required.class) != null)) {
+                addStaticRequiredComponentsBuilderMethod(record);
+            } else {
+                addStaticDefaultBuilderMethod();
+            }
         }
         addStaticCopyBuilderMethod();
         if (metaData.enableWither()) {
@@ -789,6 +794,29 @@ class InternalRecordBuilderProcessor {
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addAnnotation(generatedRecordBuilderAnnotation)
                 .addTypeVariables(typeVariables).returns(builderClassType.typeName())
                 .addStatement("return new $T()", builderClassType.typeName()).build();
+        builder.addMethod(methodSpec);
+    }
+
+    private void addStaticRequiredComponentsBuilderMethod(TypeElement record) {
+        /*
+         * Adds the builder method with all required components similar to:
+         *
+         * public static MyRecordBuilder builder(int p1, int p2) { return new MyRecordBuilder().pi(pi).p2(p2); }
+         */
+        var requiredParameters = record.getEnclosedElements().stream()
+                .filter(element -> element.getAnnotation(RecordBuilder.Required.class) != null)
+                .map(element -> ParameterSpec
+                        .builder(TypeName.get(element.asType()), element.getSimpleName().toString()).build())
+                .toList();
+        var codeBuilder = CodeBlock.builder().add("return new $T()", builderClassType.typeName());
+        IntStream.range(0, requiredParameters.size()).forEach(index -> {
+            codeBuilder.add(".$L($L)", requiredParameters.get(index).name, requiredParameters.get(index).name);
+        });
+        var methodSpec = MethodSpec.methodBuilder(metaData.builderMethodName()).addParameters(requiredParameters)
+                .addJavadoc("Return a new builder with all fields set to the values taken from the given parameters\n")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addAnnotation(generatedRecordBuilderAnnotation)
+                .addTypeVariables(typeVariables).returns(builderClassType.typeName()).addStatement(codeBuilder.build())
+                .build();
         builder.addMethod(methodSpec);
     }
 

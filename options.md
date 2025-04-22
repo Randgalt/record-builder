@@ -114,3 +114,8 @@ Special handling for collections. See the project test classes for usage.
 | `@RecordBuilder.Options(useUnmodifiableCollections = true/false)`      | Adds special handling for collection record components. The default is `false`.     |
 | `@RecordBuilder.Options(allowNullableCollections = true/false)`        | Adds special null handling for record collectioncomponents. The default is `false`. |
 | `@RecordBuilder.Options(addSingleItemCollectionBuilders = true/false)` | Adds special handling for record collectioncomponents. The default is `false`.      |
+
+## Required Components
+
+You can annotate record components with `@RecordBuilder.Required` to generate a builder with required components in the builder parameters.
+See [RequiredComponent.java](record-builder-test/src/main/java/io/soabase/recordbuilder/test/RequiredComponents.java) for an example.
