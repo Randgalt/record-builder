@@ -225,7 +225,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         try {
             String fullyQualifiedName = packageName.isEmpty() ? builderClassType.name()
                     : (packageName + "." + builderClassType.name());
-            JavaFileObject sourceFile = filer.createSourceFile(fullyQualifiedName);
+            JavaFileObject sourceFile = filer.createSourceFile(fullyQualifiedName, record);
             try (Writer writer = sourceFile.openWriter()) {
                 javaFile.writeTo(writer);
             }
@@ -244,7 +244,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         try {
             String fullyQualifiedName = packageName.isEmpty() ? classType.name()
                     : (packageName + "." + classType.name());
-            JavaFileObject sourceFile = filer.createSourceFile(fullyQualifiedName);
+            JavaFileObject sourceFile = filer.createSourceFile(fullyQualifiedName, element);
             try (Writer writer = sourceFile.openWriter()) {
                 writer.write(recordSourceCode);
             }
