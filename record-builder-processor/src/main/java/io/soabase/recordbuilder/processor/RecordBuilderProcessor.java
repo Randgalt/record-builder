@@ -15,9 +15,7 @@
  */
 package io.soabase.recordbuilder.processor;
 
-import com.squareup.javapoet.AnnotationSpec;
-import com.squareup.javapoet.JavaFile;
-import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.*;
 import io.soabase.recordbuilder.core.RecordBuilder;
 import io.soabase.recordbuilder.core.RecordBuilderGenerated;
 import io.soabase.recordbuilder.core.RecordInterface;
@@ -27,21 +25,24 @@ import javax.annotation.processing.Filer;
 import javax.annotation.processing.Generated;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.PackageElement;
-import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.*;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static io.soabase.recordbuilder.processor.ElementUtils.generateName;
 
 public class RecordBuilderProcessor extends AbstractProcessor {
     private static final String RECORD_BUILDER = RecordBuilder.class.getName();
     private static final String RECORD_BUILDER_INCLUDE = RecordBuilder.Include.class.getName().replace('$', '.');
     private static final String RECORD_INTERFACE = RecordInterface.class.getName();
     private static final String RECORD_INTERFACE_INCLUDE = RecordInterface.Include.class.getName().replace('$', '.');
+    private static final String DECONSTRUCTOR = RecordBuilder.Deconstructor.class.getName().replace('$', '.');
 
     static final AnnotationSpec generatedRecordBuilderAnnotation = AnnotationSpec.builder(Generated.class)
             .addMember("value", "$S", RecordBuilder.class.getName()).build();
@@ -51,6 +52,10 @@ public class RecordBuilderProcessor extends AbstractProcessor {
             .addMember("value", "$S", RecordInterface.class.getName()).build();
     static final AnnotationSpec recordBuilderGeneratedAnnotation = AnnotationSpec.builder(RecordBuilderGenerated.class)
             .build();
+
+    // it's unclear whether this works in all compilers. However, in the worst case, the JDK filer
+    // will log an error if a duplicate deconstructor record is attempted
+    private final Set<TypeName> createdDeconstructors = ConcurrentHashMap.newKeySet();
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
@@ -80,6 +85,10 @@ public class RecordBuilderProcessor extends AbstractProcessor {
 
     private void process(TypeElement annotation, Element element) {
         String annotationClass = annotation.getQualifiedName().toString();
+        RecordBuilder.Template recordBuilderTemplate = annotation.getAnnotation(RecordBuilder.Template.class);
+        RecordBuilder.DeconstructorTemplate deconstructorTemplate = annotation
+                .getAnnotation(RecordBuilder.DeconstructorTemplate.class);
+
         if (annotationClass.equals(RECORD_BUILDER)) {
             var typeElement = (TypeElement) element;
             processRecordBuilder(typeElement, getMetaData(typeElement), Optional.empty());
@@ -89,16 +98,19 @@ public class RecordBuilderProcessor extends AbstractProcessor {
                     getMetaData(typeElement), Optional.empty(), false);
         } else if (annotationClass.equals(RECORD_BUILDER_INCLUDE) || annotationClass.equals(RECORD_INTERFACE_INCLUDE)) {
             processIncludes(element, getMetaData(element), annotationClass);
-        } else {
-            var recordBuilderTemplate = annotation.getAnnotation(RecordBuilder.Template.class);
-            if (recordBuilderTemplate != null) {
-                if (recordBuilderTemplate.asRecordInterface()) {
-                    processRecordInterface((TypeElement) element, true, recordBuilderTemplate.options(),
-                            Optional.empty(), true);
-                } else {
-                    processRecordBuilder((TypeElement) element, recordBuilderTemplate.options(), Optional.empty());
-                }
+        } else if (annotationClass.equals(DECONSTRUCTOR)) {
+            processDeconstructor((ExecutableElement) element, element.getAnnotation(RecordBuilder.Deconstructor.class),
+                    getMetaData(element));
+        } else if (recordBuilderTemplate != null) {
+            if (recordBuilderTemplate.asRecordInterface()) {
+                processRecordInterface((TypeElement) element, true, recordBuilderTemplate.options(), Optional.empty(),
+                        true);
+            } else {
+                processRecordBuilder((TypeElement) element, recordBuilderTemplate.options(), Optional.empty());
             }
+        } else if (deconstructorTemplate != null) {
+            processDeconstructor((ExecutableElement) element, deconstructorTemplate.value(),
+                    deconstructorTemplate.options());
         }
     }
 
@@ -178,8 +190,66 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         if (!internalProcessor.isValid()) {
             return;
         }
-        writeRecordInterfaceJavaFile(element, internalProcessor.packageName(), internalProcessor.recordClassType(),
-                internalProcessor.recordType(), metaData);
+        writeJavaFile(element, internalProcessor.packageName(), internalProcessor.recordClassType(),
+                internalProcessor.recordType(), metaData.fileIndent(), metaData.fileComment());
+    }
+
+    private void processDeconstructor(ExecutableElement executableElement, RecordBuilder.Deconstructor deconstructor,
+            RecordBuilder.Options metaData) {
+        if ((executableElement.getEnclosingElement().getKind() != ElementKind.CLASS)
+                && (executableElement.getEnclosingElement().getKind() != ElementKind.INTERFACE)) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                    "Destructor only valid for classes or interfaces.", executableElement);
+            return;
+        }
+
+        if (executableElement.getModifiers().contains(Modifier.STATIC)) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                    "Destructor only valid for non-static methods.", executableElement);
+            return;
+        }
+
+        var deconstructorProcessor = new InternalDeconstructorProcessor(processingEnv, executableElement, deconstructor,
+                metaData);
+
+        if (!createdDeconstructors.add(deconstructorProcessor.recordClassType().typeName())) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                    "Destructor is generating the same name as another Deconstructor in this class. Use Deconstructor options to generate a unique name.",
+                    executableElement);
+            return;
+        }
+
+        TypeSpec.Builder deconstructorBuilder = deconstructorProcessor.builder();
+
+        if (deconstructor.addRecordBuilder()) {
+            TypeElement typeElement = (TypeElement) executableElement.getEnclosingElement();
+            ClassType builderClassType = ElementUtils.getClassType(deconstructorProcessor.packageName(),
+                    generateName(typeElement, deconstructorProcessor.recordClassType(), metaData.suffix(),
+                            metaData.prefixEnclosingClassNames()),
+                    (typeElement).getTypeParameters());
+            Map<String, CodeBlock> initializers = InitializerUtil.detectInitializers(processingEnv, typeElement);
+            RecordFacade recordFacade = new RecordFacade(deconstructorProcessor.packageName(),
+                    deconstructorProcessor.recordClassType(), builderClassType, deconstructorProcessor.typeVariables(),
+                    deconstructorProcessor.recordComponents(), initializers, typeElement.getModifiers(), true);
+
+            var internalProcessor = new InternalRecordBuilderProcessor(recordFacade, metaData);
+            writeJavaFile(executableElement, internalProcessor.packageName(), internalProcessor.builderClassType(),
+                    internalProcessor.builderType(), metaData.fileIndent(), metaData.fileComment());
+
+            if (metaData.enableWither()) {
+                ClassName witherClass = ClassName.get(deconstructorProcessor.packageName(),
+                        internalProcessor.builderClassType().name(), metaData.withClassName());
+                TypeName witherTypeName = witherClass;
+                if (!deconstructorProcessor.typeVariables().isEmpty()) {
+                    witherTypeName = ParameterizedTypeName.get(witherClass,
+                            deconstructorProcessor.typeVariables().toArray(new TypeVariableName[] {}));
+                }
+                deconstructorBuilder.addSuperinterface(witherTypeName);
+            }
+        }
+
+        writeJavaFile(executableElement, deconstructorProcessor.packageName(), deconstructorProcessor.recordClassType(),
+                deconstructorBuilder.build(), metaData.fileIndent(), metaData.fileComment());
     }
 
     private void processRecordBuilder(TypeElement record, RecordBuilder.Options metaData,
@@ -196,12 +266,13 @@ public class RecordBuilderProcessor extends AbstractProcessor {
 
         validateMetaData(metaData, record);
 
-        var internalProcessor = new InternalRecordBuilderProcessor(processingEnv, record, metaData, packageName);
-        writeRecordBuilderJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(),
-                internalProcessor.builderType(), metaData);
+        var recordFacade = RecordFacade.fromTypeElement(processingEnv, record, packageName, metaData);
+        var internalProcessor = new InternalRecordBuilderProcessor(recordFacade, metaData);
+        writeJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(),
+                internalProcessor.builderType(), metaData.fileIndent(), metaData.fileComment());
     }
 
-    private void validateMetaData(RecordBuilder.Options metaData, Element record) {
+    private void validateMetaData(RecordBuilder.Options metaData, Element element) {
         var useImmutableCollections = metaData.useImmutableCollections();
         var useUnmodifiableCollections = metaData.useUnmodifiableCollections();
         var allowNullableCollections = metaData.allowNullableCollections();
@@ -209,61 +280,39 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         if (useImmutableCollections && useUnmodifiableCollections) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.MANDATORY_WARNING,
                     "Options.useUnmodifiableCollections property is ignored as Options.useImmutableCollections is set to true",
-                    record);
+                    element);
         } else if (!useImmutableCollections && !useUnmodifiableCollections && allowNullableCollections) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.MANDATORY_WARNING,
                     "Options.allowNullableCollections property will have no effect as Options.useImmutableCollections and Options.useUnmodifiableCollections are set to false",
-                    record);
+                    element);
         }
     }
 
-    private void writeRecordBuilderJavaFile(TypeElement record, String packageName, ClassType builderClassType,
-            TypeSpec builderType, RecordBuilder.Options metaData) {
-        // produces the Java file
-        JavaFile javaFile = javaFileBuilder(packageName, builderType, metaData);
-        Filer filer = processingEnv.getFiler();
-        try {
-            String fullyQualifiedName = packageName.isEmpty() ? builderClassType.name()
-                    : (packageName + "." + builderClassType.name());
-            JavaFileObject sourceFile = filer.createSourceFile(fullyQualifiedName, record);
-            try (Writer writer = sourceFile.openWriter()) {
-                javaFile.writeTo(writer);
-            }
-        } catch (IOException e) {
-            handleWriteError(record, e);
-        }
-    }
-
-    private void writeRecordInterfaceJavaFile(TypeElement element, String packageName, ClassType classType,
-            TypeSpec type, RecordBuilder.Options metaData) {
-        JavaFile javaFile = javaFileBuilder(packageName, type, metaData);
-
-        String recordSourceCode = javaFile.toString();
-
+    private void writeJavaFile(Element element, String packageName, ClassType classType, TypeSpec typeSpec,
+            String fileIndent, String fileComment) {
+        JavaFile javaFile = javaFileBuilder(packageName, typeSpec, fileIndent, fileComment);
         Filer filer = processingEnv.getFiler();
         try {
             String fullyQualifiedName = packageName.isEmpty() ? classType.name()
                     : (packageName + "." + classType.name());
             JavaFileObject sourceFile = filer.createSourceFile(fullyQualifiedName, element);
             try (Writer writer = sourceFile.openWriter()) {
-                writer.write(recordSourceCode);
+                javaFile.writeTo(writer);
             }
         } catch (IOException e) {
             handleWriteError(element, e);
         }
     }
 
-    private JavaFile javaFileBuilder(String packageName, TypeSpec type, RecordBuilder.Options metaData) {
-        var javaFileBuilder = JavaFile.builder(packageName, type).skipJavaLangImports(true)
-                .indent(metaData.fileIndent());
-        var comment = metaData.fileComment();
-        if ((comment != null) && !comment.isEmpty()) {
-            javaFileBuilder.addFileComment(comment);
+    private JavaFile javaFileBuilder(String packageName, TypeSpec type, String fileIndent, String fileComment) {
+        var javaFileBuilder = JavaFile.builder(packageName, type).skipJavaLangImports(true).indent(fileIndent);
+        if ((fileComment != null) && !fileComment.isEmpty()) {
+            javaFileBuilder.addFileComment(fileComment);
         }
         return javaFileBuilder.build();
     }
 
-    private void handleWriteError(TypeElement element, IOException e) {
+    private void handleWriteError(Element element, IOException e) {
         String message = "Could not create source file";
         if (e.getMessage() != null) {
             message = message + ": " + e.getMessage();

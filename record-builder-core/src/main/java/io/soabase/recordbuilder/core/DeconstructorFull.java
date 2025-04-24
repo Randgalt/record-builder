@@ -18,11 +18,12 @@ package io.soabase.recordbuilder.core;
 import java.lang.annotation.*;
 
 /**
- * An alternate form of {@code @RecordBuilder} that has most optional features turned on
+ * An alternate form of {@code @Deconstructor} that has most optional features turned on for the generated record
+ * builder
  */
-@RecordBuilder.Template(options = @RecordBuilder.Options(interpretNotNulls = true, useImmutableCollections = true, addSingleItemCollectionBuilders = true, addFunctionalMethodsToWith = true, addClassRetainedGenerated = true))
+@RecordBuilder.DeconstructorTemplate(options = @RecordBuilder.Options(interpretNotNulls = true, useImmutableCollections = true, addSingleItemCollectionBuilders = true, addFunctionalMethodsToWith = true, addClassRetainedGenerated = true))
 @Retention(RetentionPolicy.SOURCE)
-@Target({ ElementType.TYPE, ElementType.METHOD })
+@Target(ElementType.METHOD)
 @Inherited
-public @interface RecordBuilderFull {
+public @interface DeconstructorFull {
 }

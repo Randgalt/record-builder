@@ -20,8 +20,7 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 import io.soabase.recordbuilder.core.RecordBuilder.BuilderMode;
 import io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaData;
 
-import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.*;
+import javax.lang.model.element.Modifier;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -33,7 +32,8 @@ import java.util.stream.Stream;
 
 import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.EXCLUDE_WILDCARD_TYPES;
 import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.STANDARD_FOR_SETTER;
-import static io.soabase.recordbuilder.processor.ElementUtils.*;
+import static io.soabase.recordbuilder.processor.ElementUtils.getClassTypeFromNames;
+import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
 
@@ -58,34 +58,29 @@ class InternalRecordBuilderProcessor {
     private static final TypeName validatorTypeName = ClassName.get("io.soabase.recordbuilder.validator",
             "RecordBuilderValidator");
     private static final TypeVariableName rType = TypeVariableName.get("R");
-    private final ProcessingEnvironment processingEnv;
     private final Modifier constructorVisibilityModifier;
     private final Map<String, CodeBlock> initializers;
 
-    InternalRecordBuilderProcessor(ProcessingEnvironment processingEnv, TypeElement record,
-            RecordBuilder.Options metaData, Optional<String> packageNameOpt) {
-        this.processingEnv = processingEnv;
-        var recordActualPackage = ElementUtils.getPackageName(record);
+    InternalRecordBuilderProcessor(RecordFacade recordFacade, RecordBuilder.Options metaData) {
         this.metaData = metaData;
-        recordClassType = ElementUtils.getClassType(record, record.getTypeParameters());
-        packageName = packageNameOpt.orElse(recordActualPackage);
-        builderClassType = ElementUtils.getClassType(packageName,
-                getBuilderName(record, metaData, recordClassType, metaData.suffix()), record.getTypeParameters());
-        typeVariables = record.getTypeParameters().stream().map(TypeVariableName::get).collect(Collectors.toList());
-        recordComponents = buildRecordComponents(record);
+        recordClassType = recordFacade.recordClassType();
+        packageName = recordFacade.packageName();
+        builderClassType = recordFacade.builderClassType();
+        typeVariables = recordFacade.typeVariables();
+        recordComponents = recordFacade.recordComponents();
         uniqueVarName = getUniqueVarName();
         notNullPattern = Pattern.compile(metaData.interpretNotNullsPattern());
         nullablePattern = Pattern.compile(metaData.nullablePattern());
         collectionBuilderUtils = new CollectionBuilderUtils(recordComponents, this.metaData);
         constructorVisibilityModifier = metaData.publicBuilderConstructors() ? Modifier.PUBLIC : Modifier.PRIVATE;
-        initializers = InitializerUtil.detectInitializers(processingEnv, record);
+        initializers = recordFacade.initializers();
 
         builder = TypeSpec.classBuilder(builderClassType.name()).addAnnotation(generatedRecordBuilderAnnotation)
                 .addModifiers(metaData.builderClassModifiers()).addTypeVariables(typeVariables);
         if (metaData.addClassRetainedGenerated()) {
             builder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
-        addVisibility(recordActualPackage.equals(packageName), record.getModifiers());
+        addVisibility(recordFacade.builderIsInRecordPackage(), recordFacade.modifiers());
         if (metaData.enableWither()) {
             addWithNestedClass();
         }
@@ -102,7 +97,7 @@ class InternalRecordBuilderProcessor {
         if (metaData.addStaticBuilder()) {
             addStaticBuilder();
         }
-        if (recordComponents.size() > 0) {
+        if (!recordComponents.isEmpty()) {
             addAllArgsConstructor();
         }
         if ((metaData.builderMode() != BuilderMode.STAGED)
@@ -162,24 +157,6 @@ class InternalRecordBuilderProcessor {
         } else {
             builder.addModifiers(Modifier.PUBLIC);
         }
-    }
-
-    private List<RecordClassType> buildRecordComponents(TypeElement record) {
-        var accessorAnnotations = record.getRecordComponents().stream().map(e -> e.getAccessor().getAnnotationMirrors())
-                .collect(Collectors.toList());
-        var canonicalConstructorAnnotations = ElementUtils.findCanonicalConstructor(record)
-                .map(constructor -> ((ExecutableElement) constructor).getParameters().stream()
-                        .map(Element::getAnnotationMirrors).collect(Collectors.toList()))
-                .orElse(List.of());
-        var recordComponents = record.getRecordComponents();
-        return IntStream.range(0, recordComponents.size()).mapToObj(index -> {
-            var thisAccessorAnnotations = (accessorAnnotations.size() > index) ? accessorAnnotations.get(index)
-                    : List.<AnnotationMirror> of();
-            var thisCanonicalConstructorAnnotations = (canonicalConstructorAnnotations.size() > index)
-                    ? canonicalConstructorAnnotations.get(index) : List.<AnnotationMirror> of();
-            return ElementUtils.getRecordClassType(processingEnv, recordComponents.get(index), thisAccessorAnnotations,
-                    thisCanonicalConstructorAnnotations);
-        }).collect(Collectors.toList());
     }
 
     private void addOnceOnlySupport() {
@@ -806,11 +783,9 @@ class InternalRecordBuilderProcessor {
         codeBlock.addStatement("$T $L = new $T()", builderClassType.typeName(), uniqueVarName,
                 builderClassType.typeName());
         codeBlock.add("return ");
-        filteredRecordComponents.forEach(recordComponent -> {
-            codeBlock.add("$L -> {\n", recordComponent.name()).indent()
-                    .addStatement("$L.$L($L)", uniqueVarName, recordComponent.name(), recordComponent.name())
-                    .add("return ");
-        });
+        filteredRecordComponents.forEach(recordComponent -> codeBlock.add("$L -> {\n", recordComponent.name()).indent()
+                .addStatement("$L.$L($L)", uniqueVarName, recordComponent.name(), recordComponent.name())
+                .add("return "));
         codeBlock.addStatement("() -> $L", uniqueVarName);
         IntStream.range(0, filteredRecordComponents.size()).forEach(__ -> codeBlock.unindent().addStatement("}"));
 
