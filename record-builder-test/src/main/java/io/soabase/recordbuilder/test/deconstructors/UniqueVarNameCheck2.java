@@ -23,14 +23,13 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
-public class UniqueVarNameCheck {
+public class UniqueVarNameCheck2 {
     @Deconstructor
-    @RecordBuilder.Options(builderMode = RecordBuilder.BuilderMode.STAGED) // use staged so that deconstructor can't use
-                                                                           // builder
     public void unapply(Consumer<Map<String, List<Double>>> components, IntConsumer rhs) {
     }
 
     @Deconstructor(suffix = "Alt")
-    public void unapplyWithBuilder(Consumer<Map<String, List<Double>>> c, IntConsumer rhs) {
+    @RecordBuilder.Options(builderMethodName = "altBuilder")
+    public void unapplyWithBuilder(Consumer<Map<String, List<Double>>> builder, IntConsumer rhs) {
     }
 }

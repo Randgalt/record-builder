@@ -16,21 +16,14 @@
 package io.soabase.recordbuilder.test.deconstructors;
 
 import io.soabase.recordbuilder.core.RecordBuilder;
-import io.soabase.recordbuilder.core.RecordBuilder.Deconstructor;
 
-import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
-public class UniqueVarNameCheck {
-    @Deconstructor
-    @RecordBuilder.Options(builderMode = RecordBuilder.BuilderMode.STAGED) // use staged so that deconstructor can't use
-                                                                           // builder
-    public void unapply(Consumer<Map<String, List<Double>>> components, IntConsumer rhs) {
-    }
-
-    @Deconstructor(suffix = "Alt")
-    public void unapplyWithBuilder(Consumer<Map<String, List<Double>>> c, IntConsumer rhs) {
+public class ClassWithStaged {
+    @RecordBuilder.Deconstructor
+    @RecordBuilder.Options(builderMode = RecordBuilder.BuilderMode.STAGED)
+    public void deconstructor(IntConsumer i, Consumer<String> s) {
+        // notning
     }
 }

@@ -226,7 +226,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
             ClassType builderClassType = ElementUtils.getClassType(deconstructorProcessor.packageName(),
                     generateName(typeElement, deconstructorProcessor.recordClassType(), metaData.suffix(),
                             metaData.prefixEnclosingClassNames()),
-                    (typeElement).getTypeParameters());
+                    typeElement.getTypeParameters());
             Map<String, CodeBlock> initializers = InitializerUtil.detectInitializers(processingEnv, typeElement);
             RecordFacade recordFacade = new RecordFacade(executableElement, deconstructorProcessor.packageName(),
                     deconstructorProcessor.recordClassType(), builderClassType, deconstructorProcessor.typeVariables(),
