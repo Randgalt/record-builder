@@ -17,6 +17,7 @@ package io.soabase.recordbuilder.processor;
 
 import com.squareup.javapoet.*;
 import io.soabase.recordbuilder.core.RecordBuilder;
+import io.soabase.recordbuilder.core.RecordBuilder.BuilderMode;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ExecutableElement;
@@ -48,7 +49,11 @@ class InternalDeconstructorProcessor {
     private final ProcessingEnvironment processingEnv;
     private final ExecutableElement executableElement;
     private final TypeElement classElement;
+    private final RecordBuilder.Options metaData;
     private final RecordBuilder.Deconstructor deconstructor;
+
+    private static final Set<BuilderMode> STANDARD_BUILDER_MODES = Set.of(BuilderMode.STANDARD,
+            BuilderMode.STANDARD_AND_STAGED, BuilderMode.STANDARD_AND_STAGED_REQUIRED_ONLY);
 
     private static final TypeName consumerType = TypeName.get(Consumer.class);
     private static final TypeName intConsumerType = TypeName.get(IntConsumer.class);
@@ -66,6 +71,7 @@ class InternalDeconstructorProcessor {
         this.executableElement = executableElement;
         this.deconstructor = deconstructor;
         classElement = (TypeElement) executableElement.getEnclosingElement();
+        this.metaData = metaData;
         packageName = ElementUtils.getPackageName(classElement);
         typeVariables = classElement.getTypeParameters().stream().map(TypeVariableName::get)
                 .collect(Collectors.toList());
@@ -187,8 +193,10 @@ class InternalDeconstructorProcessor {
     }
 
     private void addDeconstructorMethod() {
+        boolean canUseBuilder = deconstructor.addRecordBuilder()
+                && STANDARD_BUILDER_MODES.contains(metaData.builderMode());
         String parameterName = uniqueName("rhs");
-        String variableName = uniqueName("components");
+        String variableName = uniqueName(canUseBuilder ? "builder" : "components");
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(deconstructor.deconstructorMethodName())
                 .addAnnotation(generatedRecordBuilderAnnotation).addModifiers(Modifier.PUBLIC, Modifier.STATIC)
@@ -197,6 +205,39 @@ class InternalDeconstructorProcessor {
 
         CodeBlock.Builder codeBlockBuilder = CodeBlock.builder();
 
+        if (canUseBuilder) {
+            addCodeWithBuilder(codeBlockBuilder, variableName, parameterName);
+        } else {
+            addCodeWithoutBuilder(codeBlockBuilder, variableName, parameterName);
+        }
+
+        methodBuilder.addCode(codeBlockBuilder.build());
+        builder.addMethod(methodBuilder.build());
+    }
+
+    private void addCodeWithBuilder(CodeBlock.Builder codeBlockBuilder, String variableName, String parameterName) {
+        ClassType builderClassType = ElementUtils.getClassType(packageName,
+                generateName(classElement, recordClassType, metaData.suffix(), metaData.prefixEnclosingClassNames()),
+                classElement.getTypeParameters());
+
+        codeBlockBuilder.add("$T $L = $L.$L();\n", builderClassType.typeName(), variableName, builderClassType.name(),
+                metaData.builderMethodName());
+
+        codeBlockBuilder.add("$L.$L(", parameterName, executableElement.getSimpleName());
+        IntStream.range(0, recordComponents.size()).forEach(index -> {
+            boolean isLast = index == (recordComponents.size() - 1);
+            RecordClassType component = recordComponents.get(index);
+            codeBlockBuilder.add("$L::$L", variableName, component.name());
+            if (!isLast) {
+                codeBlockBuilder.add(", ");
+            }
+        });
+        codeBlockBuilder.add(");\n");
+
+        codeBlockBuilder.add("return $L.$L();", variableName, metaData.buildMethodName());
+    }
+
+    private void addCodeWithoutBuilder(CodeBlock.Builder codeBlockBuilder, String variableName, String parameterName) {
         codeBlockBuilder.add("var $L = new Object() {\n", variableName);
         codeBlockBuilder.indent();
         recordComponents.forEach(component -> codeBlockBuilder.add("$T $L;\n", component.typeName(), component.name()));
@@ -225,9 +266,6 @@ class InternalDeconstructorProcessor {
             }
         });
         codeBlockBuilder.add(");\n");
-
-        methodBuilder.addCode(codeBlockBuilder.build());
-        builder.addMethod(methodBuilder.build());
     }
 
     private String uniqueName(String base) {

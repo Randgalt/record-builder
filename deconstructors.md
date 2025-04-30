@@ -57,8 +57,9 @@ RecordBuilder will generate a `record` (and record builder) similar to:
 ```java
 public record MyClassDao(int qty, String name) {
     public static MyClassDao from(MyClass rhs) {
-        ... components = rhs.deconstructor(...);
-        return new MyClassDao(... components ...);
+        MyClassDaoBuilder builder = MyClassDaoBuilder.builder();
+        rhs.deconstructor(builder::qty, builder::name);
+        return builder.build();
     }
 }
 ```
