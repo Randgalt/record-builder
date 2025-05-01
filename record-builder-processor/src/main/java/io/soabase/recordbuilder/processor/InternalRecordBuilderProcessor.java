@@ -20,8 +20,10 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 import io.soabase.recordbuilder.core.RecordBuilder.BuilderMode;
 import io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaData;
 
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Modifier;
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -36,6 +38,7 @@ import static io.soabase.recordbuilder.processor.ElementUtils.getClassTypeFromNa
 import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
+import static javax.tools.Diagnostic.Kind.ERROR;
 
 class InternalRecordBuilderProcessor {
     private final RecordBuilder.Options metaData;
@@ -44,7 +47,7 @@ class InternalRecordBuilderProcessor {
     private final ClassType builderClassType;
     private final List<TypeVariableName> typeVariables;
     private final List<RecordClassType> recordComponents;
-    private final TypeSpec builderType;
+    private final Optional<TypeSpec> builderType;
     private final TypeSpec.Builder builder;
     private final String uniqueVarName;
     private final Pattern notNullPattern;
@@ -61,7 +64,8 @@ class InternalRecordBuilderProcessor {
     private final Modifier constructorVisibilityModifier;
     private final Map<String, CodeBlock> initializers;
 
-    InternalRecordBuilderProcessor(RecordFacade recordFacade, RecordBuilder.Options metaData) {
+    InternalRecordBuilderProcessor(ProcessingEnvironment processingEnv, RecordFacade recordFacade,
+            RecordBuilder.Options metaData) {
         this.metaData = metaData;
         recordClassType = recordFacade.recordClassType();
         packageName = recordFacade.packageName();
@@ -80,6 +84,12 @@ class InternalRecordBuilderProcessor {
         if (metaData.addClassRetainedGenerated()) {
             builder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
+
+        if (!validateMethodNameConflicts(processingEnv)) {
+            builderType = Optional.empty();
+            return;
+        }
+
         addVisibility(recordFacade.builderIsInRecordPackage(), recordFacade.modifiers());
         if (metaData.enableWither()) {
             addWithNestedClass();
@@ -131,7 +141,7 @@ class InternalRecordBuilderProcessor {
         });
         collectionBuilderUtils.addShims(builder);
         collectionBuilderUtils.addMutableMakers(builder);
-        builderType = builder.build();
+        builderType = Optional.of(builder.build());
     }
 
     String packageName() {
@@ -142,8 +152,43 @@ class InternalRecordBuilderProcessor {
         return builderClassType;
     }
 
-    TypeSpec builderType() {
+    Optional<TypeSpec> builderType() {
         return builderType;
+    }
+
+    private boolean validateMethodNameConflicts(ProcessingEnvironment processingEnv) {
+        BiConsumer<String, String> reportError = (name, option) -> processingEnv.getMessager().printMessage(ERROR,
+                "Record component \"%s\" conflicts with RecordBuilder option \"%s\". Change the value of the option."
+                        .formatted(name, option));
+
+        return recordComponents.stream().allMatch(recordComponent -> {
+            if (recordComponent.name().equals(metaData.builderMethodName())) {
+                reportError.accept(recordComponent.name(), "builderMethodName");
+                return false;
+            }
+
+            if (recordComponent.name().equals(metaData.buildMethodName())) {
+                reportError.accept(recordComponent.name(), "buildMethodName");
+                return false;
+            }
+
+            if (recordComponent.name().equals(metaData.fromMethodName())) {
+                reportError.accept(recordComponent.name(), "fromMethodName");
+                return false;
+            }
+
+            if (recordComponent.name().equals(metaData.componentsMethodName())) {
+                reportError.accept(recordComponent.name(), "componentsMethodName");
+                return false;
+            }
+
+            if (recordComponent.name().equals(metaData.stagedBuilderMethodName())) {
+                reportError.accept(recordComponent.name(), "stagedBuilderMethodName");
+                return false;
+            }
+
+            return true;
+        });
     }
 
     private void addVisibility(boolean builderIsInRecordPackage, Set<Modifier> modifiers) {
@@ -724,8 +769,8 @@ class InternalRecordBuilderProcessor {
                 .addJavadoc("Return a \"with\"er for an existing record instance\n")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addAnnotation(generatedRecordBuilderAnnotation)
                 .addTypeVariables(typeVariables).addParameter(recordClassType.typeName(), metaData.fromMethodName())
-                .returns(buildWithTypeName()).addStatement("return new $L$L(from)", metaData.fromWithClassName(),
-                        typeVariables.isEmpty() ? "" : "<>")
+                .returns(buildWithTypeName()).addStatement("return new $L$L($L)", metaData.fromWithClassName(),
+                        typeVariables.isEmpty() ? "" : "<>", metaData.fromMethodName())
                 .build();
         builder.addMethod(methodSpec);
     }

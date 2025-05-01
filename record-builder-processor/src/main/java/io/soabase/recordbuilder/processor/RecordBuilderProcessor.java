@@ -232,20 +232,22 @@ public class RecordBuilderProcessor extends AbstractProcessor {
                     deconstructorProcessor.recordClassType(), builderClassType, deconstructorProcessor.typeVariables(),
                     deconstructorProcessor.recordComponents(), initializers, typeElement.getModifiers(), true);
 
-            var internalProcessor = new InternalRecordBuilderProcessor(recordFacade, metaData);
-            writeJavaFile(executableElement, internalProcessor.packageName(), internalProcessor.builderClassType(),
-                    internalProcessor.builderType(), metaData.fileIndent(), metaData.fileComment());
+            var internalProcessor = new InternalRecordBuilderProcessor(processingEnv, recordFacade, metaData);
+            internalProcessor.builderType().ifPresent(builderType -> {
+                writeJavaFile(executableElement, internalProcessor.packageName(), internalProcessor.builderClassType(),
+                        builderType, metaData.fileIndent(), metaData.fileComment());
 
-            if (metaData.enableWither()) {
-                ClassName witherClass = ClassName.get(deconstructorProcessor.packageName(),
-                        internalProcessor.builderClassType().name(), metaData.withClassName());
-                TypeName witherTypeName = witherClass;
-                if (!deconstructorProcessor.typeVariables().isEmpty()) {
-                    witherTypeName = ParameterizedTypeName.get(witherClass,
-                            deconstructorProcessor.typeVariables().toArray(new TypeVariableName[] {}));
+                if (metaData.enableWither()) {
+                    ClassName witherClass = ClassName.get(deconstructorProcessor.packageName(),
+                            internalProcessor.builderClassType().name(), metaData.withClassName());
+                    TypeName witherTypeName = witherClass;
+                    if (!deconstructorProcessor.typeVariables().isEmpty()) {
+                        witherTypeName = ParameterizedTypeName.get(witherClass,
+                                deconstructorProcessor.typeVariables().toArray(new TypeVariableName[] {}));
+                    }
+                    deconstructorBuilder.addSuperinterface(witherTypeName);
                 }
-                deconstructorBuilder.addSuperinterface(witherTypeName);
-            }
+            });
         }
 
         writeJavaFile(executableElement, deconstructorProcessor.packageName(), deconstructorProcessor.recordClassType(),
@@ -267,9 +269,9 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         validateMetaData(metaData, record);
 
         var recordFacade = RecordFacade.fromTypeElement(processingEnv, record, packageName, metaData);
-        var internalProcessor = new InternalRecordBuilderProcessor(recordFacade, metaData);
-        writeJavaFile(record, internalProcessor.packageName(), internalProcessor.builderClassType(),
-                internalProcessor.builderType(), metaData.fileIndent(), metaData.fileComment());
+        var internalProcessor = new InternalRecordBuilderProcessor(processingEnv, recordFacade, metaData);
+        internalProcessor.builderType().ifPresent(builderType -> writeJavaFile(record, internalProcessor.packageName(),
+                internalProcessor.builderClassType(), builderType, metaData.fileIndent(), metaData.fileComment()));
     }
 
     private void validateMetaData(RecordBuilder.Options metaData, Element element) {
