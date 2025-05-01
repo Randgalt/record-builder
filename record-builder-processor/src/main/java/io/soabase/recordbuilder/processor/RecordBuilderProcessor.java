@@ -228,7 +228,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
                             metaData.prefixEnclosingClassNames()),
                     (typeElement).getTypeParameters());
             Map<String, CodeBlock> initializers = InitializerUtil.detectInitializers(processingEnv, typeElement);
-            RecordFacade recordFacade = new RecordFacade(deconstructorProcessor.packageName(),
+            RecordFacade recordFacade = new RecordFacade(executableElement, deconstructorProcessor.packageName(),
                     deconstructorProcessor.recordClassType(), builderClassType, deconstructorProcessor.typeVariables(),
                     deconstructorProcessor.recordComponents(), initializers, typeElement.getModifiers(), true);
 

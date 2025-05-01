@@ -21,6 +21,7 @@ import io.soabase.recordbuilder.core.RecordBuilder.BuilderMode;
 import io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaData;
 
 import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -85,7 +86,7 @@ class InternalRecordBuilderProcessor {
             builder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
 
-        if (!validateMethodNameConflicts(processingEnv)) {
+        if (!validateMethodNameConflicts(processingEnv, recordFacade.element())) {
             builderType = Optional.empty();
             return;
         }
@@ -156,10 +157,11 @@ class InternalRecordBuilderProcessor {
         return builderType;
     }
 
-    private boolean validateMethodNameConflicts(ProcessingEnvironment processingEnv) {
+    private boolean validateMethodNameConflicts(ProcessingEnvironment processingEnv, Element element) {
         BiConsumer<String, String> reportError = (name, option) -> processingEnv.getMessager().printMessage(ERROR,
                 "Record component \"%s\" conflicts with RecordBuilder option \"%s\". Change the value of the option."
-                        .formatted(name, option));
+                        .formatted(name, option),
+                element);
 
         return recordComponents.stream().allMatch(recordComponent -> {
             if (recordComponent.name().equals(metaData.builderMethodName())) {
