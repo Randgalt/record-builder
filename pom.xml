@@ -36,7 +36,8 @@
         <project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <jdk-version>17</jdk-version>
+        <maven.compiler.release>17</maven.compiler.release>
+        <automatic-module-name>io.soabase.recordbuilder</automatic-module-name>
 
         <maven-compiler-plugin-version>3.14.0</maven-compiler-plugin-version>
         <maven-source-plugin-version>3.2.0</maven-source-plugin-version>
@@ -186,7 +187,6 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${maven-compiler-plugin-version}</version>
                     <configuration>
-                        <release>${jdk-version}</release>
                         <compilerArgs>
                             <arg>-Xlint:all</arg>
                         </compilerArgs>
@@ -197,9 +197,6 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-install-plugin</artifactId>
                     <version>${maven-install-plugin-version}</version>
-                    <configuration>
-                        <createChecksum>true</createChecksum>
-                    </configuration>
                 </plugin>
 
                 <plugin>
@@ -210,7 +207,7 @@
                         <execution>
                             <id>attach-sources</id>
                             <goals>
-                                <goal>jar</goal>
+                                <goal>jar-no-fork</goal>
                             </goals>
                         </execution>
                     </executions>
@@ -333,6 +330,13 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>${maven-jar-plugin-version}</version>
+                    <configuration>
+                        <archive>
+                            <manifestEntries>
+                                <Automatic-Module-Name>${automatic-module-name}</Automatic-Module-Name>
+                            </manifestEntries>
+                        </archive>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
