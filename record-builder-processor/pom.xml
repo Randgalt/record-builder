@@ -28,6 +28,7 @@
 
     <properties>
         <license-file-path>${project.parent.basedir}/src/etc/header.txt</license-file-path>
+        <maven.compiler.proc>none</maven.compiler.proc>
     </properties>
 
     <dependencies>
@@ -41,16 +42,4 @@
             <artifactId>record-builder-core</artifactId>
         </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <proc>none</proc>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 </project>
