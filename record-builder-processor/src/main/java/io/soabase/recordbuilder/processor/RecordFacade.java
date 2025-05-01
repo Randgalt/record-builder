@@ -30,7 +30,7 @@ import java.util.stream.IntStream;
 
 import static io.soabase.recordbuilder.processor.ElementUtils.generateName;
 
-record RecordFacade(String packageName, ClassType recordClassType, ClassType builderClassType,
+record RecordFacade(Element element, String packageName, ClassType recordClassType, ClassType builderClassType,
         List<TypeVariableName> typeVariables, List<RecordClassType> recordComponents,
         Map<String, CodeBlock> initializers, Set<Modifier> modifiers, boolean builderIsInRecordPackage) {
     public static RecordFacade fromTypeElement(ProcessingEnvironment processingEnv, TypeElement record,
@@ -46,7 +46,7 @@ record RecordFacade(String packageName, ClassType recordClassType, ClassType bui
         List<RecordClassType> recordComponents = buildRecordComponents(processingEnv, record);
         Map<String, CodeBlock> initializers = InitializerUtil.detectInitializers(processingEnv, record);
 
-        return new RecordFacade(packageName, recordClassType, builderClassType, typeVariables, recordComponents,
+        return new RecordFacade(record, packageName, recordClassType, builderClassType, typeVariables, recordComponents,
                 initializers, record.getModifiers(), recordActualPackage.equals(packageName));
     }
 
