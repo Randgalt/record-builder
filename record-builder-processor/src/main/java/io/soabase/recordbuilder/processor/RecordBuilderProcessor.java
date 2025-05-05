@@ -59,8 +59,9 @@ public class RecordBuilderProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        annotations.forEach(annotation -> roundEnv.getElementsAnnotatedWith(annotation)
-                .forEach(element -> process(annotation, element)));
+        annotations.stream().filter(annotation -> annotation.getKind() == ElementKind.ANNOTATION_TYPE)
+                .forEach(annotation -> roundEnv.getElementsAnnotatedWith(annotation)
+                        .forEach(element -> process(annotation, element)));
         return false;
     }
 

@@ -56,19 +56,20 @@ The names used for generated methods, classes, etc. can be changed via the follo
 
 ## Miscellaneous
 
-| option                                                               | details                                                                                                                                                          |
-|----------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `@RecordBuilder.Options(inheritComponentAnnotations = true/false)`   | If true, any annotations (if applicable) on record components are copied to the builder methods. The default is `true`.                                          |
-| `@RecordBuilder.Options(publicBuilderConstructors = true/false)`     | Makes the generated builder's constructors public. The default is `false`.                                                                                       |
-| `@RecordBuilder.Options(builderClassModifiers = {}})`                | Any additional `javax.lang.model.element.Modifier` you wish to apply to the builder.                                                                             |
-| `@RecordBuilder.Options(beanClassName = "Foo")`                      | If set, the Builder will contain an internal interface with this name.                                                                                           |
-| `@RecordBuilder.Options(addClassRetainedGenerated = true/false)`     | If true, generated classes are annotated with `RecordBuilderGenerated`. The default is `false`.                                                                  |
-| `@RecordBuilder.Options(addStaticBuilder = true/false)`              | If true, a functional-style builder is added so that record instances can be instantiated without `new()`. The default is `true`.                                |
-| `@RecordBuilder.Options(inheritComponentAnnotations = true/false)`   | If true, any annotations (if applicable) on record components are copied to the builder methods. The default is `true`.                                          |
-| `@RecordBuilder.Options(addConcreteSettersForOptional = true/false)` | Add non-optional setter methods for optional record components. The default is `false`.                                                                          |
-| `@RecordBuilder.Options(useValidationApi = true/false)`              | Pass built records through the Java Validation API if it's available in the classpath. The default is `false`.                                                   |
-| `@RecordBuilder.Options(builderMode = BuilderMode.XXX)`              | Whether to add standard builder, staged builder or both. The default is `BuilderMode.STANDARD`.                                                                  |
-| `@RecordBuilder.Options(onceOnlyAssignment = true/false)`            | If true, attributes can be set/assigned only 1 time. Attempts to reassign/reset attributes will throw `java.lang.IllegalStateException`. The default is `false`. |
+| option                                                                     | details                                                                                                                                                          |
+|----------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `@RecordBuilder.Options(inheritComponentAnnotations = true/false)`         | If true, any annotations (if applicable) on record components are copied to the builder methods. The default is `true`.                                          |
+| `@RecordBuilder.Options(publicBuilderConstructors = true/false)`           | Makes the generated builder's constructors public. The default is `false`.                                                                                       |
+| `@RecordBuilder.Options(builderClassModifiers = {}})`                      | Any additional `javax.lang.model.element.Modifier` you wish to apply to the builder.                                                                             |
+| `@RecordBuilder.Options(beanClassName = "Foo")`                            | If set, the Builder will contain an internal interface with this name.                                                                                           |
+| `@RecordBuilder.Options(addClassRetainedGenerated = true/false)`           | If true, generated classes are annotated with `RecordBuilderGenerated`. The default is `false`.                                                                  |
+| `@RecordBuilder.Options(addStaticBuilder = true/false)`                    | If true, a functional-style builder is added so that record instances can be instantiated without `new()`. The default is `true`.                                |
+| `@RecordBuilder.Options(inheritComponentAnnotations = true/false)`         | If true, any annotations (if applicable) on record components are copied to the builder methods. The default is `true`.                                          |
+| `@RecordBuilder.Options(addConcreteSettersForOptional = <mode>)`           | Add non-optional setter methods for optional record components. The default is `ConcreteSettersForOptionalMode.DISABLED`.                                        |
+| `@RecordBuilder.Options(nullableAnnotationClass = "com.foo.Nullable")`     | Nullability annotation to use when RecordBuilder needs to add one.                                                                                               |
+| `@RecordBuilder.Options(useValidationApi = true/false)`                    | Pass built records through the Java Validation API if it's available in the classpath. The default is `false`.                                                   |
+| `@RecordBuilder.Options(builderMode = BuilderMode.XXX)`                    | Whether to add standard builder, staged builder or both. The default is `BuilderMode.STANDARD`.                                                                  |
+| `@RecordBuilder.Options(onceOnlyAssignment = true/false)`                  | If true, attributes can be set/assigned only 1 time. Attempts to reassign/reset attributes will throw `java.lang.IllegalStateException`. The default is `false`. |
 
 ### Staged Builders
 
@@ -80,7 +81,6 @@ A variant of staged builders is available that only stages required record compo
 The following are not staged and are added to the final stage:
 - optional components (when `addConcreteSettersForOptional` is enabled)  
 - Any collections matching enabled [Collection options](#collections)  
-- Any annotated components that match the `nullablePattern()` pattern option (e.g. `@Nullable`)
 - Any components with initializers (annotated with `@RecordBuilder.Initializer(...)`) when `skipStagingForInitializedComponents` is enabled
 
 ## Default Values / Initializers
