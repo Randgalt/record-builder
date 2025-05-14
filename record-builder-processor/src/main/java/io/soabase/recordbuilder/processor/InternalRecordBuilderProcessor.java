@@ -174,16 +174,6 @@ class InternalRecordBuilderProcessor {
                 return false;
             }
 
-            if (recordComponent.name().equals(metaData.fromMethodName())) {
-                reportError.accept(recordComponent.name(), "fromMethodName");
-                return false;
-            }
-
-            if (recordComponent.name().equals(metaData.componentsMethodName())) {
-                reportError.accept(recordComponent.name(), "componentsMethodName");
-                return false;
-            }
-
             if (recordComponent.name().equals(metaData.stagedBuilderMethodName())) {
                 reportError.accept(recordComponent.name(), "stagedBuilderMethodName");
                 return false;
