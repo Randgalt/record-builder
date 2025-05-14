@@ -13,11 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.soabase.recordbuilder.test;
+package io.soabase.recordbuilder.test.naming;
 
-import io.soabase.recordbuilder.core.RecordBuilder;
-
-@RecordBuilder
-@RecordBuilder.Options(builderMode = RecordBuilder.BuilderMode.STANDARD_AND_STAGED, builderMethodName = "notBuilder", buildMethodName = "notBuild", stagedBuilderMethodName = "notStagedBuilder")
-public record DuplicateMethodNames(int builder, int build, int from, int stream, int stagedBuilder) {
+@Builder
+record ConvertRequest(double from, double to) {
 }
