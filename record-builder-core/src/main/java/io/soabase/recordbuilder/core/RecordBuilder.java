@@ -147,6 +147,13 @@ public @interface RecordBuilder {
         boolean addConcreteSettersForOptional() default false;
 
         /**
+         * Specify an annotation class to be added to the non-optional setter methods generated when
+         * `addConcreteSettersForOptional` is true. Defaults to an empty string, meaning no annotation is added by
+         * default.
+         */
+        String concreteSettersForOptionalNullabilityAnnotation() default "";
+
+        /**
          * Add not-null checks for record components annotated with any annotation named either "NotNull", "NoNull", or
          * "NonNull" (see {@link #interpretNotNullsPattern()} for the actual regex matching pattern).
          */
