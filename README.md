@@ -316,7 +316,7 @@ import some.library.code.ImportedInterface
 @RecordInterface.Include({
     ImportedInterface.class // generates a record interface for ImportedInterface 
 })
-public void Placeholder {
+public class Placeholder {
 }
 ```
 
