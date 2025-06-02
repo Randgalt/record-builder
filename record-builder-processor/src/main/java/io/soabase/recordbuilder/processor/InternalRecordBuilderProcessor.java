@@ -334,6 +334,10 @@ class InternalRecordBuilderProcessor {
             var concreteCodeBlock = CodeBlock.builder().add("return $L().$L($L);", metaData.builderMethodName(),
                     optionalComponent.name(), optionalComponent.name()).build();
             var concreteParameterSpecBuilder = ParameterSpec.builder(type.valueType(), optionalComponent.name());
+            if (!metaData.concreteSettersForOptionalNullabilityAnnotation().isEmpty()) {
+                concreteParameterSpecBuilder
+                        .addAnnotation(ClassName.bestGuess(metaData.concreteSettersForOptionalNullabilityAnnotation()));
+            }
             var concreteMethodSpec = MethodSpec.methodBuilder(optionalComponent.name())
                     .addAnnotation(generatedRecordBuilderAnnotation)
                     .addJavadoc("Call builder for optional component {@code $L}", optionalComponent.name())
@@ -1113,6 +1117,10 @@ class InternalRecordBuilderProcessor {
         methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name())
                 .addStatement(getOptionalStatement(type), component.name(), type.typeName(), component.name());
         addConstructorAnnotations(component, parameterSpecBuilder);
+        if (!metaData.concreteSettersForOptionalNullabilityAnnotation().isEmpty()) {
+            parameterSpecBuilder
+                    .addAnnotation(ClassName.bestGuess(metaData.concreteSettersForOptionalNullabilityAnnotation()));
+        }
         methodSpec.addStatement("return this").addParameter(parameterSpecBuilder.build());
         builder.addMethod(methodSpec.build());
     }
