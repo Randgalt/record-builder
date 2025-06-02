@@ -15,8 +15,9 @@
  */
 package io.soabase.recordbuilder.test.deconstructors;
 
-import io.soabase.recordbuilder.core.RecordBuilder;
+import io.soabase.recordbuilder.core.RecordBuilder.Deconstructor;
 
+import java.util.StringJoiner;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
@@ -29,9 +30,15 @@ public class MyClass {
         this.s = s;
     }
 
-    @RecordBuilder.Deconstructor
+    @Deconstructor
     public void deconstructor(IntConsumer i, Consumer<String> s) {
         i.accept(this.i);
         s.accept(this.s);
+    }
+
+    @Override
+    public String toString() {
+        return new StringJoiner(", ", MyClass.class.getSimpleName() + "[", "]").add("i=" + i).add("s='" + s + "'")
+                .toString();
     }
 }

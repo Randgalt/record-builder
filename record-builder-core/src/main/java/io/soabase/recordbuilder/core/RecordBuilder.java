@@ -387,7 +387,7 @@ public @interface RecordBuilder {
         Class<?> source() default Object.class;
     }
 
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     @Inherited
     @interface Deconstructor {
@@ -419,9 +419,12 @@ public @interface RecordBuilder {
          * @return true/false
          */
         boolean inheritAnnotations() default true;
+
+        // TODO
+        boolean isSerializer() default true;
     }
 
-    @Retention(RetentionPolicy.CLASS)
+    @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.ANNOTATION_TYPE)
     @Inherited
     @interface DeconstructorTemplate {

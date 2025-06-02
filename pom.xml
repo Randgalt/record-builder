@@ -29,6 +29,7 @@
         <module>record-builder-processor</module>
         <module>record-builder-test</module>
         <module>record-builder-validator</module>
+        <module>record-builder-serialization</module>
     </modules>
 
     <properties>
@@ -136,6 +137,18 @@
             </dependency>
 
             <dependency>
+                <groupId>io.soabase.record-builder</groupId>
+                <artifactId>record-builder-serialization</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.soabase.record-builder</groupId>
+                <artifactId>record-builder-test</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter</artifactId>
                 <version>${junit-jupiter-version}</version>
@@ -189,6 +202,7 @@
                     <configuration>
                         <compilerArgs>
                             <arg>-Xlint:all</arg>
+                            <arg>-parameters</arg>
                         </compilerArgs>
                     </configuration>
                 </plugin>
