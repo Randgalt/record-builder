@@ -20,6 +20,7 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
+import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import java.util.Map;
 import java.util.Optional;
@@ -31,6 +32,8 @@ import static io.soabase.recordbuilder.processor.ElementUtils.getStringAttribute
 
 class InitializerUtil {
     static Map<String, CodeBlock> detectInitializers(ProcessingEnvironment processingEnv, TypeElement record) {
+        TypeCompatibilityChecker typeCompatibilityChecker = new TypeCompatibilityChecker(processingEnv);
+
         return record.getEnclosedElements().stream().flatMap(element -> {
             var annotation = ElementUtils.findAnnotationMirror(processingEnv, element,
                     RecordBuilder.Initializer.class.getName().replace("$", "."));
@@ -47,14 +50,15 @@ class InitializerUtil {
             Optional<CodeBlock> initializer = sourceElement.getEnclosedElements().stream()
                     .filter(enclosedElement -> enclosedElement.getSimpleName().toString().equals(name))
                     .flatMap(enclosedElement -> {
-                        if ((enclosedElement.getKind() == ElementKind.METHOD)
-                                && isValid(processingEnv, element, (ExecutableElement) enclosedElement)) {
-                            return Stream.of(CodeBlock.builder().add("$T.$L()", sourceElement, name).build());
+                        TypeMirror erasedSourceElement = processingEnv.getTypeUtils().erasure(sourceElement.asType());
+                        if ((enclosedElement.getKind() == ElementKind.METHOD) && typeCompatibilityChecker
+                                .canAssignMethodReturnToField((ExecutableElement) enclosedElement, element.asType())) {
+                            return Stream.of(CodeBlock.builder().add("$T.$L()", erasedSourceElement, name).build());
                         }
 
                         if ((enclosedElement.getKind() == ElementKind.FIELD)
                                 && isValid(processingEnv, element, (VariableElement) enclosedElement)) {
-                            return Stream.of(CodeBlock.builder().add("$T.$L", sourceElement, name).build());
+                            return Stream.of(CodeBlock.builder().add("$T.$L", erasedSourceElement, name).build());
                         }
 
                         return Stream.of();
@@ -73,7 +77,17 @@ class InitializerUtil {
             ExecutableElement executableElement) {
         if (executableElement.getModifiers().contains(Modifier.PUBLIC)
                 && executableElement.getModifiers().contains(Modifier.STATIC)) {
-            return processingEnv.getTypeUtils().isSameType(executableElement.getReturnType(), element.asType());
+            TypeMirror elementType = element.asType();
+            TypeMirror returnType = executableElement.getReturnType();
+
+            if (!executableElement.getTypeParameters().isEmpty()) {
+                TypeMirror[] parameters = executableElement.getTypeParameters().stream()
+                        .map(TypeParameterElement::asType).toArray(TypeMirror[]::new);
+                TypeElement returnTypeElement = (TypeElement) processingEnv.getTypeUtils().asElement(returnType);
+                processingEnv.getTypeUtils().getDeclaredType(returnTypeElement, parameters);
+            }
+
+            return processingEnv.getTypeUtils().isAssignable(returnType, elementType);
         }
         return false;
     }
