@@ -15,7 +15,7 @@
  */
 package io.soabase.recordbuilder.processor;
 
-import com.squareup.javapoet.*;
+import com.palantir.javapoet.*;
 import io.soabase.recordbuilder.core.RecordBuilder;
 import io.soabase.recordbuilder.core.RecordBuilder.BuilderMode;
 
@@ -181,15 +181,16 @@ class InternalDeconstructorProcessor {
     }
 
     private void addRecordComponents() {
+        MethodSpec.Builder constructorBuilder = MethodSpec.constructorBuilder();
         recordComponents.forEach(component -> {
-            FieldSpec.Builder fieldBuilder = FieldSpec.builder(component.typeName(), component.name(),
-                    Modifier.PRIVATE);
+            ParameterSpec.Builder componentBuilder = ParameterSpec.builder(component.typeName(), component.name());
             if (deconstructor.inheritAnnotations()) {
-                fieldBuilder
+                componentBuilder
                         .addAnnotations(component.getAccessorAnnotations().stream().map(AnnotationSpec::get).toList());
             }
-            builder.addField(fieldBuilder.build());
+            constructorBuilder.addParameter(componentBuilder.build());
         });
+        builder.recordConstructor(constructorBuilder.build());
     }
 
     private void addDeconstructorMethod() {

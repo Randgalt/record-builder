@@ -15,7 +15,7 @@
  */
 package io.soabase.recordbuilder.processor;
 
-import com.squareup.javapoet.*;
+import com.palantir.javapoet.*;
 import io.soabase.recordbuilder.core.IgnoreDefaultMethod;
 import io.soabase.recordbuilder.core.RecordBuilder;
 
@@ -67,13 +67,16 @@ class InternalRecordInterfaceProcessor {
         var actualPackage = ElementUtils.getPackageName(iface);
         addVisibility(builder, actualPackage.equals(packageName), iface.getModifiers());
 
+        MethodSpec.Builder constructorBuilder = MethodSpec.constructorBuilder();
         recordComponents.forEach(component -> {
             String name = component.alternateName.orElseGet(() -> component.element.getSimpleName().toString());
-            FieldSpec parameterSpec = FieldSpec.builder(ClassName.get(component.element.getReturnType()), name).build();
+            ParameterSpec parameterSpec = ParameterSpec.builder(ClassName.get(component.element.getReturnType()), name)
+                    .build();
+            constructorBuilder.addParameter(parameterSpec);
             builder.addTypeVariables(component.element.getTypeParameters().stream().map(TypeVariableName::get)
                     .collect(Collectors.toList()));
-            builder.addField(parameterSpec);
         });
+        builder.recordConstructor(constructorBuilder.build());
 
         if (addRecordBuilder) {
             ClassType builderClassType = ElementUtils.getClassType(packageName,

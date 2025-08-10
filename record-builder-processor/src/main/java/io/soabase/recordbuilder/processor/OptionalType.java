@@ -20,8 +20,8 @@ import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 
-import com.squareup.javapoet.ParameterizedTypeName;
-import com.squareup.javapoet.TypeName;
+import com.palantir.javapoet.ParameterizedTypeName;
+import com.palantir.javapoet.TypeName;
 
 public record OptionalType(TypeName typeName, TypeName valueType) {
 
@@ -35,7 +35,7 @@ public record OptionalType(TypeName typeName, TypeName valueType) {
             return true;
         }
         return (component.typeName() instanceof ParameterizedTypeName parameterizedTypeName)
-                && parameterizedTypeName.rawType.equals(optionalType);
+                && parameterizedTypeName.rawType().equals(optionalType);
     }
 
     static Optional<OptionalType> fromClassType(final ClassType component) {
@@ -43,8 +43,8 @@ public record OptionalType(TypeName typeName, TypeName valueType) {
             if (!(component.typeName() instanceof ParameterizedTypeName parameterizedType)) {
                 return Optional.of(new OptionalType(optionalType, TypeName.get(Object.class)));
             }
-            final TypeName containingType = parameterizedType.typeArguments.isEmpty() ? TypeName.get(Object.class)
-                    : parameterizedType.typeArguments.get(0);
+            final TypeName containingType = parameterizedType.typeArguments().isEmpty() ? TypeName.get(Object.class)
+                    : parameterizedType.typeArguments().get(0);
             return Optional.of(new OptionalType(optionalType, containingType));
         }
         if (component.typeName().equals(optionalIntType)) {

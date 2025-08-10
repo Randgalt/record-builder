@@ -15,8 +15,8 @@
  */
 package io.soabase.recordbuilder.processor;
 
-import com.squareup.javapoet.CodeBlock;
-import com.squareup.javapoet.TypeVariableName;
+import com.palantir.javapoet.CodeBlock;
+import com.palantir.javapoet.TypeVariableName;
 import io.soabase.recordbuilder.core.RecordBuilder;
 
 import javax.annotation.processing.ProcessingEnvironment;

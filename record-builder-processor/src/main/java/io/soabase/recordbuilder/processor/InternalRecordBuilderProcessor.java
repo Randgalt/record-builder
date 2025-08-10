@@ -15,7 +15,7 @@
  */
 package io.soabase.recordbuilder.processor;
 
-import com.squareup.javapoet.*;
+import com.palantir.javapoet.*;
 import io.soabase.recordbuilder.core.RecordBuilder;
 import io.soabase.recordbuilder.core.RecordBuilder.BuilderMode;
 import io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaData;
@@ -901,11 +901,11 @@ class InternalRecordBuilderProcessor {
     }
 
     private boolean filterOutOverride(AnnotationSpec annotationSpec) {
-        return !annotationSpec.type.equals(overrideType);
+        return !annotationSpec.type().equals(overrideType);
     }
 
     private boolean filterOutValid(AnnotationSpec annotationSpec) {
-        return !annotationSpec.type.equals(javaxValidType) && !annotationSpec.type.equals(jakartaValidType);
+        return !annotationSpec.type().equals(javaxValidType) && !annotationSpec.type().equals(jakartaValidType);
     }
 
     private void addConstructorAnnotations(RecordClassType component, ParameterSpec.Builder parameterSpecBuilder) {

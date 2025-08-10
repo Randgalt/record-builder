@@ -15,7 +15,7 @@
  */
 package io.soabase.recordbuilder.processor;
 
-import com.squareup.javapoet.*;
+import com.palantir.javapoet.*;
 import io.soabase.recordbuilder.core.RecordBuilder;
 import io.soabase.recordbuilder.core.RecordBuilderGenerated;
 import io.soabase.recordbuilder.core.RecordInterface;

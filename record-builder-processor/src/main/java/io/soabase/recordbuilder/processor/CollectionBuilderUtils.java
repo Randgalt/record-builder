@@ -15,7 +15,7 @@
  */
 package io.soabase.recordbuilder.processor;
 
-import com.squareup.javapoet.*;
+import com.palantir.javapoet.*;
 import io.soabase.recordbuilder.core.RecordBuilder;
 
 import javax.lang.model.element.Modifier;
@@ -164,8 +164,8 @@ class CollectionBuilderUtils {
 
                 case STANDARD_FOR_SETTER -> {
                     if (hasWildcardTypeArguments) {
-                        yield Optional.of(new SingleItemsMetaData(collectionClass, parameterizedTypeName.typeArguments,
-                                component.typeName()));
+                        yield Optional.of(new SingleItemsMetaData(collectionClass,
+                                parameterizedTypeName.typeArguments(), component.typeName()));
                     }
                     yield singleItemsMetaDataWithWildType(parameterizedTypeName, collectionClass, wildcardClass,
                             typeArgumentQty);
@@ -331,16 +331,16 @@ class CollectionBuilderUtils {
 
         if (needsListMutableMaker) {
             builder.addMethod(
-                    buildMutableMakerMethod(listMakerMethodName, mutableListSpec.name, parameterizedListType, tType));
+                    buildMutableMakerMethod(listMakerMethodName, mutableListSpec.name(), parameterizedListType, tType));
             builder.addType(mutableListSpec);
         }
         if (needsSetMutableMaker) {
             builder.addMethod(
-                    buildMutableMakerMethod(setMakerMethodName, mutableSetSpec.name, parameterizedSetType, tType));
+                    buildMutableMakerMethod(setMakerMethodName, mutableSetSpec.name(), parameterizedSetType, tType));
             builder.addType(mutableSetSpec);
         }
         if (needsMapMutableMaker) {
-            builder.addMethod(buildMutableMakerMethod(mapMakerMethodName, mutableMapSpec.name, parameterizedMapType,
+            builder.addMethod(buildMutableMakerMethod(mapMakerMethodName, mutableMapSpec.name(), parameterizedMapType,
                     kType, vType));
             builder.addType(mutableMapSpec);
         }
@@ -351,19 +351,19 @@ class CollectionBuilderUtils {
         TypeName wildType;
         if (typeArgumentQty == 1) {
             wildType = ParameterizedTypeName.get(wildcardClass,
-                    WildcardTypeName.subtypeOf(parameterizedTypeName.typeArguments.get(0)));
+                    WildcardTypeName.subtypeOf(parameterizedTypeName.typeArguments().get(0)));
         } else { // if (typeArgumentQty == 2)
             wildType = ParameterizedTypeName.get(wildcardClass,
-                    WildcardTypeName.subtypeOf(parameterizedTypeName.typeArguments.get(0)),
-                    WildcardTypeName.subtypeOf(parameterizedTypeName.typeArguments.get(1)));
+                    WildcardTypeName.subtypeOf(parameterizedTypeName.typeArguments().get(0)),
+                    WildcardTypeName.subtypeOf(parameterizedTypeName.typeArguments().get(1)));
         }
-        return Optional.of(new SingleItemsMetaData(collectionClass, parameterizedTypeName.typeArguments, wildType));
+        return Optional.of(new SingleItemsMetaData(collectionClass, parameterizedTypeName.typeArguments(), wildType));
     }
 
     private boolean hasWildcardTypeArguments(ParameterizedTypeName parameterizedTypeName, int argumentCount) {
         for (int i = 0; i < argumentCount; ++i) {
-            if (parameterizedTypeName.typeArguments.size() > i) {
-                if (parameterizedTypeName.typeArguments.get(i) instanceof WildcardTypeName) {
+            if (parameterizedTypeName.typeArguments().size() > i) {
+                if (parameterizedTypeName.typeArguments().get(i) instanceof WildcardTypeName) {
                     return true;
                 }
             }
@@ -383,7 +383,7 @@ class CollectionBuilderUtils {
             ParameterizedTypeName parameterizedType, TypeVariableName... typeVariables) {
         var code = buildShimMethodBody(mainType, parameterizedType);
 
-        TypeName[] wildCardTypeArguments = parameterizedType.typeArguments.stream().map(WildcardTypeName::subtypeOf)
+        TypeName[] wildCardTypeArguments = parameterizedType.typeArguments().stream().map(WildcardTypeName::subtypeOf)
                 .toList().toArray(new TypeName[0]);
         var extendedParameterizedType = ParameterizedTypeName.get(ClassName.get(abstractType), wildCardTypeArguments);
 
@@ -423,7 +423,7 @@ class CollectionBuilderUtils {
             ParameterizedTypeName parameterizedType, TypeVariableName... typeVariables) {
         var code = buildNullableShimMethodBody(mainType, parameterizedType);
 
-        TypeName[] wildCardTypeArguments = parameterizedType.typeArguments.stream().map(WildcardTypeName::subtypeOf)
+        TypeName[] wildCardTypeArguments = parameterizedType.typeArguments().stream().map(WildcardTypeName::subtypeOf)
                 .toList().toArray(new TypeName[0]);
         var extendedParameterizedType = ParameterizedTypeName.get(ClassName.get(abstractType), wildCardTypeArguments);
         return MethodSpec.methodBuilder(name).addAnnotation(generatedRecordBuilderAnnotation)
