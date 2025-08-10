@@ -18,6 +18,7 @@ package io.soabase.recordbuilder.serialization.standard;
 import io.soabase.com.google.inject.TypeLiteral;
 import io.soabase.recordbuilder.serialization.spi.Deserializer;
 import io.soabase.recordbuilder.serialization.spi.SerializationRegistry;
+import io.soabase.recordbuilder.serialization.spi.Serializer;
 import io.soabase.recordbuilder.serialization.token.MetaToken.ArrayStartToken;
 import io.soabase.recordbuilder.serialization.token.MetaToken.ObjectStartToken;
 import io.soabase.recordbuilder.serialization.token.NumberToken;
@@ -58,6 +59,9 @@ public class JdkSerializers {
         registry.registerDeserializer("Object", Object.class, objectDeserializer);
 
         registry.registerDeserializer("WildcardType", type -> type instanceof WildcardType, wildcardDeserializer);
+
+        registry.registerSerializer("Enums", type -> (type instanceof Class<?> clazz) && clazz.isEnum(), enumSerializer);
+        registry.registerDeserializer("Enums", type -> (type instanceof Class<?> clazz) && clazz.isEnum(), enumDeserializer);
     }
 
     public static final Function<Type, Deserializer> objectDeserializer = _ -> (registry,
@@ -82,5 +86,22 @@ public class JdkSerializers {
     public static final Function<Type, Deserializer> wildcardDeserializer = type -> (registry, stream) -> {
         WildcardType wildcardType = (WildcardType) type;
         return registry.requiredDeserializer(wildcardType.getUpperBounds()[0]).deserialize(registry, stream);
+    };
+
+    public static final Function<Type, Serializer> enumSerializer = _ -> (_, obj, sink) -> {
+        if (obj == null) {
+            sink.nullValue();
+        } else {
+            sink.stringValue(((Enum<?>) obj).name());
+        }
+    };
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static final Function<Type, Deserializer> enumDeserializer = type -> (_, stream) -> {
+        if (stream.current() instanceof NullToken) {
+            return null;
+        }
+        String name = stream.current().as(StringToken.class).value();
+        return Enum.valueOf((Class<? extends Enum>) type, name);
     };
 }

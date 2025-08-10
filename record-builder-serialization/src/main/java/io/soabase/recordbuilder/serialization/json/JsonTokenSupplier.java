@@ -95,7 +95,7 @@ public class JsonTokenSupplier implements Supplier<Token> {
         while (!isDone) {
             if (Character.isDigit(c) || c == '-' || c == '+' || c == '.' || c == 'e' || c == 'E') {
                 numberBuilder.append(c);
-                c = requireNext(false);
+                c = requireNext();
             } else {
                 pushbackChar(c);
                 isDone = true;
@@ -149,7 +149,7 @@ public class JsonTokenSupplier implements Supplier<Token> {
         StringBuilder str = new StringBuilder();
 
         while (!isDone) {
-            char c = requireNext(false);
+            char c = requireNext();
             if (nextIsEscaped) {
                 str.append(c);
                 nextIsEscaped = false;
@@ -201,13 +201,13 @@ public class JsonTokenSupplier implements Supplier<Token> {
     }
 
     private void requireNextEquals(char c) {
-        if (requireNext(false) != c) {
+        if (requireNext() != c) {
             throw new IllegalStateException("Expected '" + c + "' but found a different character");
         }
     }
 
-    private char requireNext(boolean skipWhitespace) {
-        char c = next(skipWhitespace);
+    private char requireNext() {
+        char c = next(false);
         if (isDone) {
             // TODO
             throw new UncheckedIOException(new EOFException());
