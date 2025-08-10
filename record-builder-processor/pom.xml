@@ -33,8 +33,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.soabase.java-composer</groupId>
-            <artifactId>java-composer</artifactId>
+            <groupId>com.palantir.javapoet</groupId>
+            <artifactId>javapoet</artifactId>
         </dependency>
 
         <dependency>
