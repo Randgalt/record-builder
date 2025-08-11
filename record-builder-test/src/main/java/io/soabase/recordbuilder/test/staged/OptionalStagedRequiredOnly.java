@@ -20,6 +20,6 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 import java.util.Optional;
 
 @RecordBuilder
-@RecordBuilder.Options(builderMode = RecordBuilder.BuilderMode.STAGED_REQUIRED_ONLY, addConcreteSettersForOptional = true)
+@RecordBuilder.Options(builderMode = RecordBuilder.BuilderMode.STAGED_REQUIRED_ONLY, addConcreteSettersForOptional = RecordBuilder.ConcreteSettersForOptionalMode.ENABLED_WITH_NULLABLE_ANNOTATION, nullableAnnotationClass = "javax.validation.constraints.Null")
 public record OptionalStagedRequiredOnly(int a, Optional<String> b, String c) {
 }

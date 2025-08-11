@@ -134,7 +134,7 @@ class InternalRecordBuilderProcessor {
             if (metaData.enableGetters()) {
                 add1GetterMethod(component);
             }
-            if (metaData.addConcreteSettersForOptional()) {
+            if (metaData.addConcreteSettersForOptional() != RecordBuilder.ConcreteSettersForOptionalMode.DISABLED) {
                 add1ConcreteOptionalSetterMethod(component);
             }
             var collectionMetaData = collectionBuilderUtils.singleItemsMetaData(component, EXCLUDE_WILDCARD_TYPES);
@@ -281,7 +281,8 @@ class InternalRecordBuilderProcessor {
                             .addCode(codeBlock).returns(builderClassType.typeName()).build();
                     classBuilder.addMethod(methodSpec);
 
-                    if (metaData.addConcreteSettersForOptional()) {
+                    if (metaData
+                            .addConcreteSettersForOptional() != RecordBuilder.ConcreteSettersForOptionalMode.DISABLED) {
                         add1ConcreteOptionalSetterMethodToFinalStage(optionalComponent, classBuilder);
                     }
                 });
@@ -334,12 +335,26 @@ class InternalRecordBuilderProcessor {
             var concreteCodeBlock = CodeBlock.builder().add("return $L().$L($L);", metaData.builderMethodName(),
                     optionalComponent.name(), optionalComponent.name()).build();
             var concreteParameterSpecBuilder = ParameterSpec.builder(type.valueType(), optionalComponent.name());
+            applyConcreteOptionalSetterNullable(concreteParameterSpecBuilder);
             var concreteMethodSpec = MethodSpec.methodBuilder(optionalComponent.name())
                     .addAnnotation(generatedRecordBuilderAnnotation)
                     .addJavadoc("Call builder for optional component {@code $L}", optionalComponent.name())
                     .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT).addParameter(concreteParameterSpecBuilder.build())
                     .addCode(concreteCodeBlock).returns(builderClassType.typeName()).build();
             classBuilder.addMethod(concreteMethodSpec);
+        }
+    }
+
+    private void applyConcreteOptionalSetterNullable(ParameterSpec.Builder builder) {
+        if (metaData
+                .addConcreteSettersForOptional() == RecordBuilder.ConcreteSettersForOptionalMode.ENABLED_WITH_NULLABLE_ANNOTATION) {
+            addNullableAnnotation(builder);
+        }
+    }
+
+    private void addNullableAnnotation(ParameterSpec.Builder builder) {
+        if (!metaData.nullableAnnotationClass().isEmpty()) {
+            builder.addAnnotation(ClassName.bestGuess(metaData.nullableAnnotationClass()));
         }
     }
 
@@ -1113,6 +1128,7 @@ class InternalRecordBuilderProcessor {
         methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name())
                 .addStatement(getOptionalStatement(type), component.name(), type.typeName(), component.name());
         addConstructorAnnotations(component, parameterSpecBuilder);
+        applyConcreteOptionalSetterNullable(parameterSpecBuilder);
         methodSpec.addStatement("return this").addParameter(parameterSpecBuilder.build());
         builder.addMethod(methodSpec.build());
     }

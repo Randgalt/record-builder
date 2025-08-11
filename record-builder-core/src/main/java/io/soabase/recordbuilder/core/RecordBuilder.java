@@ -144,7 +144,13 @@ public @interface RecordBuilder {
         /**
          * Add non-optional setter methods for optional record components.
          */
-        boolean addConcreteSettersForOptional() default false;
+        ConcreteSettersForOptionalMode addConcreteSettersForOptional() default ConcreteSettersForOptionalMode.DISABLED;
+
+        /**
+         * The annotation to use when RecordBuilder is configured to add a nullable annotation. This is an empty string
+         * by default. You must set this to a valid annotation class name when used.
+         */
+        String nullableAnnotationClass() default "";
 
         /**
          * Add not-null checks for record components annotated with any annotation named either "NotNull", "NoNull", or
@@ -366,6 +372,10 @@ public @interface RecordBuilder {
 
     enum BuilderMode {
         STANDARD, STAGED, STAGED_REQUIRED_ONLY, STANDARD_AND_STAGED, STANDARD_AND_STAGED_REQUIRED_ONLY,
+    }
+
+    enum ConcreteSettersForOptionalMode {
+        DISABLED, ENABLED, ENABLED_WITH_NULLABLE_ANNOTATION,
     }
 
     /**

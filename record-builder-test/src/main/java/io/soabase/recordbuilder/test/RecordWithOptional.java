@@ -15,16 +15,15 @@
  */
 package io.soabase.recordbuilder.test;
 
-import javax.validation.constraints.NotNull;
-
 import io.soabase.recordbuilder.core.RecordBuilder;
 
+import javax.validation.constraints.NotNull;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 
-@RecordBuilder.Options(emptyDefaultForOptional = true, addConcreteSettersForOptional = true)
+@RecordBuilder.Options(emptyDefaultForOptional = true, addConcreteSettersForOptional = RecordBuilder.ConcreteSettersForOptionalMode.ENABLED_WITH_NULLABLE_ANNOTATION, nullableAnnotationClass = "javax.validation.constraints.Null")
 @RecordBuilder
 public record RecordWithOptional(@NotNull Optional<String> value, Optional raw, OptionalInt i, OptionalLong l,
         OptionalDouble d) {
