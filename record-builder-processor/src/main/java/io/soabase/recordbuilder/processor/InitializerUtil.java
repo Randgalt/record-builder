@@ -65,12 +65,21 @@ class InitializerUtil {
                     }).findFirst();
 
             if (initializer.isEmpty()) {
+                Element messageElement = findRecordComponent(record, element.getSimpleName().toString())
+                        .orElse(element);
                 processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
-                        "No matching public static field or method found for initializer named: " + name, element);
+                        "No matching public static field or method found for initializer named \"%s\" for component \"%s\""
+                                .formatted(name, element.getSimpleName()),
+                        messageElement, annotation.get());
             }
 
             return initializer.map(codeBlock -> Map.entry(element.getSimpleName().toString(), codeBlock)).stream();
         }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    private static Optional<Element> findRecordComponent(TypeElement record, String name) {
+        return record.getRecordComponents().stream().filter(element -> element.getSimpleName().toString().equals(name))
+                .map(element -> (Element) element).findFirst();
     }
 
     private static boolean isValid(ProcessingEnvironment processingEnv, Element element,
