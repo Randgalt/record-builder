@@ -25,6 +25,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>record-builder-validator</artifactId>
+    <name>record-builder-validator</name>
+    <description>record-builder-validator</description>
 
     <properties>
         <license-file-path>${project.parent.basedir}/src/etc/header.txt</license-file-path>
