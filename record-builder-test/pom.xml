@@ -25,6 +25,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>record-builder-test</artifactId>
+    <name>record-builder-test</name>
+    <description>record-builder-test</description>
 
     <properties>
         <license-file-path>${project.parent.basedir}/src/etc/header.txt</license-file-path>
