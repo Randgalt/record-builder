@@ -22,7 +22,7 @@
     <groupId>io.soabase.record-builder</groupId>
     <artifactId>record-builder</artifactId>
     <packaging>pom</packaging>
-    <version>49-SNAPSHOT</version>
+    <version>48-SNAPSHOT</version>
 
     <modules>
         <module>record-builder-core</module>
