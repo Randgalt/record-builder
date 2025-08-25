@@ -64,6 +64,7 @@
         <hibernate-validator-version>6.2.0.Final</hibernate-validator-version>
         <jakarta-validation-api-version>3.1.0</jakarta-validation-api-version>
         <javax-el-version>3.0.1-b09</javax-el-version>
+        <jackson-version>2.19.0</jackson-version>
         <central-publishing-maven-plugin-version>0.7.0</central-publishing-maven-plugin-version>
     </properties>
 
@@ -163,6 +164,12 @@
                 <groupId>org.hibernate.validator</groupId>
                 <artifactId>hibernate-validator</artifactId>
                 <version>${hibernate-validator-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson-version}</version>
             </dependency>
 
             <dependency>
