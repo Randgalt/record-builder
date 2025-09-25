@@ -126,7 +126,7 @@ public class ElementUtils {
         var typeName = TypeName.get(recordComponent.asType());
         var rawTypeName = TypeName.get(processingEnv.getTypeUtils().erasure(recordComponent.asType()));
         return new RecordClassType(typeName, rawTypeName, recordComponent.getSimpleName().toString(),
-                accessorAnnotations, canonicalConstructorAnnotations);
+                recordComponent.getSimpleName().toString(), accessorAnnotations, canonicalConstructorAnnotations);
     }
 
     public static String getWithMethodName(ClassType component, String prefix) {

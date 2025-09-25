@@ -398,7 +398,7 @@ public @interface RecordBuilder {
     }
 
     @Retention(RetentionPolicy.SOURCE)
-    @Target(ElementType.METHOD)
+    @Target({ ElementType.METHOD, ElementType.TYPE })
     @Inherited
     @interface Deconstructor {
         /**
@@ -438,5 +438,21 @@ public @interface RecordBuilder {
         RecordBuilder.Deconstructor value() default @RecordBuilder.Deconstructor;
 
         RecordBuilder.Options options() default @RecordBuilder.Options;
+    }
+
+    @Retention(RetentionPolicy.SOURCE)
+    @Target(ElementType.METHOD)
+    @Inherited
+    @interface DeconstructorAccessor {
+        /**
+         * If not empty, is used as the component name instead of deriving the name from the method name.
+         */
+        String name() default "";
+
+        /**
+         * The regex pattern used to derive the component name from the method name. Note: if {@link #name()} is not
+         * empty, that value is used instead.
+         */
+        String prefixPattern() default "^(?:is|get)(.+)";
     }
 }

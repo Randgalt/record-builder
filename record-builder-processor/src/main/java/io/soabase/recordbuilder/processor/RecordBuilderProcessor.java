@@ -100,7 +100,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
         } else if (annotationClass.equals(RECORD_BUILDER_INCLUDE) || annotationClass.equals(RECORD_INTERFACE_INCLUDE)) {
             processIncludes(element, getMetaData(element), annotationClass);
         } else if (annotationClass.equals(DECONSTRUCTOR)) {
-            processDeconstructor((ExecutableElement) element, element.getAnnotation(RecordBuilder.Deconstructor.class),
+            processDeconstructor(element, element.getAnnotation(RecordBuilder.Deconstructor.class),
                     getMetaData(element));
         } else if (recordBuilderTemplate != null) {
             if (recordBuilderTemplate.asRecordInterface()) {
@@ -110,8 +110,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
                 processRecordBuilder((TypeElement) element, recordBuilderTemplate.options(), Optional.empty());
             }
         } else if (deconstructorTemplate != null) {
-            processDeconstructor((ExecutableElement) element, deconstructorTemplate.value(),
-                    deconstructorTemplate.options());
+            processDeconstructor(element, deconstructorTemplate.value(), deconstructorTemplate.options());
         }
     }
 
@@ -195,8 +194,24 @@ public class RecordBuilderProcessor extends AbstractProcessor {
                 internalProcessor.recordType(), metaData.fileIndent(), metaData.fileComment());
     }
 
-    private void processDeconstructor(ExecutableElement executableElement, RecordBuilder.Deconstructor deconstructor,
+    private void processDeconstructor(Element element, RecordBuilder.Deconstructor deconstructor,
             RecordBuilder.Options metaData) {
+        if (element instanceof ExecutableElement executableElement) {
+            processDeconstructorMethod(executableElement, deconstructor, metaData);
+        } else if (element instanceof TypeElement typeElement) {
+            processDeconstructorClass(typeElement, deconstructor, metaData);
+        }
+    }
+
+    private void processDeconstructorClass(TypeElement typeElement, RecordBuilder.Deconstructor deconstructor,
+            RecordBuilder.Options metaData) {
+        var deconstructorProcessor = new InternalDeconstructorProcessor(processingEnv, typeElement, deconstructor,
+                metaData);
+        finalizeDeconstructor(deconstructorProcessor, typeElement, typeElement, deconstructor, metaData);
+    }
+
+    private void processDeconstructorMethod(ExecutableElement executableElement,
+            RecordBuilder.Deconstructor deconstructor, RecordBuilder.Options metaData) {
         if ((executableElement.getEnclosingElement().getKind() != ElementKind.CLASS)
                 && (executableElement.getEnclosingElement().getKind() != ElementKind.INTERFACE)) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
@@ -212,30 +227,34 @@ public class RecordBuilderProcessor extends AbstractProcessor {
 
         var deconstructorProcessor = new InternalDeconstructorProcessor(processingEnv, executableElement, deconstructor,
                 metaData);
+        finalizeDeconstructor(deconstructorProcessor, executableElement,
+                (TypeElement) executableElement.getEnclosingElement(), deconstructor, metaData);
+    }
 
+    private void finalizeDeconstructor(InternalDeconstructorProcessor deconstructorProcessor, Element element,
+            TypeElement typeElement, RecordBuilder.Deconstructor deconstructor, RecordBuilder.Options metaData) {
         if (!createdDeconstructors.add(deconstructorProcessor.recordClassType().typeName())) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
                     "Destructor is generating the same name as another Deconstructor in this class. Use Deconstructor options to generate a unique name.",
-                    executableElement);
+                    element);
             return;
         }
 
         TypeSpec.Builder deconstructorBuilder = deconstructorProcessor.builder();
 
         if (deconstructor.addRecordBuilder()) {
-            TypeElement typeElement = (TypeElement) executableElement.getEnclosingElement();
             ClassType builderClassType = ElementUtils.getClassType(deconstructorProcessor.packageName(),
                     generateName(typeElement, deconstructorProcessor.recordClassType(), metaData.suffix(),
                             metaData.prefixEnclosingClassNames()),
                     typeElement.getTypeParameters());
             Map<String, CodeBlock> initializers = InitializerUtil.detectInitializers(processingEnv, typeElement);
-            RecordFacade recordFacade = new RecordFacade(executableElement, deconstructorProcessor.packageName(),
+            RecordFacade recordFacade = new RecordFacade(element, deconstructorProcessor.packageName(),
                     deconstructorProcessor.recordClassType(), builderClassType, deconstructorProcessor.typeVariables(),
                     deconstructorProcessor.recordComponents(), initializers, typeElement.getModifiers(), true);
 
             var internalProcessor = new InternalRecordBuilderProcessor(processingEnv, recordFacade, metaData);
             internalProcessor.builderType().ifPresent(builderType -> {
-                writeJavaFile(executableElement, internalProcessor.packageName(), internalProcessor.builderClassType(),
+                writeJavaFile(element, internalProcessor.packageName(), internalProcessor.builderClassType(),
                         builderType, metaData.fileIndent(), metaData.fileComment());
 
                 if (metaData.enableWither()) {
@@ -251,7 +270,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
             });
         }
 
-        writeJavaFile(executableElement, deconstructorProcessor.packageName(), deconstructorProcessor.recordClassType(),
+        writeJavaFile(element, deconstructorProcessor.packageName(), deconstructorProcessor.recordClassType(),
                 deconstructorBuilder.build(), metaData.fileIndent(), metaData.fileComment());
     }
 

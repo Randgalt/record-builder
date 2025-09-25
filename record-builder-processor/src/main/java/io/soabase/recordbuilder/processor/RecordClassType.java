@@ -22,16 +22,22 @@ import java.util.List;
 
 public class RecordClassType extends ClassType {
     private final TypeName rawTypeName;
+    private final String accessorName;
     private final List<? extends AnnotationMirror> accessorAnnotations;
     private final List<? extends AnnotationMirror> canonicalConstructorAnnotations;
 
-    public RecordClassType(TypeName typeName, TypeName rawTypeName, String name,
+    public RecordClassType(TypeName typeName, TypeName rawTypeName, String name, String accessorName,
             List<? extends AnnotationMirror> accessorAnnotations,
             List<? extends AnnotationMirror> canonicalConstructorAnnotations) {
         super(typeName, name);
         this.rawTypeName = rawTypeName;
+        this.accessorName = accessorName;
         this.accessorAnnotations = accessorAnnotations;
         this.canonicalConstructorAnnotations = canonicalConstructorAnnotations;
+    }
+
+    public String accessorName() {
+        return accessorName;
     }
 
     public TypeName rawTypeName() {

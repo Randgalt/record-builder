@@ -18,11 +18,10 @@ package io.soabase.recordbuilder.processor;
 import com.palantir.javapoet.*;
 import io.soabase.recordbuilder.core.RecordBuilder;
 import io.soabase.recordbuilder.core.RecordBuilder.BuilderMode;
+import io.soabase.recordbuilder.core.RecordBuilder.DeconstructorAccessor;
 
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Modifier;
-import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.*;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
@@ -33,8 +32,11 @@ import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
 import java.util.function.IntConsumer;
 import java.util.function.LongConsumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static io.soabase.recordbuilder.processor.ElementUtils.generateName;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
@@ -47,7 +49,7 @@ class InternalDeconstructorProcessor {
     private final TypeSpec.Builder builder;
     private final ClassType recordClassType;
     private final ProcessingEnvironment processingEnv;
-    private final ExecutableElement executableElement;
+    private final Element element;
     private final TypeElement classElement;
     private final RecordBuilder.Options metaData;
     private final RecordBuilder.Deconstructor deconstructor;
@@ -65,17 +67,31 @@ class InternalDeconstructorProcessor {
     private static final TypeName longType = TypeName.get(long.class);
     private static final TypeName doubleType = TypeName.get(double.class);
 
-    InternalDeconstructorProcessor(ProcessingEnvironment processingEnv, ExecutableElement executableElement,
+    InternalDeconstructorProcessor(ProcessingEnvironment processingEnv, Element element,
             RecordBuilder.Deconstructor deconstructor, RecordBuilder.Options metaData) {
         this.processingEnv = processingEnv;
-        this.executableElement = executableElement;
+        this.element = element;
         this.deconstructor = deconstructor;
-        classElement = (TypeElement) executableElement.getEnclosingElement();
         this.metaData = metaData;
+
+        if (element instanceof ExecutableElement executableElement) {
+            classElement = (TypeElement) executableElement.getEnclosingElement();
+            recordComponents = buildRecordComponents(executableElement);
+
+            if (!executableElement.getTypeParameters().isEmpty()) {
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                        "Deconstructor methods cannot have type parameters", element);
+            }
+        } else if (element instanceof TypeElement typeElement) {
+            classElement = typeElement;
+            recordComponents = buildRecordComponents(typeElement);
+        } else {
+            throw new IllegalArgumentException("Unsupported element type: " + element.getClass());
+        }
+
         packageName = ElementUtils.getPackageName(classElement);
         typeVariables = classElement.getTypeParameters().stream().map(TypeVariableName::get)
                 .collect(Collectors.toList());
-        recordComponents = buildRecordComponents(executableElement);
         recordClassType = ElementUtils.getClassType(packageName,
                 generateName(classElement,
                         new ClassType(TypeName.get(classElement.asType()),
@@ -91,14 +107,9 @@ class InternalDeconstructorProcessor {
             builder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
 
-        addVisibility(executableElement.getModifiers());
+        addVisibility(element.getModifiers());
         addRecordComponents();
         addDeconstructorMethod();
-
-        if (!executableElement.getTypeParameters().isEmpty()) {
-            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
-                    "Deconstructor methods cannot have type parameters", executableElement);
-        }
     }
 
     String packageName() {
@@ -130,6 +141,78 @@ class InternalDeconstructorProcessor {
         // is package-private
     }
 
+    private List<RecordClassType> buildRecordComponents(TypeElement typeElement) {
+        List<RecordClassType> components = typeElement.getEnclosedElements().stream()
+                .flatMap(e -> (e.getKind() == ElementKind.METHOD) ? Stream.of((ExecutableElement) e) : Stream.empty())
+                .flatMap(executableElement -> {
+                    DeconstructorAccessor deconstructorAccessor = executableElement
+                            .getAnnotation(DeconstructorAccessor.class);
+                    if (deconstructorAccessor == null) {
+                        return Stream.empty();
+                    }
+
+                    if (!executableElement.getModifiers().contains(Modifier.PUBLIC)) {
+                        processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                                "@DeconstructorAccessor methods must be public.", executableElement);
+                        return Stream.empty();
+                    }
+
+                    if (executableElement.getModifiers().contains(Modifier.STATIC)) {
+                        processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                                "@DeconstructorAccessor only valid for non-static methods.", executableElement);
+                        return Stream.empty();
+                    }
+
+                    TypeName typeName = TypeName.get(executableElement.getReturnType());
+                    TypeName rawTypeName = TypeName
+                            .get(processingEnv.getTypeUtils().erasure(executableElement.getReturnType()));
+
+                    String name;
+                    if (deconstructorAccessor.name().isEmpty()) {
+                        name = executableElement.getSimpleName().toString();
+                        if (!deconstructorAccessor.prefixPattern().isEmpty()) {
+                            try {
+                                name = extractAndLowercase(Pattern.compile(deconstructorAccessor.prefixPattern()),
+                                        name);
+                            } catch (Exception e) {
+                                processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                                        "Invalid prefix pattern: " + deconstructorAccessor.prefixPattern(), element);
+                            }
+                        }
+                    } else {
+                        name = deconstructorAccessor.name();
+                    }
+
+                    List<? extends AnnotationMirror> annotationMirrors = executableElement.getAnnotationMirrors()
+                            .stream().filter(annotation -> !annotation.getAnnotationType().asElement().getSimpleName()
+                                    .toString().equals(DeconstructorAccessor.class.getSimpleName()))
+                            .toList();
+                    return Stream.of(new RecordClassType(typeName, rawTypeName, name,
+                            executableElement.getSimpleName().toString(), annotationMirrors, List.of()));
+                }).toList();
+
+        if (components.isEmpty()) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                    "No deconstructor components found - ensure at least one method parameter or accessor is annotated with @DeconstructorAccessor",
+                    element);
+        }
+
+        return components;
+    }
+
+    public static String extractAndLowercase(Pattern pattern, String name) {
+        Matcher matcher = pattern.matcher(name);
+
+        if (matcher.matches()) {
+            String captured = matcher.group(1);
+            if (!captured.isEmpty()) {
+                return Character.toLowerCase(captured.charAt(0)) + captured.substring(1);
+            }
+        }
+
+        return name;
+    }
+
     private List<RecordClassType> buildRecordComponents(ExecutableElement executableElement) {
         if (executableElement.getParameters().isEmpty()) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Deconstructor has no parameters",
@@ -141,7 +224,8 @@ class InternalDeconstructorProcessor {
             ValidatedParameter validatedParameter = validateParameter(parameter.getSimpleName().toString(),
                     parameter.asType());
             return new RecordClassType(validatedParameter.typeName, validatedParameter.rawTypeName,
-                    parameter.getSimpleName().toString(), parameter.getAnnotationMirrors(), List.of());
+                    parameter.getSimpleName().toString(), parameter.getSimpleName().toString(),
+                    parameter.getAnnotationMirrors(), List.of());
         }).toList();
     }
 
@@ -168,7 +252,7 @@ class InternalDeconstructorProcessor {
             TypeMirror typeParameter = declaredType.getTypeArguments().get(0);
             if (typeParameter.getKind() == TypeKind.WILDCARD) {
                 processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
-                        "Deconstructor parameters cannot be wildcards: " + name, executableElement);
+                        "Deconstructor parameters cannot be wildcards: " + name, element);
                 return new ValidatedParameter(booleanType, booleanType); // any default here
             }
             return new ValidatedParameter(TypeName.get(typeParameter),
@@ -176,7 +260,7 @@ class InternalDeconstructorProcessor {
         }
 
         processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Invalid deconstructor parameter type: " + name,
-                executableElement);
+                element);
         return new ValidatedParameter(booleanType, booleanType); // any default here
     }
 
@@ -206,10 +290,18 @@ class InternalDeconstructorProcessor {
 
         CodeBlock.Builder codeBlockBuilder = CodeBlock.builder();
 
-        if (canUseBuilder) {
-            addCodeWithBuilder(codeBlockBuilder, variableName, parameterName);
+        if (element instanceof ExecutableElement) {
+            if (canUseBuilder) {
+                addCodeWithBuilder(codeBlockBuilder, variableName, parameterName);
+            } else {
+                addCodeWithoutBuilder(codeBlockBuilder, variableName, parameterName);
+            }
         } else {
-            addCodeWithoutBuilder(codeBlockBuilder, variableName, parameterName);
+            if (canUseBuilder) {
+                addCodeWithBuilderForAccessors(codeBlockBuilder, variableName, parameterName);
+            } else {
+                addCodeWithoutBuilderForAccessors(codeBlockBuilder, parameterName);
+            }
         }
 
         methodBuilder.addCode(codeBlockBuilder.build());
@@ -224,7 +316,7 @@ class InternalDeconstructorProcessor {
         codeBlockBuilder.add("$T $L = $L.$L();\n", builderClassType.typeName(), variableName, builderClassType.name(),
                 metaData.builderMethodName());
 
-        codeBlockBuilder.add("$L.$L(", parameterName, executableElement.getSimpleName());
+        codeBlockBuilder.add("$L.$L(", parameterName, element.getSimpleName());
         IntStream.range(0, recordComponents.size()).forEach(index -> {
             boolean isLast = index == (recordComponents.size() - 1);
             RecordClassType component = recordComponents.get(index);
@@ -238,6 +330,28 @@ class InternalDeconstructorProcessor {
         codeBlockBuilder.add("return $L.$L();", variableName, metaData.buildMethodName());
     }
 
+    private void addCodeWithBuilderForAccessors(CodeBlock.Builder codeBlockBuilder, String variableName,
+            String parameterName) {
+        ClassType builderClassType = ElementUtils.getClassType(packageName,
+                generateName(classElement, recordClassType, metaData.suffix(), metaData.prefixEnclosingClassNames()),
+                classElement.getTypeParameters());
+
+        codeBlockBuilder.add("$T $L = $L.$L();\n", builderClassType.typeName(), variableName, builderClassType.name(),
+                metaData.builderMethodName());
+
+        codeBlockBuilder.add(variableName);
+        IntStream.range(0, recordComponents.size()).forEach(index -> {
+            boolean isLast = index == (recordComponents.size() - 1);
+            RecordClassType component = recordComponents.get(index);
+            codeBlockBuilder.add(".$L($L.$L())", component.name(), parameterName, component.accessorName());
+            if (isLast) {
+                codeBlockBuilder.add(";\n");
+            }
+        });
+
+        codeBlockBuilder.add("return $L.$L();", variableName, metaData.buildMethodName());
+    }
+
     private void addCodeWithoutBuilder(CodeBlock.Builder codeBlockBuilder, String variableName, String parameterName) {
         codeBlockBuilder.add("var $L = new Object() {\n", variableName);
         codeBlockBuilder.indent();
@@ -245,7 +359,7 @@ class InternalDeconstructorProcessor {
         codeBlockBuilder.unindent();
         codeBlockBuilder.add("};\n");
 
-        codeBlockBuilder.add("$L.$L(", parameterName, executableElement.getSimpleName());
+        codeBlockBuilder.add("$L.$L(", parameterName, element.getSimpleName());
         IntStream.range(0, recordComponents.size()).forEach(index -> {
             boolean isLast = index == (recordComponents.size() - 1);
             RecordClassType component = recordComponents.get(index);
@@ -262,6 +376,19 @@ class InternalDeconstructorProcessor {
             boolean isLast = index == (recordComponents.size() - 1);
             RecordClassType component = recordComponents.get(index);
             codeBlockBuilder.add("$L.$L", variableName, component.name());
+            if (!isLast) {
+                codeBlockBuilder.add(", ");
+            }
+        });
+        codeBlockBuilder.add(");\n");
+    }
+
+    private void addCodeWithoutBuilderForAccessors(CodeBlock.Builder codeBlockBuilder, String parameterName) {
+        codeBlockBuilder.add("return new $T(", recordClassType.typeName());
+        IntStream.range(0, recordComponents.size()).forEach(index -> {
+            boolean isLast = index == (recordComponents.size() - 1);
+            RecordClassType component = recordComponents.get(index);
+            codeBlockBuilder.add("$L.$L()", parameterName, component.accessorName());
             if (!isLast) {
                 codeBlockBuilder.add(", ");
             }
