@@ -585,7 +585,9 @@ class InternalRecordBuilderProcessor {
         var constructorBuilder = MethodSpec.constructorBuilder().addModifiers(constructorVisibilityModifier)
                 .addAnnotation(generatedRecordBuilderAnnotation);
         recordComponents.forEach(component -> {
-            constructorBuilder.addParameter(component.typeName(), component.name());
+            var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
+            addConstructorAnnotations(component, parameterSpecBuilder);
+            constructorBuilder.addParameter(parameterSpecBuilder.build());
             constructorBuilder.addStatement("this.$L = $L", component.name(), component.name());
         });
         builder.addMethod(constructorBuilder.build());
