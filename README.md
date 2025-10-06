@@ -1,4 +1,6 @@
 [![Maven Build - Java 17](https://github.com/Randgalt/record-builder/actions/workflows/maven_java17.yml/badge.svg)](https://github.com/Randgalt/record-builder/actions/workflows/maven_java17.yml)
+[![Maven Build - Java 21](https://github.com/Randgalt/record-builder/actions/workflows/maven_java21.yml/badge.svg)](https://github.com/Randgalt/record-builder/actions/workflows/maven_java21.yml)
+[![Maven Build - Java 24](https://github.com/Randgalt/record-builder/actions/workflows/maven_java24.yml/badge.svg)](https://github.com/Randgalt/record-builder/actions/workflows/maven_java24.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/io.soabase.record-builder/record-builder.svg?sort=date)](https://search.maven.org/search?q=g:io.soabase.record-builder%20a:record-builder)
 
 # RecordBuilder
