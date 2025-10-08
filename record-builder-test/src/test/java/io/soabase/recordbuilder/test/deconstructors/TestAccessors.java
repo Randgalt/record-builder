@@ -24,12 +24,12 @@ public class TestAccessors {
     @Test
     public void testAccessors() {
         AccessorTest accessorTest = AccessorTest.create("hey", 42);
-        assertThat(AccessorTestDao("hey", 42)).isEqualTo(AccessorTestDao.from(accessorTest));
+        assertThat(AccessorTestDao(42, "hey")).isEqualTo(AccessorTestDao.from(accessorTest));
     }
 
     @Test
     public void testAccessorsNoBuilder() {
         AccessorTestNoBuilder accessorTest = new AccessorTestNoBuilder("hey", 42);
-        assertThat(new AccessorTestNoBuilderDao("hey", 42)).isEqualTo(AccessorTestNoBuilderDao.from(accessorTest));
+        assertThat(new AccessorTestNoBuilderDao(42, "hey")).isEqualTo(AccessorTestNoBuilderDao.from(accessorTest));
     }
 }
