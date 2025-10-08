@@ -454,5 +454,11 @@ public @interface RecordBuilder {
          * empty, that value is used instead.
          */
         String prefixPattern() default "^(?:is|get)(.+)";
+
+        /**
+         * The order of the component in the generated record. Components are ordered by this value (lowest to highest).
+         * Components with the same order value are then ordered alphabetically by component name.
+         */
+        int order() default Integer.MAX_VALUE;
     }
 }

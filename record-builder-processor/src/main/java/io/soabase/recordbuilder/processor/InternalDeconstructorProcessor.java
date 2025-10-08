@@ -27,6 +27,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
@@ -187,9 +188,14 @@ class InternalDeconstructorProcessor {
                             .stream().filter(annotation -> !annotation.getAnnotationType().asElement().getSimpleName()
                                     .toString().equals(DeconstructorAccessor.class.getSimpleName()))
                             .toList();
-                    return Stream.of(new RecordClassType(typeName, rawTypeName, name,
-                            executableElement.getSimpleName().toString(), annotationMirrors, List.of()));
-                }).toList();
+                    var type = new RecordClassType(typeName, rawTypeName, name,
+                            executableElement.getSimpleName().toString(), annotationMirrors, List.of());
+                    var orderedType = Map.entry(deconstructorAccessor.order(), type);
+                    return Stream.of(orderedType);
+                }).sorted((o1, o2) -> {
+                    int diff = o1.getKey().compareTo(o2.getKey());
+                    return (diff == 0) ? o1.getValue().name().compareTo(o2.getValue().name()) : diff;
+                }).map(Map.Entry::getValue).toList();
 
         if (components.isEmpty()) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
