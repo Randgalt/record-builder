@@ -54,6 +54,12 @@ The names used for generated methods, classes, etc. can be changed via the follo
 | `@RecordBuilder.Options(fileIndent = "    ")`                    | Return the file indent to use.                                                                                                                           |
 | `@RecordBuilder.Options(prefixEnclosingClassNames = true/false)` | If the record is declared inside another class, the outer class's name will be prefixed to the builder name if this returns true. The default is `true`. |
 
+## Jackson Support
+
+| option                                                       | details                                                                                                                                                                                                                                                                                                                      |
+|--------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `@RecordBuilder.Options(addJacksonAnnotations = true/false)` | If true, builders will be annotated with `@JsonPOJOBuilder` Jackson annotations which can be used in combination with `@JsonDeserialize(builder = ...)`. See [TestJacksonAnnotations](./record-builder-test/src/test/java/io/soabase/recordbuilder/test/TestJacksonAnnotations.java) for an example. The default is `false`. |
+
 ## Miscellaneous
 
 | option                                                                     | details                                                                                                                                                          |
