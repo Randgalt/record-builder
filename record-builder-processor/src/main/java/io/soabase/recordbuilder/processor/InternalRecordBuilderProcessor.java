@@ -567,12 +567,12 @@ class InternalRecordBuilderProcessor {
     }
 
     private boolean isNotNullAnnotated(RecordClassType component) {
-        return component.getCanonicalConstructorAnnotations().stream().anyMatch(annotation -> notNullPattern
+        return component.getAccessorAnnotations().stream().anyMatch(annotation -> notNullPattern
                 .matcher(annotation.getAnnotationType().asElement().getSimpleName().toString()).matches());
     }
 
     private boolean isNullableAnnotated(RecordClassType component) {
-        return component.getCanonicalConstructorAnnotations().stream().anyMatch(annotation -> nullablePattern
+        return component.getAccessorAnnotations().stream().anyMatch(annotation -> nullablePattern
                 .matcher(annotation.getAnnotationType().asElement().getSimpleName().toString()).matches());
     }
 
