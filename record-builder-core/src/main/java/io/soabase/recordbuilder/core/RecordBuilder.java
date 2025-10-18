@@ -359,6 +359,12 @@ public @interface RecordBuilder {
          * @see #nullablePattern
          */
         boolean defaultNotNull() default false;
+
+        /**
+         * If true, record components that are themselves {@code @RecordBuilder} records will have their builders
+         * methods that are nested builders.
+         */
+        boolean createNestedRecordBuilders() default true;
     }
 
     @Retention(RetentionPolicy.CLASS)

@@ -21,8 +21,9 @@ import io.soabase.recordbuilder.core.RecordBuilder.BuilderMode;
 import io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaData;
 
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.Modifier;
+import javax.lang.model.element.*;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -51,19 +52,26 @@ class InternalRecordBuilderProcessor {
     private final Optional<TypeSpec> builderType;
     private final TypeSpec.Builder builder;
     private final String uniqueVarName;
+    private final String isCopyBuilderVarName;
     private final Pattern notNullPattern;
     private final Pattern nullablePattern;
     private final CollectionBuilderUtils collectionBuilderUtils;
 
+    private static final TypeName recordBuilderType = TypeName.get(RecordBuilder.class);
+    private static final TypeName recordBuilderTemplateType = TypeName.get(RecordBuilder.Template.class);
+    private static final ClassName consumerType = ClassName.get(Consumer.class);
     private static final TypeName optionalType = TypeName.get(Optional.class);
     private static final TypeName overrideType = TypeName.get(Override.class);
     private static final TypeName javaxValidType = ClassName.get("javax.validation", "Valid");
     private static final TypeName jakartaValidType = ClassName.get("jakarta.validation", "Valid");
     private static final TypeName validatorTypeName = ClassName.get("io.soabase.recordbuilder.validator",
             "RecordBuilderValidator");
+
     private static final TypeVariableName rType = TypeVariableName.get("R");
     private final Modifier constructorVisibilityModifier;
     private final Map<String, CodeBlock> initializers;
+    private final TypeMirror recordBuilderMirror;
+    private final TypeMirror recordBuilderTemplateMirror;
 
     InternalRecordBuilderProcessor(ProcessingEnvironment processingEnv, RecordFacade recordFacade,
             RecordBuilder.Options metaData) {
@@ -74,11 +82,16 @@ class InternalRecordBuilderProcessor {
         typeVariables = recordFacade.typeVariables();
         recordComponents = recordFacade.recordComponents();
         uniqueVarName = getUniqueVarName();
+        isCopyBuilderVarName = getUniqueVarName("_isCopyBuilder_");
         notNullPattern = Pattern.compile(metaData.interpretNotNullsPattern());
         nullablePattern = Pattern.compile(metaData.nullablePattern());
         collectionBuilderUtils = new CollectionBuilderUtils(recordComponents, this.metaData);
         constructorVisibilityModifier = metaData.publicBuilderConstructors() ? Modifier.PUBLIC : Modifier.PRIVATE;
         initializers = recordFacade.initializers();
+
+        recordBuilderMirror = processingEnv.getElementUtils().getTypeElement(recordBuilderType.toString()).asType();
+        recordBuilderTemplateMirror = processingEnv.getElementUtils()
+                .getTypeElement(recordBuilderTemplateType.toString()).asType();
 
         builder = TypeSpec.classBuilder(builderClassType.name()).addAnnotation(generatedRecordBuilderAnnotation)
                 .addModifiers(metaData.builderClassModifiers()).addTypeVariables(typeVariables);
@@ -91,9 +104,11 @@ class InternalRecordBuilderProcessor {
             return;
         }
 
+        builder.addField(FieldSpec.builder(boolean.class, isCopyBuilderVarName, Modifier.PRIVATE).build());
+
         addVisibility(recordFacade.builderIsInRecordPackage(), recordFacade.modifiers());
         if (metaData.enableWither()) {
-            addWithNestedClass();
+            addWithNestedClass(processingEnv);
         }
         if (!metaData.beanClassName().isEmpty()) {
             addBeanNestedClass();
@@ -136,6 +151,9 @@ class InternalRecordBuilderProcessor {
             }
             if (metaData.addConcreteSettersForOptional() != RecordBuilder.ConcreteSettersForOptionalMode.DISABLED) {
                 add1ConcreteOptionalSetterMethod(component);
+            }
+            if (metaData.createNestedRecordBuilders()) {
+                checkAdd1NestedBuilderSetter(processingEnv, builder, component, Optional.empty(), false);
             }
             var collectionMetaData = collectionBuilderUtils.singleItemsMetaData(component, EXCLUDE_WILDCARD_TYPES);
             collectionMetaData.ifPresent(meta -> add1CollectionBuilders(meta, component));
@@ -358,7 +376,7 @@ class InternalRecordBuilderProcessor {
         }
     }
 
-    private void addWithNestedClass() {
+    private void addWithNestedClass(ProcessingEnvironment processingEnv) {
         /*
          * Adds a nested interface that adds withers similar to:
          *
@@ -374,8 +392,15 @@ class InternalRecordBuilderProcessor {
         recordComponents.forEach(component -> addNestedGetterMethod(classBuilder, component, component.name()));
         addWithBuilderMethod(classBuilder);
         addWithSuppliedBuilderMethod(classBuilder);
-        IntStream.range(0, recordComponents.size())
-                .forEach(index -> add1WithMethod(classBuilder, recordComponents.get(index), index));
+
+        IntStream.range(0, recordComponents.size()).forEach(index -> {
+            RecordClassType component = recordComponents.get(index);
+            add1WithMethod(classBuilder, component, index);
+            if (metaData.createNestedRecordBuilders()) {
+                checkAdd1NestedBuilderSetter(processingEnv, classBuilder, component,
+                        Optional.of(recordClassType.typeName()), true);
+            }
+        });
         if (metaData.addFunctionalMethodsToWith()) {
             classBuilder.addType(buildFunctionalInterface("Function", true))
                     .addType(buildFunctionalInterface("Consumer", false))
@@ -590,6 +615,7 @@ class InternalRecordBuilderProcessor {
             constructorBuilder.addParameter(parameterSpecBuilder.build());
             constructorBuilder.addStatement("this.$L = $L", component.name(), component.name());
         });
+        constructorBuilder.addStatement("this.$L = true", isCopyBuilderVarName);
         builder.addMethod(constructorBuilder.build());
     }
 
@@ -1043,6 +1069,108 @@ class InternalRecordBuilderProcessor {
                     .addCode(codeBlockBuilder.build());
             builder.addMethod(methodSpecBuilder.build());
         }
+    }
+
+    private void checkAdd1NestedBuilderSetter(ProcessingEnvironment processingEnv, TypeSpec.Builder builder,
+            RecordClassType component, Optional<TypeName> overrideReturnType, boolean forWither) {
+        /*
+         * For a single record component that has a @RecordBuilder annotation, add a setter similar to:
+         *
+         * public MyRecordBuilder p(Consumer<PBuilder> b) { PBuilder builder = PBuilder.builder(); b.accept(builder);
+         * this.p = builder.build(); return this; }
+         */
+
+        if (component.typeKind() != TypeKind.DECLARED) {
+            return;
+        }
+
+        TypeElement typeElement = processingEnv.getElementUtils().getTypeElement(component.rawTypeName().toString());
+        if ((typeElement == null) || (typeElement.asType() == null)) {
+            return;
+        }
+        if (typeElement.getKind() != ElementKind.RECORD) {
+            return;
+        }
+
+        Optional<RecordBuilder.Options> maybeOptions = typeElement.getAnnotationMirrors().stream()
+                .flatMap(annotation -> {
+                    Optional<? extends AnnotationMirror> annotationMirror = ElementUtils.findAnnotationMirror(
+                            processingEnv, annotation.getAnnotationType().asElement(),
+                            recordBuilderTemplateType.toString());
+                    if (annotationMirror.isPresent()) {
+                        RecordBuilder.Options newOptions = ElementUtils.getMetaData(processingEnv,
+                                annotation.getAnnotationType().asElement());
+                        return Stream.of(newOptions);
+                    }
+                    return Stream.empty();
+                }).findFirst();
+
+        if (maybeOptions.isEmpty()) {
+            maybeOptions = processingEnv.getElementUtils().getAllAnnotationMirrors(typeElement).stream()
+                    .flatMap(annotationMirror -> {
+                        if (processingEnv.getTypeUtils().isSameType(annotationMirror.getAnnotationType(),
+                                recordBuilderMirror)) {
+                            return Stream.of(ElementUtils.getMetaData(processingEnv, typeElement));
+                        }
+                        if (processingEnv.getTypeUtils().isSameType(annotationMirror.getAnnotationType(),
+                                recordBuilderTemplateMirror)) {
+                            // TODO return Stream.of(ElementUtils.getMetaData(processingEnv, typeElement));
+                            RecordBuilder.Options options = recordBuilderTemplateMirror
+                                    .getAnnotation(RecordBuilder.Options.class);
+                            System.out.println();
+                        }
+                        return Stream.empty();
+                    }).findFirst();
+        }
+        if (maybeOptions.isEmpty()) {
+            return;
+        }
+        RecordBuilder.Options options = maybeOptions.get();
+
+        TypeName returnType = overrideReturnType.orElseGet(builderClassType::typeName);
+
+        var componentFacade = RecordFacade.fromTypeElement(processingEnv, typeElement, Optional.empty(), options);
+
+        String consumerVarName = getUniqueVarName();
+        String builderVarName = getUniqueVarName(consumerVarName);
+
+        String builderName = componentFacade.builderClassType().name();
+        TypeName builderType = componentFacade.builderClassType().typeName();
+        ParameterizedTypeName builderConsumerType = ParameterizedTypeName.get(consumerType, builderType);
+
+        var methodName = forWither ? getWithMethodName(component, metaData.withClassMethodPrefix())
+                : prefixedName(component, false);
+
+        var methodSpec = MethodSpec.methodBuilder(methodName).addModifiers(Modifier.PUBLIC)
+                .addAnnotation(generatedRecordBuilderAnnotation).returns(returnType)
+                .addParameter(builderConsumerType, consumerVarName);
+
+        CodeBlock.Builder codeBlockBuilder = CodeBlock.builder();
+
+        if (forWither) {
+            methodSpec.addModifiers(Modifier.DEFAULT);
+            methodSpec.addJavadoc("Return a new instance of {@code $L} with a new value for {@code $L}\n",
+                    recordClassType.name(), component.name());
+
+            // FooBuilder rr = FooBuilder.builder(foo());
+            codeBlockBuilder.addStatement("$T $L = $L.$L($L())", builderType, builderVarName, builderName,
+                    options.builderMethodName(), component.name());
+        } else {
+            methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n",
+                    component.name());
+
+            // FooBuilder rr = _isCopyBuilder_r ? FooBuilder.builder(foo()) : FooBuilder.builder();
+            codeBlockBuilder.addStatement("$T $L = $L ? $L.$L($L()) : $L.$L()", builderType, builderVarName,
+                    isCopyBuilderVarName, builderName, options.builderMethodName(), component.name(), builderName,
+                    options.builderMethodName());
+        }
+
+        codeBlockBuilder.addStatement("$L.accept($L)", consumerVarName, builderVarName)
+                .addStatement("return $L($L.$L())", methodName, builderVarName, options.buildMethodName());
+
+        methodSpec.addCode(codeBlockBuilder.build());
+
+        builder.addMethod(methodSpec.build());
     }
 
     private void add1GetterMethod(RecordClassType component) {
