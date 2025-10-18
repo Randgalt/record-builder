@@ -115,9 +115,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
     }
 
     private RecordBuilder.Options getMetaData(Element element) {
-        var recordSpecificMetaData = element.getAnnotation(RecordBuilder.Options.class);
-        return (recordSpecificMetaData != null) ? recordSpecificMetaData
-                : RecordBuilderOptions.build(processingEnv.getOptions());
+        return ElementUtils.getMetaData(processingEnv, element);
     }
 
     private void processIncludes(Element element, RecordBuilder.Options metaData, String annotationClass) {

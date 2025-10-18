@@ -13,16 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.soabase.recordbuilder.core;
+package io.soabase.recordbuilder.test.nested;
 
-import java.lang.annotation.*;
+import io.soabase.recordbuilder.core.RecordBuilder;
 
-/**
- * An alternate form of {@code @RecordBuilder} that has most optional features turned on
- */
-@RecordBuilder.Template(options = @RecordBuilder.Options(interpretNotNulls = true, useImmutableCollections = true, addSingleItemCollectionBuilders = true, addFunctionalMethodsToWith = true, addClassRetainedGenerated = true, detectNestedRecordBuilders = true))
-@Retention(RetentionPolicy.SOURCE)
-@Target({ ElementType.TYPE, ElementType.METHOD })
-@Inherited
-public @interface RecordBuilderFull {
+@RecordBuilder
+public record CityState(String city, String state) implements CityStateBuilder.With {
 }

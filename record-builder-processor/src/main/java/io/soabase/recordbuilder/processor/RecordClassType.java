@@ -18,22 +18,29 @@ package io.soabase.recordbuilder.processor;
 import com.palantir.javapoet.TypeName;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.type.TypeKind;
 import java.util.List;
 
 public class RecordClassType extends ClassType {
+    private final TypeKind typeKind;
     private final TypeName rawTypeName;
     private final String accessorName;
     private final List<? extends AnnotationMirror> accessorAnnotations;
     private final List<? extends AnnotationMirror> canonicalConstructorAnnotations;
 
-    public RecordClassType(TypeName typeName, TypeName rawTypeName, String name, String accessorName,
+    public RecordClassType(TypeKind typeKind, TypeName typeName, TypeName rawTypeName, String name, String accessorName,
             List<? extends AnnotationMirror> accessorAnnotations,
             List<? extends AnnotationMirror> canonicalConstructorAnnotations) {
         super(typeName, name);
+        this.typeKind = typeKind;
         this.rawTypeName = rawTypeName;
         this.accessorName = accessorName;
         this.accessorAnnotations = accessorAnnotations;
         this.canonicalConstructorAnnotations = canonicalConstructorAnnotations;
+    }
+
+    public TypeKind typeKind() {
+        return typeKind;
     }
 
     public String accessorName() {

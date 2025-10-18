@@ -13,16 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.soabase.recordbuilder.core;
+package io.soabase.recordbuilder.test.nested;
 
-import java.lang.annotation.*;
+import io.soabase.recordbuilder.core.RecordBuilderFull;
+import io.soabase.recordbuilder.test.*;
 
-/**
- * An alternate form of {@code @RecordBuilder} that has most optional features turned on
- */
-@RecordBuilder.Template(options = @RecordBuilder.Options(interpretNotNulls = true, useImmutableCollections = true, addSingleItemCollectionBuilders = true, addFunctionalMethodsToWith = true, addClassRetainedGenerated = true, detectNestedRecordBuilders = true))
-@Retention(RetentionPolicy.SOURCE)
-@Target({ ElementType.TYPE, ElementType.METHOD })
-@Inherited
-public @interface RecordBuilderFull {
+@RecordBuilderFull
+public record BigOlNestedContainer<T, X extends Point>(Annotated annotated, CollectionCopying<T> collectionCopying,
+        CollectionRecord<T, X> collectionRecord, FullRecord fullRecord, ConvertRequest convertRequest,
+        TemplateTest templateTest, WildcardSingleItems<T> wildcardSingleItems,
+        DuplicateMethodNames duplicateMethodNames, BigOlNestedContainer<T, X> recursive)
+        implements BigOlNestedContainerBuilder.With<T, X> {
 }

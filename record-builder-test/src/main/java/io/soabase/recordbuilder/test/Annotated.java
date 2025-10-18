@@ -22,5 +22,6 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Null;
 
 @RecordBuilder
+@RecordBuilder.Options(detectNestedRecordBuilders = true)
 public record Annotated(@NotNull @Null String hey, @Min(10) @Max(100) int i, double d) {
 }
