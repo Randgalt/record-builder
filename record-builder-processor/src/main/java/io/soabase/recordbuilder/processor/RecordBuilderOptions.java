@@ -52,6 +52,9 @@ class RecordBuilderOptions {
                         if (defaultValue instanceof RecordBuilder.BuilderMode) {
                             return RecordBuilder.BuilderMode.valueOf(option);
                         }
+                        if (defaultValue instanceof RecordBuilder.ConcreteSettersForOptionalMode) {
+                            return RecordBuilder.ConcreteSettersForOptionalMode.valueOf(option);
+                        }
                         throw new IllegalArgumentException("Unhandled option type: " + defaultValue.getClass());
                     }
                     return defaultValue;
