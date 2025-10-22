@@ -19,6 +19,7 @@ import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeVariableName;
+import io.soabase.recordbuilder.core.RecordBuilder;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
@@ -135,8 +136,9 @@ public class ElementUtils {
             List<? extends AnnotationMirror> canonicalConstructorAnnotations) {
         var typeName = TypeName.get(recordComponent.asType());
         var rawTypeName = TypeName.get(processingEnv.getTypeUtils().erasure(recordComponent.asType()));
-        return new RecordClassType(typeName, rawTypeName, recordComponent.getSimpleName().toString(),
-                recordComponent.getSimpleName().toString(), accessorAnnotations, canonicalConstructorAnnotations);
+        return new RecordClassType(recordComponent.asType().getKind(), typeName, rawTypeName,
+                recordComponent.getSimpleName().toString(), recordComponent.getSimpleName().toString(),
+                accessorAnnotations, canonicalConstructorAnnotations);
     }
 
     public static String getWithMethodName(ClassType component, String prefix) {
@@ -178,6 +180,12 @@ public class ElementUtils {
             return getNamePrefix(element.getEnclosingElement()) + element.getSimpleName().toString();
         }
         return "";
+    }
+
+    public static RecordBuilder.Options getMetaData(ProcessingEnvironment processingEnv, Element element) {
+        var recordSpecificMetaData = element.getAnnotation(RecordBuilder.Options.class);
+        return (recordSpecificMetaData != null) ? recordSpecificMetaData
+                : RecordBuilderOptions.build(processingEnv.getOptions());
     }
 
     private ElementUtils() {

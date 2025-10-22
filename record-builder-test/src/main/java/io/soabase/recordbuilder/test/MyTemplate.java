@@ -17,6 +17,6 @@ package io.soabase.recordbuilder.test;
 
 import io.soabase.recordbuilder.core.RecordBuilder;
 
-@RecordBuilder.Template(options = @RecordBuilder.Options(fileComment = "This is a test", withClassName = "Com"))
+@RecordBuilder.Template(options = @RecordBuilder.Options(fileComment = "This is a test", withClassName = "Com", detectNestedRecordBuilders = true))
 public @interface MyTemplate {
 }

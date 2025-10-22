@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 @RecordBuilder
-@RecordBuilder.Options(useImmutableCollections = true, addFunctionalMethodsToWith = true)
+@RecordBuilder.Options(useImmutableCollections = true, addFunctionalMethodsToWith = true, detectNestedRecordBuilders = true)
 public record CollectionRecord<T, X extends Point>(List<T> l, Set<T> s, Map<T, X> m, Collection<X> c)
         implements CollectionRecordBuilder.With<T, X> {
     public static void main(String[] args) {

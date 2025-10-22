@@ -23,11 +23,9 @@ import io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMeta
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
 import java.util.*;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
+import java.util.function.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -39,6 +37,7 @@ import static io.soabase.recordbuilder.processor.ElementUtils.getClassTypeFromNa
 import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
+import static java.util.stream.Collectors.toMap;
 import static javax.tools.Diagnostic.Kind.ERROR;
 
 class InternalRecordBuilderProcessor {
@@ -51,19 +50,23 @@ class InternalRecordBuilderProcessor {
     private final Optional<TypeSpec> builderType;
     private final TypeSpec.Builder builder;
     private final String uniqueVarName;
+    private final String isCopyBuilderVarName;
     private final Pattern notNullPattern;
     private final Pattern nullablePattern;
     private final CollectionBuilderUtils collectionBuilderUtils;
 
+    private static final ClassName unaryOperatorType = ClassName.get(UnaryOperator.class);
     private static final TypeName optionalType = TypeName.get(Optional.class);
     private static final TypeName overrideType = TypeName.get(Override.class);
     private static final TypeName javaxValidType = ClassName.get("javax.validation", "Valid");
     private static final TypeName jakartaValidType = ClassName.get("jakarta.validation", "Valid");
     private static final TypeName validatorTypeName = ClassName.get("io.soabase.recordbuilder.validator",
             "RecordBuilderValidator");
+
     private static final TypeVariableName rType = TypeVariableName.get("R");
     private final Modifier constructorVisibilityModifier;
     private final Map<String, CodeBlock> initializers;
+    private final Map<String, NestedBuilder> nestedBuilderOptions;
 
     InternalRecordBuilderProcessor(ProcessingEnvironment processingEnv, RecordFacade recordFacade,
             RecordBuilder.Options metaData) {
@@ -74,6 +77,7 @@ class InternalRecordBuilderProcessor {
         typeVariables = recordFacade.typeVariables();
         recordComponents = recordFacade.recordComponents();
         uniqueVarName = getUniqueVarName();
+        isCopyBuilderVarName = getUniqueVarName("_isCopyBuilde");
         notNullPattern = Pattern.compile(metaData.interpretNotNullsPattern());
         nullablePattern = Pattern.compile(metaData.nullablePattern());
         collectionBuilderUtils = new CollectionBuilderUtils(recordComponents, this.metaData);
@@ -86,14 +90,21 @@ class InternalRecordBuilderProcessor {
             builder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
 
+        nestedBuilderOptions = recordComponents.stream().collect(toMap(ClassType::name,
+                recordComponent -> NestedBuilder.build(processingEnv, metaData, recordComponent)));
+
         if (!validateMethodNameConflicts(processingEnv, recordFacade.element())) {
             builderType = Optional.empty();
             return;
         }
 
+        if (hasNestedBuilders()) {
+            builder.addField(FieldSpec.builder(boolean.class, isCopyBuilderVarName, Modifier.PRIVATE).build());
+        }
+
         addVisibility(recordFacade.builderIsInRecordPackage(), recordFacade.modifiers());
         if (metaData.enableWither()) {
-            addWithNestedClass();
+            addWithNestedClass(processingEnv);
         }
         if (!metaData.beanClassName().isEmpty()) {
             addBeanNestedClass();
@@ -136,6 +147,9 @@ class InternalRecordBuilderProcessor {
             }
             if (metaData.addConcreteSettersForOptional() != RecordBuilder.ConcreteSettersForOptionalMode.DISABLED) {
                 add1ConcreteOptionalSetterMethod(component);
+            }
+            if (metaData.detectNestedRecordBuilders()) {
+                checkAdd1NestedBuilderSetter(processingEnv, builder, component, Optional.empty(), false);
             }
             var collectionMetaData = collectionBuilderUtils.singleItemsMetaData(component, EXCLUDE_WILDCARD_TYPES);
             collectionMetaData.ifPresent(meta -> add1CollectionBuilders(meta, component));
@@ -358,7 +372,7 @@ class InternalRecordBuilderProcessor {
         }
     }
 
-    private void addWithNestedClass() {
+    private void addWithNestedClass(ProcessingEnvironment processingEnv) {
         /*
          * Adds a nested interface that adds withers similar to:
          *
@@ -374,8 +388,15 @@ class InternalRecordBuilderProcessor {
         recordComponents.forEach(component -> addNestedGetterMethod(classBuilder, component, component.name()));
         addWithBuilderMethod(classBuilder);
         addWithSuppliedBuilderMethod(classBuilder);
-        IntStream.range(0, recordComponents.size())
-                .forEach(index -> add1WithMethod(classBuilder, recordComponents.get(index), index));
+
+        IntStream.range(0, recordComponents.size()).forEach(index -> {
+            RecordClassType component = recordComponents.get(index);
+            add1WithMethod(classBuilder, component, index);
+            if (metaData.detectNestedRecordBuilders()) {
+                checkAdd1NestedBuilderSetter(processingEnv, classBuilder, component,
+                        Optional.of(recordClassType.typeName()), true);
+            }
+        });
         if (metaData.addFunctionalMethodsToWith()) {
             classBuilder.addType(buildFunctionalInterface("Function", true))
                     .addType(buildFunctionalInterface("Consumer", false))
@@ -590,6 +611,9 @@ class InternalRecordBuilderProcessor {
             constructorBuilder.addParameter(parameterSpecBuilder.build());
             constructorBuilder.addStatement("this.$L = $L", component.name(), component.name());
         });
+        if (hasNestedBuilders()) {
+            constructorBuilder.addStatement("this.$L = true", isCopyBuilderVarName);
+        }
         builder.addMethod(constructorBuilder.build());
     }
 
@@ -1045,6 +1069,73 @@ class InternalRecordBuilderProcessor {
         }
     }
 
+    private void checkAdd1NestedBuilderSetter(ProcessingEnvironment processingEnv, TypeSpec.Builder builder,
+            RecordClassType component, Optional<TypeName> overrideReturnType, boolean forWither) {
+        /*
+         * For a single record component that has a @RecordBuilder annotation, add a setter similar to:
+         *
+         * public MyRecordBuilder p(Consumer<PBuilder> b) { PBuilder builder = PBuilder.builder(); b.accept(builder);
+         * this.p = builder.build(); return this; }
+         */
+
+        Optional<RecordBuilder.Options> maybeOptions = Optional.ofNullable(nestedBuilderOptions.get(component.name()))
+                .flatMap(NestedBuilder::builderOptions);
+        if (maybeOptions.isEmpty()) {
+            return;
+        }
+        RecordBuilder.Options options = maybeOptions.get();
+
+        TypeElement typeElement = processingEnv.getElementUtils().getTypeElement(component.rawTypeName().toString());
+        if ((typeElement == null) || (typeElement.asType() == null)) {
+            return;
+        }
+
+        TypeName returnType = overrideReturnType.orElseGet(builderClassType::typeName);
+
+        var componentFacade = RecordFacade.fromTypeElement(processingEnv, typeElement, Optional.empty(), options);
+
+        String operatorVarName = getUniqueVarName("operato");
+        String builderVarName = getUniqueVarName("builde");
+
+        String builderName = componentFacade.builderClassType().name();
+        TypeName builderType = componentFacade.builderClassType().typeName();
+        ParameterizedTypeName builderOpeeratorType = ParameterizedTypeName.get(unaryOperatorType, builderType);
+
+        var methodName = forWither ? getWithMethodName(component, metaData.withClassMethodPrefix())
+                : prefixedName(component, false);
+
+        var methodSpec = MethodSpec.methodBuilder(methodName).addModifiers(Modifier.PUBLIC)
+                .addAnnotation(generatedRecordBuilderAnnotation).returns(returnType)
+                .addParameter(builderOpeeratorType, operatorVarName);
+
+        CodeBlock.Builder codeBlockBuilder = CodeBlock.builder();
+
+        if (forWither) {
+            methodSpec.addModifiers(Modifier.DEFAULT);
+            methodSpec.addJavadoc("Return a new instance of {@code $L} with a new value for {@code $L}\n",
+                    recordClassType.name(), component.name());
+
+            // FooBuilder builder = FooBuilder.builder(foo());
+            codeBlockBuilder.addStatement("$T $L = $L.$L($L())", builderType, builderVarName, builderName,
+                    options.copyMethodName(), component.name());
+        } else {
+            methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n",
+                    component.name());
+
+            // FooBuilder builder = _isCopyBuilder_r ? FooBuilder.builder(foo()) : FooBuilder.builder();
+            codeBlockBuilder.addStatement("$T $L = $L ? $L.$L($L) : $L.$L()", builderType, builderVarName,
+                    isCopyBuilderVarName, builderName, options.copyMethodName(), component.name(), builderName,
+                    options.builderMethodName());
+        }
+
+        codeBlockBuilder.addStatement("return $L($L.apply($L).$L())", methodName, operatorVarName, builderVarName,
+                options.buildMethodName());
+
+        methodSpec.addCode(codeBlockBuilder.build());
+
+        builder.addMethod(methodSpec.build());
+    }
+
     private void add1GetterMethod(RecordClassType component) {
         /*
          * For a single record component, add a getter similar to:
@@ -1218,5 +1309,10 @@ class InternalRecordBuilderProcessor {
 
     private ClassType stagedBuilderType(ClassType component) {
         return getClassTypeFromNames(ClassName.get("", stagedBuilderName(component)), typeVariables);
+    }
+
+    private boolean hasNestedBuilders() {
+        return nestedBuilderOptions.values().stream()
+                .anyMatch(nestedBuilder -> nestedBuilder.builderOptions().isPresent());
     }
 }
