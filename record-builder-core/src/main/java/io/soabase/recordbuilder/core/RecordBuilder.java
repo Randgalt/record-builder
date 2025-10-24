@@ -268,6 +268,16 @@ public @interface RecordBuilder {
         String beanClassName() default "";
 
         /**
+         * When to add the {@link javax.annotation.processing.Generated} annotation to generated files
+         *
+         * <p>
+         * If set to 'ALWAYS' (default), then always add the {@link javax.annotation.processing.Generated} annotation to
+         * generated files.
+         * </p>
+         */
+        GeneratedAnnotation addGeneratedAnnotation() default GeneratedAnnotation.ALWAYS;
+
+        /**
          * If true, generated classes are annotated with {@code RecordBuilderGenerated} which has a retention policy of
          * {@code CLASS}. This ensures that analyzers such as Jacoco will ignore the generated class.
          */
@@ -376,6 +386,18 @@ public @interface RecordBuilder {
 
     enum ConcreteSettersForOptionalMode {
         DISABLED, ENABLED, ENABLED_WITH_NULLABLE_ANNOTATION,
+    }
+
+    enum GeneratedAnnotation {
+        /**
+         * Always add the {@link javax.annotation.processing.Generated} annotation (default).
+         */
+        ALWAYS,
+        /**
+         * Never add the {@link javax.annotation.processing.Generated} annotation.
+         */
+        NEVER,
+        /* IF_ON_CLASSPATH, */ /* USER_SUPPLIED, */
     }
 
     /**
