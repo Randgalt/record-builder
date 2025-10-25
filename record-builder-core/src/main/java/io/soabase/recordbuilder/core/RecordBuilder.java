@@ -365,7 +365,7 @@ public @interface RecordBuilder {
          * are nested builder consumers so that you can do, for example,
          * {@code myRecord.withNestedRecord(nestedBuilder -> nestedBuilder.field1(...).field2(...))}
          */
-        boolean detectNestedRecordBuilders() default false;
+        boolean detectNestedRecordBuilders() default true;
     }
 
     @Retention(RetentionPolicy.CLASS)

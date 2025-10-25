@@ -20,7 +20,7 @@ import java.lang.annotation.*;
 /**
  * An alternate form of {@code @RecordBuilder} that has most optional features turned on
  */
-@RecordBuilder.Template(options = @RecordBuilder.Options(interpretNotNulls = true, useImmutableCollections = true, addSingleItemCollectionBuilders = true, addFunctionalMethodsToWith = true, addClassRetainedGenerated = true, detectNestedRecordBuilders = true))
+@RecordBuilder.Template(options = @RecordBuilder.Options(interpretNotNulls = true, useImmutableCollections = true, addSingleItemCollectionBuilders = true, addFunctionalMethodsToWith = true, addClassRetainedGenerated = true))
 @Retention(RetentionPolicy.SOURCE)
 @Target({ ElementType.TYPE, ElementType.METHOD })
 @Inherited
