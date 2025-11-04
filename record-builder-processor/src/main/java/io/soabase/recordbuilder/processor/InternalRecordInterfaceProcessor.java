@@ -132,9 +132,8 @@ class InternalRecordInterfaceProcessor {
     private void addAlternateMethods(TypeSpec.Builder builder, List<Component> recordComponents) {
         recordComponents.stream().filter(component -> component.alternateName.isPresent()).forEach(component -> {
             var method = MethodSpec.methodBuilder(component.element.getSimpleName().toString())
-                    .addAnnotation(Override.class).addAnnotation(generatedRecordInterfaceAnnotation)
-                    .returns(ClassName.get(component.element.getReturnType())).addModifiers(Modifier.PUBLIC)
-                    .addCode("return $L();", component.alternateName.get()).build();
+                    .addAnnotation(Override.class).returns(ClassName.get(component.element.getReturnType()))
+                    .addModifiers(Modifier.PUBLIC).addCode("return $L();", component.alternateName.get()).build();
             builder.addMethod(method);
         });
     }

@@ -37,8 +37,7 @@ import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleIt
 import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.STANDARD_FOR_SETTER;
 import static io.soabase.recordbuilder.processor.ElementUtils.getClassTypeFromNames;
 import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.*;
 import static javax.tools.Diagnostic.Kind.ERROR;
 
 class InternalRecordBuilderProcessor {
@@ -80,10 +79,15 @@ class InternalRecordBuilderProcessor {
         constructorVisibilityModifier = metaData.publicBuilderConstructors() ? Modifier.PUBLIC : Modifier.PRIVATE;
         initializers = recordFacade.initializers();
 
-        builder = TypeSpec.classBuilder(builderClassType.name()).addAnnotation(generatedRecordBuilderAnnotation)
-                .addModifiers(metaData.builderClassModifiers()).addTypeVariables(typeVariables);
+        builder = TypeSpec.classBuilder(builderClassType.name()).addModifiers(metaData.builderClassModifiers())
+                .addTypeVariables(typeVariables);
         if (metaData.addClassRetainedGenerated()) {
             builder.addAnnotation(recordBuilderGeneratedAnnotation);
+        }
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> builder.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
         }
 
         if (!validateMethodNameConflicts(processingEnv, recordFacade.element())) {
@@ -255,11 +259,15 @@ class InternalRecordBuilderProcessor {
          * default Person build() { return builder().build(); }
          */
         var classBuilder = TypeSpec.interfaceBuilder(stagedBuilderName(builderClassType))
-                .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Add final staged builder to {@code $L}\n", recordClassType.name())
                 .addModifiers(Modifier.PUBLIC).addTypeVariables(typeVariables);
         if (metaData.addClassRetainedGenerated()) {
             classBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
+        }
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> classBuilder.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
         }
 
         MethodSpec buildMethod = buildMethod().addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
@@ -275,11 +283,15 @@ class InternalRecordBuilderProcessor {
                             optionalComponent.name());
                     addConstructorAnnotations(optionalComponent, parameterSpecBuilder);
                     var methodSpec = MethodSpec.methodBuilder(optionalComponent.name())
-                            .addAnnotation(generatedRecordBuilderAnnotation)
                             .addJavadoc("Call builder for optional component {@code $L}", optionalComponent.name())
                             .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT).addParameter(parameterSpecBuilder.build())
-                            .addCode(codeBlock).returns(builderClassType.typeName()).build();
-                    classBuilder.addMethod(methodSpec);
+                            .addCode(codeBlock).returns(builderClassType.typeName());
+                    switch (metaData.addGeneratedAnnotation()) {
+                    case ALWAYS -> methodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+                    case NEVER -> {
+                        /* no-op */ }
+                    }
+                    classBuilder.addMethod(methodSpec.build());
 
                     if (metaData
                             .addConcreteSettersForOptional() != RecordBuilder.ConcreteSettersForOptionalMode.DISABLED) {
@@ -289,9 +301,13 @@ class InternalRecordBuilderProcessor {
 
         var builderMethod = MethodSpec.methodBuilder(metaData.builderMethodName())
                 .addJavadoc("Return a new builder with all fields set to the current values in this builder\n")
-                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT).addAnnotation(generatedRecordBuilderAnnotation)
-                .returns(builderClassType.typeName()).build();
-        classBuilder.addMethod(builderMethod);
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT).returns(builderClassType.typeName());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> builderMethod.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
+        classBuilder.addMethod(builderMethod.build());
 
         builder.addType(classBuilder.build());
     }
@@ -303,19 +319,27 @@ class InternalRecordBuilderProcessor {
          * public class NameStage { AgeStage name(String name); }
          */
         var classBuilder = TypeSpec.interfaceBuilder(stagedBuilderName(component))
-                .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Add staged builder to {@code $L} for component {@code $L}\n", recordClassType.name(),
                         component.name())
                 .addModifiers(Modifier.PUBLIC).addTypeVariables(typeVariables);
         if (metaData.addClassRetainedGenerated()) {
             classBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> classBuilder.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
 
         var returnType = nextComponent.map(this::stagedBuilderType)
                 .orElseGet(() -> stagedBuilderType(builderClassType));
-        var methodSpec = MethodSpec.methodBuilder(prefixedName(component, false))
-                .addAnnotation(generatedRecordBuilderAnnotation).returns(returnType.typeName())
+        var methodSpec = MethodSpec.methodBuilder(prefixedName(component, false)).returns(returnType.typeName())
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
 
         methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name());
         var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
@@ -337,11 +361,15 @@ class InternalRecordBuilderProcessor {
             var concreteParameterSpecBuilder = ParameterSpec.builder(type.valueType(), optionalComponent.name());
             applyConcreteOptionalSetterNullable(concreteParameterSpecBuilder);
             var concreteMethodSpec = MethodSpec.methodBuilder(optionalComponent.name())
-                    .addAnnotation(generatedRecordBuilderAnnotation)
                     .addJavadoc("Call builder for optional component {@code $L}", optionalComponent.name())
                     .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT).addParameter(concreteParameterSpecBuilder.build())
-                    .addCode(concreteCodeBlock).returns(builderClassType.typeName()).build();
-            classBuilder.addMethod(concreteMethodSpec);
+                    .addCode(concreteCodeBlock).returns(builderClassType.typeName());
+            switch (metaData.addGeneratedAnnotation()) {
+            case ALWAYS -> concreteMethodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+            case NEVER -> {
+                /* no-op */ }
+            }
+            classBuilder.addMethod(concreteMethodSpec.build());
         }
     }
 
@@ -365,11 +393,15 @@ class InternalRecordBuilderProcessor {
          * public class MyRecordBuilder { public interface With { // with methods } }
          */
         var classBuilder = TypeSpec.interfaceBuilder(metaData.withClassName())
-                .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Add withers to {@code $L}\n", recordClassType.name()).addModifiers(Modifier.PUBLIC)
                 .addTypeVariables(typeVariables);
         if (metaData.addClassRetainedGenerated()) {
             classBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
+        }
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> classBuilder.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
         }
         recordComponents.forEach(component -> addNestedGetterMethod(classBuilder, component, component.name()));
         addWithBuilderMethod(classBuilder);
@@ -392,9 +424,13 @@ class InternalRecordBuilderProcessor {
          * public class MyRecordBuilder { public interface Bean { // getter methods } }
          */
         var classBuilder = TypeSpec.interfaceBuilder(metaData.beanClassName())
-                .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Add getters to {@code $L}\n", recordClassType.name()).addModifiers(Modifier.PUBLIC)
                 .addTypeVariables(typeVariables);
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> classBuilder.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
         recordComponents.forEach(component -> {
             if (prefixedName(component, true).equals(component.name())) {
                 return;
@@ -417,11 +453,15 @@ class InternalRecordBuilderProcessor {
         var consumerType = ParameterizedTypeName.get(ClassName.get(Consumer.class), builderClassType.typeName());
         var parameter = ParameterSpec.builder(consumerType, "consumer").build();
         var methodSpec = MethodSpec.methodBuilder(metaData.withClassMethodPrefix())
-                .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Return a new record built from the builder passed to the given consumer")
                 .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT).addParameter(parameter)
-                .returns(recordClassType.typeName()).addCode(codeBlockBuilder.build()).build();
-        classBuilder.addMethod(methodSpec);
+                .returns(recordClassType.typeName()).addCode(codeBlockBuilder.build());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
+        classBuilder.addMethod(methodSpec.build());
     }
 
     private void addWithBuilderMethod(TypeSpec.Builder classBuilder) {
@@ -435,11 +475,15 @@ class InternalRecordBuilderProcessor {
         addComponentCallsAsArguments(-1, codeBlockBuilder);
         codeBlockBuilder.add(");");
         var methodSpec = MethodSpec.methodBuilder(metaData.withClassMethodPrefix())
-                .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Return a new record builder using the current values")
                 .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT).returns(builderClassType.typeName())
-                .addCode(codeBlockBuilder.build()).build();
-        classBuilder.addMethod(methodSpec);
+                .addCode(codeBlockBuilder.build());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
+        classBuilder.addMethod(methodSpec.build());
     }
 
     private String getUniqueVarName() {
@@ -475,12 +519,17 @@ class InternalRecordBuilderProcessor {
         var methodName = getWithMethodName(component, metaData.withClassMethodPrefix());
         var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
         addConstructorAnnotations(component, parameterSpecBuilder);
-        var methodSpec = MethodSpec.methodBuilder(methodName).addAnnotation(generatedRecordBuilderAnnotation)
+        var methodSpec = MethodSpec.methodBuilder(methodName)
                 .addJavadoc("Return a new instance of {@code $L} with a new value for {@code $L}\n",
                         recordClassType.name(), component.name())
                 .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT).addParameter(parameterSpecBuilder.build())
-                .addCode(codeBlockBuilder.build()).returns(recordClassType.typeName()).build();
-        classBuilder.addMethod(methodSpec);
+                .addCode(codeBlockBuilder.build()).returns(recordClassType.typeName());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
+        classBuilder.addMethod(methodSpec.build());
     }
 
     private void add1PrefixedGetterMethod(TypeSpec.Builder classBuilder, RecordClassType component) {
@@ -493,11 +542,16 @@ class InternalRecordBuilderProcessor {
         codeBlockBuilder.add("$[return $L()$];", component.name());
 
         var methodName = prefixedName(component, true);
-        var methodSpec = MethodSpec.methodBuilder(methodName).addAnnotation(generatedRecordBuilderAnnotation)
+        var methodSpec = MethodSpec.methodBuilder(methodName)
                 .addJavadoc("Returns the value of {@code $L}\n", component.name())
                 .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT).addCode(codeBlockBuilder.build())
-                .returns(component.typeName()).build();
-        classBuilder.addMethod(methodSpec);
+                .returns(component.typeName());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
+        classBuilder.addMethod(methodSpec.build());
     }
 
     private void addComponentCallsAsArguments(int index, CodeBlock.Builder codeBlockBuilder) {
@@ -520,9 +574,13 @@ class InternalRecordBuilderProcessor {
          *
          * private MyRecordBuilder() { }
          */
-        var constructor = MethodSpec.constructorBuilder().addModifiers(constructorVisibilityModifier)
-                .addAnnotation(generatedRecordBuilderAnnotation).build();
-        builder.addMethod(constructor);
+        var constructor = MethodSpec.constructorBuilder().addModifiers(constructorVisibilityModifier);
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> constructor.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
+        builder.addMethod(constructor.build());
     }
 
     private void addStaticBuilder() {
@@ -535,7 +593,12 @@ class InternalRecordBuilderProcessor {
         var builder = MethodSpec.methodBuilder(recordClassType.name())
                 .addJavadoc("Static constructor/builder. Can be used instead of new $L(...)\n", recordClassType.name())
                 .addTypeVariables(typeVariables).addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .addAnnotation(generatedRecordBuilderAnnotation).returns(recordClassType.typeName()).addCode(codeBlock);
+                .returns(recordClassType.typeName()).addCode(codeBlock);
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> builder.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
         recordComponents.forEach(component -> {
             var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
             addConstructorAnnotations(component, parameterSpecBuilder);
@@ -582,8 +645,12 @@ class InternalRecordBuilderProcessor {
          *
          * private MyRecordBuilder(int p1, T p2, ...) { this.p1 = p1; this.p2 = p2; ... }
          */
-        var constructorBuilder = MethodSpec.constructorBuilder().addModifiers(constructorVisibilityModifier)
-                .addAnnotation(generatedRecordBuilderAnnotation);
+        var constructorBuilder = MethodSpec.constructorBuilder().addModifiers(constructorVisibilityModifier);
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> constructorBuilder.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
         recordComponents.forEach(component -> {
             var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
             addConstructorAnnotations(component, parameterSpecBuilder);
@@ -610,9 +677,13 @@ class InternalRecordBuilderProcessor {
         codeBuilder.add("]\"");
 
         var methodSpec = MethodSpec.methodBuilder("toString").addModifiers(Modifier.PUBLIC)
-                .addAnnotation(generatedRecordBuilderAnnotation).addAnnotation(Override.class).returns(String.class)
-                .addStatement(codeBuilder.build()).build();
-        builder.addMethod(methodSpec);
+                .addAnnotation(Override.class).returns(String.class).addStatement(codeBuilder.build());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
+        builder.addMethod(methodSpec.build());
     }
 
     private void addHashCodeMethod() {
@@ -631,9 +702,13 @@ class InternalRecordBuilderProcessor {
         codeBuilder.add(")");
 
         var methodSpec = MethodSpec.methodBuilder("hashCode").addModifiers(Modifier.PUBLIC)
-                .addAnnotation(generatedRecordBuilderAnnotation).addAnnotation(Override.class).returns(TypeName.INT)
-                .addStatement(codeBuilder.build()).build();
-        builder.addMethod(methodSpec);
+                .addAnnotation(Override.class).returns(TypeName.INT).addStatement(codeBuilder.build());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
+        builder.addMethod(methodSpec.build());
     }
 
     private void addEqualsMethod() {
@@ -662,9 +737,14 @@ class InternalRecordBuilderProcessor {
         codeBuilder.add(")");
 
         var methodSpec = MethodSpec.methodBuilder("equals").addParameter(Object.class, "o")
-                .addModifiers(Modifier.PUBLIC).addAnnotation(generatedRecordBuilderAnnotation)
-                .addAnnotation(Override.class).returns(TypeName.BOOLEAN).addStatement(codeBuilder.build()).build();
-        builder.addMethod(methodSpec);
+                .addModifiers(Modifier.PUBLIC).addAnnotation(Override.class).returns(TypeName.BOOLEAN)
+                .addStatement(codeBuilder.build());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
+        builder.addMethod(methodSpec.build());
     }
 
     private void addBuildMethod() {
@@ -679,10 +759,15 @@ class InternalRecordBuilderProcessor {
     }
 
     private MethodSpec.Builder buildMethod() {
-        return MethodSpec.methodBuilder(metaData.buildMethodName())
+        MethodSpec.Builder buildMethod = MethodSpec.methodBuilder(metaData.buildMethodName())
                 .addJavadoc("Return a new record instance with all fields set to the current values in this builder\n")
-                .addModifiers(Modifier.PUBLIC).addAnnotation(generatedRecordBuilderAnnotation)
-                .returns(recordClassType.typeName());
+                .addModifiers(Modifier.PUBLIC).returns(recordClassType.typeName());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> buildMethod.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
+        return buildMethod;
     }
 
     private CodeBlock buildCodeBlock() {
@@ -741,26 +826,39 @@ class InternalRecordBuilderProcessor {
          */
 
         var fromWithClassBuilder = TypeSpec.classBuilder(metaData.fromWithClassName())
-                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
-                .addAnnotation(generatedRecordBuilderAnnotation).addTypeVariables(typeVariables)
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL).addTypeVariables(typeVariables)
                 .addSuperinterface(buildWithTypeName());
         if (metaData.addClassRetainedGenerated()) {
             fromWithClassBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> fromWithClassBuilder.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
 
         fromWithClassBuilder.addField(recordClassType.typeName(), "from", Modifier.PRIVATE, Modifier.FINAL);
-        MethodSpec constructorSpec = MethodSpec.constructorBuilder().addParameter(recordClassType.typeName(), "from")
-                .addStatement("this.from = from").addModifiers(Modifier.PRIVATE)
-                .addAnnotation(generatedRecordBuilderAnnotation).build();
-        fromWithClassBuilder.addMethod(constructorSpec);
+        MethodSpec.Builder constructorSpec = MethodSpec.constructorBuilder()
+                .addParameter(recordClassType.typeName(), "from").addStatement("this.from = from")
+                .addModifiers(Modifier.PRIVATE);
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> constructorSpec.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
+        fromWithClassBuilder.addMethod(constructorSpec.build());
 
         IntStream.range(0, recordComponents.size()).forEach(index -> {
             var component = recordComponents.get(index);
-            MethodSpec methodSpec = MethodSpec.methodBuilder(component.name()).returns(component.typeName())
+            MethodSpec.Builder methodSpec = MethodSpec.methodBuilder(component.name()).returns(component.typeName())
                     .addAnnotation(Override.class).addModifiers(Modifier.PUBLIC)
-                    .addStatement("return from.$L()", component.name()).addAnnotation(generatedRecordBuilderAnnotation)
-                    .build();
-            fromWithClassBuilder.addMethod(methodSpec);
+                    .addStatement("return from.$L()", component.name());
+            switch (metaData.addGeneratedAnnotation()) {
+            case ALWAYS -> methodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+            case NEVER -> {
+                /* no-op */ }
+            }
+            fromWithClassBuilder.addMethod(methodSpec.build());
         });
         this.builder.addType(fromWithClassBuilder.build());
     }
@@ -776,12 +874,16 @@ class InternalRecordBuilderProcessor {
 
         var methodSpec = MethodSpec.methodBuilder(metaData.fromMethodName())
                 .addJavadoc("Return a \"with\"er for an existing record instance\n")
-                .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addAnnotation(generatedRecordBuilderAnnotation)
-                .addTypeVariables(typeVariables).addParameter(recordClassType.typeName(), metaData.fromMethodName())
-                .returns(buildWithTypeName()).addStatement("return new $L$L($L)", metaData.fromWithClassName(),
-                        typeVariables.isEmpty() ? "" : "<>", metaData.fromMethodName())
-                .build();
-        builder.addMethod(methodSpec);
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addTypeVariables(typeVariables)
+                .addParameter(recordClassType.typeName(), metaData.fromMethodName()).returns(buildWithTypeName())
+                .addStatement("return new $L$L($L)", metaData.fromWithClassName(), typeVariables.isEmpty() ? "" : "<>",
+                        metaData.fromMethodName());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
+        builder.addMethod(methodSpec.build());
     }
 
     private void addStaticCopyBuilderMethod() {
@@ -803,10 +905,15 @@ class InternalRecordBuilderProcessor {
         var methodSpec = MethodSpec.methodBuilder(metaData.copyMethodName())
                 .addJavadoc(
                         "Return a new builder with all fields set to the values taken from the given record instance\n")
-                .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addAnnotation(generatedRecordBuilderAnnotation)
-                .addTypeVariables(typeVariables).addParameter(recordClassType.typeName(), "from")
-                .returns(builderClassType.typeName()).addStatement(codeBuilder.build()).build();
-        builder.addMethod(methodSpec);
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addTypeVariables(typeVariables)
+                .addParameter(recordClassType.typeName(), "from").returns(builderClassType.typeName())
+                .addStatement(codeBuilder.build());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
+        builder.addMethod(methodSpec.build());
     }
 
     private void addStaticDefaultBuilderMethod() {
@@ -817,10 +924,14 @@ class InternalRecordBuilderProcessor {
          */
         var methodSpec = MethodSpec.methodBuilder(metaData.builderMethodName())
                 .addJavadoc("Return a new builder with all fields set to default Java values\n")
-                .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addAnnotation(generatedRecordBuilderAnnotation)
-                .addTypeVariables(typeVariables).returns(builderClassType.typeName())
-                .addStatement("return new $T()", builderClassType.typeName()).build();
-        builder.addMethod(methodSpec);
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addTypeVariables(typeVariables)
+                .returns(builderClassType.typeName()).addStatement("return new $T()", builderClassType.typeName());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
+        builder.addMethod(methodSpec.build());
     }
 
     private void addStaticStagedBuilderMethod(String builderMethodName) {
@@ -848,9 +959,14 @@ class InternalRecordBuilderProcessor {
 
         var methodSpec = MethodSpec.methodBuilder(builderMethodName)
                 .addJavadoc("Return the first stage of a staged builder\n")
-                .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addAnnotation(generatedRecordBuilderAnnotation)
-                .addTypeVariables(typeVariables).returns(returnType.typeName()).addCode(codeBlock.build()).build();
-        builder.addMethod(methodSpec);
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addTypeVariables(typeVariables)
+                .returns(returnType.typeName()).addCode(codeBlock.build());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
+        builder.addMethod(methodSpec.build());
     }
 
     private void addStaticComponentsMethod() {
@@ -875,9 +991,13 @@ class InternalRecordBuilderProcessor {
         var methodSpec = MethodSpec.methodBuilder(metaData.componentsMethodName()).addJavadoc(
                 "Return a stream of the record components as map entries keyed with the component name and the value as the component value\n")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addParameter(recordClassType.typeName(), "record")
-                .addAnnotation(generatedRecordBuilderAnnotation).addTypeVariables(typeVariables).returns(mapEntryType)
-                .addStatement(codeBuilder.build()).build();
-        builder.addMethod(methodSpec);
+                .addTypeVariables(typeVariables).returns(mapEntryType).addStatement(codeBuilder.build());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
+        builder.addMethod(methodSpec.build());
     }
 
     private void add1Field(ClassType component) {
@@ -911,8 +1031,12 @@ class InternalRecordBuilderProcessor {
         var methodSpecBuilder = MethodSpec.methodBuilder(methodName)
                 .addJavadoc("Return the current value for the {@code $L} record component in the builder\n",
                         component.name())
-                .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC).addAnnotation(generatedRecordBuilderAnnotation)
-                .returns(component.typeName());
+                .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC).returns(component.typeName());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodSpecBuilder.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
         addAccessorAnnotations(component, methodSpecBuilder, this::filterOutValid);
         classBuilder.addMethod(methodSpecBuilder.build());
     }
@@ -977,8 +1101,12 @@ class InternalRecordBuilderProcessor {
             var methodSpecBuilder = MethodSpec
                     .methodBuilder(metaData.singleItemBuilderPrefix() + capitalize(component.name()))
                     .addJavadoc("Add to the internally allocated {@code HashMap} for {@code $L}\n", component.name())
-                    .addModifiers(Modifier.PUBLIC).addAnnotation(generatedRecordBuilderAnnotation)
-                    .returns(builderClassType.typeName());
+                    .addModifiers(Modifier.PUBLIC).returns(builderClassType.typeName());
+            switch (metaData.addGeneratedAnnotation()) {
+            case ALWAYS -> methodSpecBuilder.addAnnotation(generatedRecordBuilderAnnotation);
+            case NEVER -> {
+                /* no-op */ }
+            }
             if (i == 0) {
                 methodSpecBuilder.addParameter(meta.typeArguments().get(0), "key");
                 methodSpecBuilder.addParameter(meta.typeArguments().get(1), "value");
@@ -1038,9 +1166,13 @@ class InternalRecordBuilderProcessor {
                     .methodBuilder(metaData.singleItemBuilderPrefix() + capitalize(component.name()))
                     .addJavadoc("Add to the internally allocated {@code $L} for {@code $L}\n",
                             meta.singleItemCollectionClass().getSimpleName(), component.name())
-                    .addModifiers(Modifier.PUBLIC).addAnnotation(generatedRecordBuilderAnnotation)
-                    .returns(builderClassType.typeName()).addParameter(parameter, "i")
+                    .addModifiers(Modifier.PUBLIC).returns(builderClassType.typeName()).addParameter(parameter, "i")
                     .addCode(codeBlockBuilder.build());
+            switch (metaData.addGeneratedAnnotation()) {
+            case ALWAYS -> methodSpecBuilder.addAnnotation(generatedRecordBuilderAnnotation);
+            case NEVER -> {
+                /* no-op */ }
+            }
             builder.addMethod(methodSpecBuilder.build());
         }
     }
@@ -1054,9 +1186,13 @@ class InternalRecordBuilderProcessor {
         var methodSpecBuilder = MethodSpec.methodBuilder(prefixedName(component, true))
                 .addJavadoc("Return the current value for the {@code $L} record component in the builder\n",
                         component.name())
-                .addModifiers(Modifier.PUBLIC).addAnnotation(generatedRecordBuilderAnnotation)
-                .returns(component.typeName()).addCode(checkReturnShim(component));
+                .addModifiers(Modifier.PUBLIC).returns(component.typeName()).addCode(checkReturnShim(component));
         addAccessorAnnotations(component, methodSpecBuilder, __ -> true);
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodSpecBuilder.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
         builder.addMethod(methodSpecBuilder.build());
     }
 
@@ -1079,7 +1215,12 @@ class InternalRecordBuilderProcessor {
          * public MyRecordBuilder p(T p) { this.p = p; return this; }
          */
         var methodSpec = MethodSpec.methodBuilder(prefixedName(component, false)).addModifiers(Modifier.PUBLIC)
-                .addAnnotation(generatedRecordBuilderAnnotation).returns(builderClassType.typeName());
+                .returns(builderClassType.typeName());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
 
         if (metaData.onceOnlyAssignment()) {
             var onceOnlyCheck = CodeBlock.builder()
@@ -1124,8 +1265,12 @@ class InternalRecordBuilderProcessor {
         }
         var type = optionalType.get();
         var methodSpec = MethodSpec.methodBuilder(prefixedName(component, false)).addModifiers(Modifier.PUBLIC)
-                .addAnnotation(generatedRecordBuilderAnnotation).returns(builderClassType.typeName());
-
+                .returns(builderClassType.typeName());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodSpec.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
         var parameterSpecBuilder = ParameterSpec.builder(type.valueType(), component.name());
         methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name())
                 .addStatement(getOptionalStatement(type), component.name(), type.typeName(), component.name());
@@ -1160,8 +1305,13 @@ class InternalRecordBuilderProcessor {
         var localTypeVariables = isMap ? typeVariablesWithReturn() : typeVariables;
         var typeName = localTypeVariables.isEmpty() ? ClassName.get("", className)
                 : ParameterizedTypeName.get(ClassName.get("", className), localTypeVariables.toArray(TypeName[]::new));
-        var methodBuilder = MethodSpec.methodBuilder(methodName).addAnnotation(generatedRecordBuilderAnnotation)
-                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT).addParameter(typeName, "proc");
+        var methodBuilder = MethodSpec.methodBuilder(methodName).addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .addParameter(typeName, "proc");
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> methodBuilder.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
         var codeBlockBuilder = CodeBlock.builder();
         if (isMap) {
             methodBuilder.addJavadoc("Map record components into a new object");
@@ -1194,9 +1344,15 @@ class InternalRecordBuilderProcessor {
         if (isMap) {
             methodBuilder.returns(rType);
         }
-        return TypeSpec.interfaceBuilder(className).addAnnotation(generatedRecordBuilderAnnotation)
-                .addAnnotation(FunctionalInterface.class).addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .addTypeVariables(localTypeVariables).addMethod(methodBuilder.build()).build();
+        var typeSpecBuilder = TypeSpec.interfaceBuilder(className).addAnnotation(FunctionalInterface.class)
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC).addTypeVariables(localTypeVariables)
+                .addMethod(methodBuilder.build());
+        switch (metaData.addGeneratedAnnotation()) {
+        case ALWAYS -> typeSpecBuilder.addAnnotation(generatedRecordBuilderAnnotation);
+        case NEVER -> {
+            /* no-op */ }
+        }
+        return typeSpecBuilder.build();
     }
 
     private String prefixedName(RecordClassType component, boolean isGetter) {
