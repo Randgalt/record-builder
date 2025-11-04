@@ -13,10 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.soabase.recordbuilder.test;
+package io.soabase.recordbuilder.test.nested;
 
-import io.soabase.recordbuilder.core.RecordBuilder;
+import io.soabase.recordbuilder.core.RecordBuilderFull;
+import io.soabase.recordbuilder.test.*;
 
-@RecordBuilder.Template(options = @RecordBuilder.Options(fileComment = "This is a test", withClassName = "Com", detectNestedRecordBuilders = true))
-public @interface MyTemplate {
+@RecordBuilderFull
+public record BigOlNestedContainer<T, X extends Point>(Annotated annotated, CollectionCopying<T> collectionCopying,
+        CollectionRecord<T, X> collectionRecord, FullRecord fullRecord, ConvertRequest convertRequest,
+        TemplateTest templateTest, WildcardSingleItems<T> wildcardSingleItems,
+        DuplicateMethodNames duplicateMethodNames, BigOlNestedContainer<T, X> recursive)
+        implements BigOlNestedContainerBuilder.With<T, X> {
 }

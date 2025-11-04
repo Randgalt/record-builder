@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.soabase.recordbuilder.test;
+package io.soabase.recordbuilder.test.nested;
 
-import io.soabase.recordbuilder.core.RecordBuilder;
+import io.soabase.recordbuilder.test.naming.Builder;
 
-@RecordBuilder.Template(options = @RecordBuilder.Options(fileComment = "This is a test", withClassName = "Com", detectNestedRecordBuilders = true))
-public @interface MyTemplate {
+@Builder
+record ConvertRequest(double from, double to) {
 }

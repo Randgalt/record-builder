@@ -359,6 +359,13 @@ public @interface RecordBuilder {
          * @see #nullablePattern
          */
         boolean defaultNotNull() default false;
+
+        /**
+         * If true, record components that are themselves {@code @RecordBuilder} records will have builder methods that
+         * are nested builder consumers so that you can do, for example,
+         * {@code myRecord.withNestedRecord(nestedBuilder -> nestedBuilder.field1(...).field2(...))}
+         */
+        boolean detectNestedRecordBuilders() default true;
     }
 
     @Retention(RetentionPolicy.CLASS)

@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 @RecordBuilder
-@RecordBuilder.Options(addSingleItemCollectionBuilders = true, useImmutableCollections = true)
+@RecordBuilder.Options(addSingleItemCollectionBuilders = true, useImmutableCollections = true, detectNestedRecordBuilders = true)
 public record WildcardSingleItems<T>(List<? extends String> strings, Set<? extends List<? extends T>> sets,
         Map<? extends Instant, ? extends T> map, Collection<? extends T> collection)
         implements WildcardSingleItemsBuilder.With<T> {

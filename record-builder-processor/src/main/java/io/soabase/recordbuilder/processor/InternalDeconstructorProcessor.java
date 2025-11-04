@@ -188,8 +188,8 @@ class InternalDeconstructorProcessor {
                             .stream().filter(annotation -> !annotation.getAnnotationType().asElement().getSimpleName()
                                     .toString().equals(DeconstructorAccessor.class.getSimpleName()))
                             .toList();
-                    var type = new RecordClassType(typeName, rawTypeName, name,
-                            executableElement.getSimpleName().toString(), annotationMirrors, List.of());
+                    var type = new RecordClassType(executableElement.getReturnType().getKind(), typeName, rawTypeName,
+                            name, executableElement.getSimpleName().toString(), annotationMirrors, List.of());
                     var orderedType = Map.entry(deconstructorAccessor.order(), type);
                     return Stream.of(orderedType);
                 }).sorted((o1, o2) -> {
@@ -229,9 +229,9 @@ class InternalDeconstructorProcessor {
         return executableElement.getParameters().stream().map(parameter -> {
             ValidatedParameter validatedParameter = validateParameter(parameter.getSimpleName().toString(),
                     parameter.asType());
-            return new RecordClassType(validatedParameter.typeName, validatedParameter.rawTypeName,
-                    parameter.getSimpleName().toString(), parameter.getSimpleName().toString(),
-                    parameter.getAnnotationMirrors(), List.of());
+            return new RecordClassType(parameter.asType().getKind(), validatedParameter.typeName,
+                    validatedParameter.rawTypeName, parameter.getSimpleName().toString(),
+                    parameter.getSimpleName().toString(), parameter.getAnnotationMirrors(), List.of());
         }).toList();
     }
 

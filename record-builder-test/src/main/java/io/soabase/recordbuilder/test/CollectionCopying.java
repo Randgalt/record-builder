@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 @RecordBuilder
-@RecordBuilder.Options(addSingleItemCollectionBuilders = true, useImmutableCollections = true, mutableListClassName = "PersonalizedMutableList")
+@RecordBuilder.Options(addSingleItemCollectionBuilders = true, useImmutableCollections = true, mutableListClassName = "PersonalizedMutableList", detectNestedRecordBuilders = true)
 public record CollectionCopying<T>(List<String> list, Set<T> set, Map<Instant, T> map, Collection<T> collection,
         int count) implements CollectionCopyingBuilder.With<T> {
 }

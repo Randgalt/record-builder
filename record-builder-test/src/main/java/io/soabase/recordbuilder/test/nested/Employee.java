@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.soabase.recordbuilder.test;
+package io.soabase.recordbuilder.test.nested;
 
-import io.soabase.recordbuilder.core.RecordBuilder;
+import io.soabase.recordbuilder.core.RecordBuilderFull;
 
-@RecordBuilder.Template(options = @RecordBuilder.Options(fileComment = "This is a test", withClassName = "Com", detectNestedRecordBuilders = true))
-public @interface MyTemplate {
+@RecordBuilderFull
+public record Employee(String firstName, String lastName, Address address) implements EmployeeBuilder.With {
 }
