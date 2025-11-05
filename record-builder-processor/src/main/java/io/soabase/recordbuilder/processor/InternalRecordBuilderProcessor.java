@@ -88,6 +88,8 @@ class InternalRecordBuilderProcessor {
             builder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
 
+        addJacksonAnnotations();
+
         if (!validateMethodNameConflicts(processingEnv, recordFacade.element())) {
             builderType = Optional.empty();
             return;
@@ -196,6 +198,18 @@ class InternalRecordBuilderProcessor {
         } else {
             builder.addModifiers(Modifier.PUBLIC);
         }
+    }
+
+    private void addJacksonAnnotations() {
+        if (!metaData.addJacksonAnnotations()) {
+            return;
+        }
+
+        final var annotationSpec = AnnotationSpec
+                .builder(ClassName.get("com.fasterxml.jackson.databind.annotation", "JsonPOJOBuilder"))
+                .addMember("withPrefix", "$S", metaData.setterPrefix()).build();
+
+        builder.addAnnotation(annotationSpec);
     }
 
     private void addOnceOnlySupport() {

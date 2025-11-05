@@ -359,6 +359,8 @@ public @interface RecordBuilder {
          * @see #nullablePattern
          */
         boolean defaultNotNull() default false;
+
+        boolean addJacksonAnnotations() default false;
     }
 
     @Retention(RetentionPolicy.CLASS)
