@@ -23,6 +23,8 @@ import com.palantir.javapoet.TypeVariableName;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import javax.lang.model.type.TypeMirror;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Target;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +72,27 @@ public class ElementUtils {
     public static List<String> getAttributeStringList(AnnotationValue attribute) {
         List<? extends AnnotationValue> values = (attribute != null)
                 ? (List<? extends AnnotationValue>) attribute.getValue() : Collections.emptyList();
-        return values.stream().map(v -> (String) v.getValue()).collect(Collectors.toList());
+        return values.stream().map(v -> String.valueOf(v.getValue())).collect(Collectors.toList());
+    }
+
+    public static List<String> getAnnotationTargetTypes(ProcessingEnvironment processingEnv,
+            AnnotationMirror annotationMirror) {
+        Optional<? extends AnnotationMirror> targetMirror = ElementUtils.findAnnotationMirror(processingEnv,
+                annotationMirror.getAnnotationType().asElement(), Target.class.getName());
+        if (targetMirror.isEmpty()) {
+            return List.of();
+        }
+        Map<? extends ExecutableElement, ? extends AnnotationValue> targetMirrorValue = processingEnv.getElementUtils()
+                .getElementValuesWithDefaults(targetMirror.get());
+        Optional<? extends AnnotationValue> targetMirrorValueMap = ElementUtils.getAnnotationValue(targetMirrorValue,
+                "value");
+        return targetMirrorValueMap.map(ElementUtils::getAttributeStringList).orElseGet(List::of);
+    }
+
+    public static boolean hasAnnotationTarget(ProcessingEnvironment processingEnv, AnnotationMirror annotationMirror,
+            ElementType elementType) {
+        List<String> targetTypes = ElementUtils.getAnnotationTargetTypes(processingEnv, annotationMirror);
+        return targetTypes.contains(elementType.name());
     }
 
     public static boolean getBooleanAttribute(AnnotationValue attribute) {

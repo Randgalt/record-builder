@@ -65,6 +65,7 @@
         <jakarta-validation-api-version>3.1.0</jakarta-validation-api-version>
         <javax-el-version>3.0.1-b09</javax-el-version>
         <central-publishing-maven-plugin-version>0.7.0</central-publishing-maven-plugin-version>
+        <jspecify-version>1.0.0</jspecify-version>
     </properties>
 
     <name>Record Builder</name>
@@ -169,6 +170,12 @@
                 <groupId>org.glassfish</groupId>
                 <artifactId>javax.el</artifactId>
                 <version>${javax-el-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jspecify</groupId>
+                <artifactId>jspecify</artifactId>
+                <version>${jspecify-version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
