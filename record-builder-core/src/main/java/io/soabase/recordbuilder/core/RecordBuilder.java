@@ -285,6 +285,12 @@ public @interface RecordBuilder {
         boolean addStaticBuilder() default true;
 
         /**
+         * If set, appends a suffix to the static builder method
+         */
+        String staticBuilderSuffix() default "";
+
+
+        /**
          * If {@link #addSingleItemCollectionBuilders()} and {@link #useImmutableCollections()} are enabled the builder
          * uses an internal class to track changes to lists. This is the name of that class.
          */

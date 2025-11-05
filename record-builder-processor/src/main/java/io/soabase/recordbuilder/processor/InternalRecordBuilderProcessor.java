@@ -534,7 +534,7 @@ class InternalRecordBuilderProcessor {
          * public static MyRecord(int p1, T p2, ...) { return new MyRecord(p1, p2, ...); }
          */
         CodeBlock codeBlock = buildCodeBlock();
-        var builder = MethodSpec.methodBuilder(recordClassType.name())
+        var builder = MethodSpec.methodBuilder(recordClassType.name() + metaData.staticBuilderSuffix())
                 .addJavadoc("Static constructor/builder. Can be used instead of new $L(...)\n", recordClassType.name())
                 .addTypeVariables(typeVariables).addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addAnnotation(generatedRecordBuilderAnnotation).returns(recordClassType.typeName()).addCode(codeBlock);
