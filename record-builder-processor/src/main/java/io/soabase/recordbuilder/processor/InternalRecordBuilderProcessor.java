@@ -23,6 +23,7 @@ import io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMeta
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
+import java.lang.annotation.ElementType;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -35,13 +36,13 @@ import java.util.stream.Stream;
 
 import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.EXCLUDE_WILDCARD_TYPES;
 import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.STANDARD_FOR_SETTER;
-import static io.soabase.recordbuilder.processor.ElementUtils.getClassTypeFromNames;
-import static io.soabase.recordbuilder.processor.ElementUtils.getWithMethodName;
+import static io.soabase.recordbuilder.processor.ElementUtils.*;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
 import static javax.tools.Diagnostic.Kind.ERROR;
 
 class InternalRecordBuilderProcessor {
+    private final ProcessingEnvironment processingEnv;
     private final RecordBuilder.Options metaData;
     private final ClassType recordClassType;
     private final String packageName;
@@ -67,6 +68,7 @@ class InternalRecordBuilderProcessor {
 
     InternalRecordBuilderProcessor(ProcessingEnvironment processingEnv, RecordFacade recordFacade,
             RecordBuilder.Options metaData) {
+        this.processingEnv = processingEnv;
         this.metaData = metaData;
         recordClassType = recordFacade.recordClassType();
         packageName = recordFacade.packageName();
@@ -927,16 +929,22 @@ class InternalRecordBuilderProcessor {
 
     private void addConstructorAnnotations(RecordClassType component, ParameterSpec.Builder parameterSpecBuilder) {
         if (metaData.inheritComponentAnnotations()) {
-            component.getCanonicalConstructorAnnotations().stream().map(AnnotationSpec::get)
-                    .filter(this::filterOutOverride).forEach(parameterSpecBuilder::addAnnotation);
+            component.getCanonicalConstructorAnnotations().stream()
+                    .filter(annotationMirror -> hasAnnotationTarget(processingEnv, annotationMirror,
+                            ElementType.PARAMETER))
+                    .map(AnnotationSpec::get).filter(this::filterOutOverride)
+                    .forEach(parameterSpecBuilder::addAnnotation);
         }
     }
 
     private void addAccessorAnnotations(RecordClassType component, MethodSpec.Builder methodSpecBuilder,
             Predicate<AnnotationSpec> additionalFilter) {
         if (metaData.inheritComponentAnnotations()) {
-            component.getAccessorAnnotations().stream().map(AnnotationSpec::get).filter(this::filterOutOverride)
-                    .filter(additionalFilter).forEach(methodSpecBuilder::addAnnotation);
+            component.getAccessorAnnotations().stream()
+                    .filter(annotationMirror -> hasAnnotationTarget(processingEnv, annotationMirror,
+                            ElementType.METHOD))
+                    .map(AnnotationSpec::get).filter(this::filterOutOverride).filter(additionalFilter)
+                    .forEach(methodSpecBuilder::addAnnotation);
         }
     }
 

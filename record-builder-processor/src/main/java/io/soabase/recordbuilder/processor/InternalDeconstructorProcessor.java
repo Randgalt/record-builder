@@ -26,6 +26,7 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
+import java.lang.annotation.ElementType;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +41,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static io.soabase.recordbuilder.processor.ElementUtils.generateName;
+import static io.soabase.recordbuilder.processor.ElementUtils.hasAnnotationTarget;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
 
@@ -275,8 +277,9 @@ class InternalDeconstructorProcessor {
         recordComponents.forEach(component -> {
             ParameterSpec.Builder componentBuilder = ParameterSpec.builder(component.typeName(), component.name());
             if (deconstructor.inheritAnnotations()) {
-                componentBuilder
-                        .addAnnotations(component.getAccessorAnnotations().stream().map(AnnotationSpec::get).toList());
+                componentBuilder.addAnnotations(component
+                        .getAccessorAnnotations().stream().filter(annotationMirror -> hasAnnotationTarget(processingEnv, annotationMirror, ElementType.METHOD))
+                        .map(AnnotationSpec::get).toList());
             }
             constructorBuilder.addParameter(componentBuilder.build());
         });
