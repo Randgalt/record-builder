@@ -42,6 +42,7 @@ import java.util.stream.Stream;
 
 import static io.soabase.recordbuilder.processor.ElementUtils.generateName;
 import static io.soabase.recordbuilder.processor.ElementUtils.hasAnnotationTarget;
+import static io.soabase.recordbuilder.processor.ParameterSpecUtil.createParameterSpec;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
 
@@ -275,10 +276,11 @@ class InternalDeconstructorProcessor {
     private void addRecordComponents() {
         MethodSpec.Builder constructorBuilder = MethodSpec.constructorBuilder();
         recordComponents.forEach(component -> {
-            ParameterSpec.Builder componentBuilder = ParameterSpec.builder(component.typeName(), component.name());
+            ParameterSpec.Builder componentBuilder = createParameterSpec(component, deconstructor.inheritAnnotations(),
+                    processingEnv);
             if (deconstructor.inheritAnnotations()) {
-                componentBuilder.addAnnotations(component
-                        .getAccessorAnnotations().stream().filter(annotationMirror -> hasAnnotationTarget(processingEnv, annotationMirror, ElementType.METHOD))
+                componentBuilder.addAnnotations(component.getAccessorAnnotations().stream().filter(
+                        annotationMirror -> hasAnnotationTarget(processingEnv, annotationMirror, ElementType.METHOD))
                         .map(AnnotationSpec::get).toList());
             }
             constructorBuilder.addParameter(componentBuilder.build());

@@ -15,6 +15,7 @@
  */
 package io.soabase.recordbuilder.processor;
 
+import com.palantir.javapoet.AnnotationSpec;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
@@ -93,6 +94,28 @@ public class ElementUtils {
             ElementType elementType) {
         List<String> targetTypes = ElementUtils.getAnnotationTargetTypes(processingEnv, annotationMirror);
         return targetTypes.contains(elementType.name());
+    }
+
+    public static TypeName getAnnotatedTypeName(RecordClassType component, ElementType target,
+            ProcessingEnvironment processingEnv) {
+        return getAnnotatedTypeName(component, component.typeName(), target, processingEnv);
+    }
+
+    public static TypeName getAnnotatedTypeName(RecordClassType component, TypeName type, ElementType target,
+            ProcessingEnvironment processingEnv) {
+        var typeUseAnnotations = component.getAccessorAnnotations().stream()
+                .filter(annotationMirror -> isTypeUseOnly(processingEnv, annotationMirror, target))
+                .map(AnnotationSpec::get).toList();
+        if (typeUseAnnotations.isEmpty()) {
+            return type;
+        }
+        return type.annotated(typeUseAnnotations);
+    }
+
+    private static boolean isTypeUseOnly(ProcessingEnvironment processingEnv, AnnotationMirror annotationMirror,
+            ElementType target) {
+        var targetTypes = getAnnotationTargetTypes(processingEnv, annotationMirror);
+        return !targetTypes.contains(target.name()) && targetTypes.contains(ElementType.TYPE_USE.name());
     }
 
     public static boolean getBooleanAttribute(AnnotationValue attribute) {
