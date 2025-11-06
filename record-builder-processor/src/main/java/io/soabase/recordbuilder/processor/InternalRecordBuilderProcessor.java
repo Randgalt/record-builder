@@ -37,6 +37,7 @@ import java.util.stream.Stream;
 import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.EXCLUDE_WILDCARD_TYPES;
 import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.STANDARD_FOR_SETTER;
 import static io.soabase.recordbuilder.processor.ElementUtils.*;
+import static io.soabase.recordbuilder.processor.ParameterSpecUtil.createParameterSpec;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
 import static javax.tools.Diagnostic.Kind.ERROR;
@@ -273,8 +274,8 @@ class InternalRecordBuilderProcessor {
                     var codeBlock = CodeBlock.builder().add("return $L().$L($L);", metaData.builderMethodName(),
                             optionalComponent.name(), optionalComponent.name()).build();
 
-                    var parameterSpecBuilder = ParameterSpec.builder(optionalComponent.typeName(),
-                            optionalComponent.name());
+                    var parameterSpecBuilder = createParameterSpec(optionalComponent,
+                            metaData.inheritComponentAnnotations(), processingEnv);
                     addConstructorAnnotations(optionalComponent, parameterSpecBuilder);
                     var methodSpec = MethodSpec.methodBuilder(optionalComponent.name())
                             .addAnnotation(generatedRecordBuilderAnnotation)
@@ -320,7 +321,8 @@ class InternalRecordBuilderProcessor {
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
 
         methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name());
-        var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
+        var parameterSpecBuilder = createParameterSpec(component, metaData.inheritComponentAnnotations(),
+                processingEnv);
         addConstructorAnnotations(component, parameterSpecBuilder);
         methodSpec.addParameter(parameterSpecBuilder.build());
 
@@ -475,7 +477,8 @@ class InternalRecordBuilderProcessor {
         codeBlockBuilder.add(";$]");
 
         var methodName = getWithMethodName(component, metaData.withClassMethodPrefix());
-        var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
+        var parameterSpecBuilder = createParameterSpec(component, metaData.inheritComponentAnnotations(),
+                processingEnv);
         addConstructorAnnotations(component, parameterSpecBuilder);
         var methodSpec = MethodSpec.methodBuilder(methodName).addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Return a new instance of {@code $L} with a new value for {@code $L}\n",
@@ -539,7 +542,8 @@ class InternalRecordBuilderProcessor {
                 .addTypeVariables(typeVariables).addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addAnnotation(generatedRecordBuilderAnnotation).returns(recordClassType.typeName()).addCode(codeBlock);
         recordComponents.forEach(component -> {
-            var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
+            var parameterSpecBuilder = createParameterSpec(component, metaData.inheritComponentAnnotations(),
+                    processingEnv);
             addConstructorAnnotations(component, parameterSpecBuilder);
             builder.addParameter(parameterSpecBuilder.build());
         });
@@ -587,7 +591,8 @@ class InternalRecordBuilderProcessor {
         var constructorBuilder = MethodSpec.constructorBuilder().addModifiers(constructorVisibilityModifier)
                 .addAnnotation(generatedRecordBuilderAnnotation);
         recordComponents.forEach(component -> {
-            var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
+            var parameterSpecBuilder = createParameterSpec(component, metaData.inheritComponentAnnotations(),
+                    processingEnv);
             addConstructorAnnotations(component, parameterSpecBuilder);
             constructorBuilder.addParameter(parameterSpecBuilder.build());
             constructorBuilder.addStatement("this.$L = $L", component.name(), component.name());
@@ -910,11 +915,13 @@ class InternalRecordBuilderProcessor {
          *
          * T p();
          */
+        var returnType = metaData.inheritComponentAnnotations()
+                ? getAnnotatedTypeName(component, ElementType.METHOD, processingEnv) : component.typeName();
         var methodSpecBuilder = MethodSpec.methodBuilder(methodName)
                 .addJavadoc("Return the current value for the {@code $L} record component in the builder\n",
                         component.name())
                 .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC).addAnnotation(generatedRecordBuilderAnnotation)
-                .returns(component.typeName());
+                .returns(returnType);
         addAccessorAnnotations(component, methodSpecBuilder, this::filterOutValid);
         classBuilder.addMethod(methodSpecBuilder.build());
     }
@@ -1059,11 +1066,13 @@ class InternalRecordBuilderProcessor {
          *
          * public T p() { return p; }
          */
+        var returnType = metaData.inheritComponentAnnotations()
+                ? getAnnotatedTypeName(component, ElementType.METHOD, processingEnv) : component.typeName();
         var methodSpecBuilder = MethodSpec.methodBuilder(prefixedName(component, true))
                 .addJavadoc("Return the current value for the {@code $L} record component in the builder\n",
                         component.name())
-                .addModifiers(Modifier.PUBLIC).addAnnotation(generatedRecordBuilderAnnotation)
-                .returns(component.typeName()).addCode(checkReturnShim(component));
+                .addModifiers(Modifier.PUBLIC).addAnnotation(generatedRecordBuilderAnnotation).returns(returnType)
+                .addCode(checkReturnShim(component));
         addAccessorAnnotations(component, methodSpecBuilder, __ -> true);
         builder.addMethod(methodSpecBuilder.build());
     }
@@ -1107,11 +1116,12 @@ class InternalRecordBuilderProcessor {
             methodSpec.addJavadoc(
                     "Re-create the internally allocated {@code $T} for {@code $L} by copying the argument\n",
                     component.typeName(), component.name()).addCode(codeSpec.build());
+            // skip adding TYPE_USE annotations for wildcards, does not seem simple
             return ParameterSpec.builder(meta.wildType(), component.name());
         }).orElseGet(() -> {
             methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n",
                     component.name()).addStatement("this.$L = $L", component.name(), component.name());
-            return ParameterSpec.builder(component.typeName(), component.name());
+            return createParameterSpec(component, metaData.inheritComponentAnnotations(), processingEnv);
         });
 
         addConstructorAnnotations(component, parameterSpecBuilder);
@@ -1134,7 +1144,8 @@ class InternalRecordBuilderProcessor {
         var methodSpec = MethodSpec.methodBuilder(prefixedName(component, false)).addModifiers(Modifier.PUBLIC)
                 .addAnnotation(generatedRecordBuilderAnnotation).returns(builderClassType.typeName());
 
-        var parameterSpecBuilder = ParameterSpec.builder(type.valueType(), component.name());
+        var parameterSpecBuilder = createParameterSpec(component, type.valueType(),
+                metaData.inheritComponentAnnotations(), processingEnv);
         methodSpec.addJavadoc("Set a new value for the {@code $L} record component in the builder\n", component.name())
                 .addStatement(getOptionalStatement(type), component.name(), type.typeName(), component.name());
         addConstructorAnnotations(component, parameterSpecBuilder);
@@ -1195,7 +1206,8 @@ class InternalRecordBuilderProcessor {
         var localTypeVariables = isMap ? typeVariablesWithReturn() : typeVariables;
         var methodBuilder = MethodSpec.methodBuilder("apply").addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
         recordComponents.forEach(component -> {
-            var parameterSpecBuilder = ParameterSpec.builder(component.typeName(), component.name());
+            var parameterSpecBuilder = createParameterSpec(component, metaData.inheritComponentAnnotations(),
+                    processingEnv);
             addConstructorAnnotations(component, parameterSpecBuilder);
             methodBuilder.addParameter(parameterSpecBuilder.build());
         });
