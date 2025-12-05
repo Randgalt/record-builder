@@ -42,6 +42,7 @@ import java.util.stream.Stream;
 
 import static io.soabase.recordbuilder.processor.ElementUtils.generateName;
 import static io.soabase.recordbuilder.processor.ElementUtils.hasAnnotationTarget;
+import static io.soabase.recordbuilder.processor.InternalRecordBuilderProcessor.capitalize;
 import static io.soabase.recordbuilder.processor.ParameterSpecUtil.createParameterSpec;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
 import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
@@ -145,60 +146,124 @@ class InternalDeconstructorProcessor {
         // is package-private
     }
 
-    private List<RecordClassType> buildRecordComponents(TypeElement typeElement) {
-        List<RecordClassType> components = typeElement.getEnclosedElements().stream()
+    private static boolean isGetter(Name methodName, Name fieldName) {
+        return methodName.equals(fieldName) || methodName.toString().equals("get" + capitalize(fieldName.toString()))
+                || methodName.toString().equals("is" + capitalize(fieldName.toString()));
+    }
+
+    private List<ExecutableElement> methodsInClass(TypeElement typeElement) {
+        return typeElement.getEnclosedElements().stream()
                 .flatMap(e -> (e.getKind() == ElementKind.METHOD) ? Stream.of((ExecutableElement) e) : Stream.empty())
-                .flatMap(executableElement -> {
-                    DeconstructorAccessor deconstructorAccessor = executableElement
-                            .getAnnotation(DeconstructorAccessor.class);
-                    if (deconstructorAccessor == null) {
-                        return Stream.empty();
-                    }
+                .toList();
+    }
 
-                    if (!executableElement.getModifiers().contains(Modifier.PUBLIC)) {
+    private List<RecordClassType> buildRecordComponents(TypeElement typeElement) {
+        List<ExecutableElement> methods = methodsInClass(typeElement);
+
+        boolean isARecord = typeElement.getKind() == ElementKind.RECORD;
+
+        var accessorOrdinal = new Object() {
+            int value;
+        };
+        List<RecordClassType> components = typeElement.getEnclosedElements().stream().flatMap(element -> {
+            DeconstructorAccessor deconstructorAccessor = element.getAnnotation(DeconstructorAccessor.class);
+            if (deconstructorAccessor == null) {
+                return Stream.empty();
+            }
+
+            ExecutableElement executableElement;
+
+            if (element.getKind() == ElementKind.METHOD) {
+                executableElement = (ExecutableElement) element;
+            } else if (element.getKind() == ElementKind.FIELD) {
+                if (isARecord) {
+                    return Stream.empty();
+                }
+
+                List<ExecutableElement> candidateGetters = methods.stream()
+                        .filter(method -> method.getModifiers().contains(Modifier.PUBLIC)
+                                && !method.getModifiers().contains(Modifier.STATIC))
+                        .filter(method -> processingEnv.getTypeUtils().isSameType(method.getReturnType(),
+                                element.asType()))
+                        .filter(method -> isGetter(method.getSimpleName(), element.getSimpleName())).toList();
+
+                if (candidateGetters.isEmpty()) {
+                    processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                            "No public getter method found for field annotated with @DeconstructorAccessor: %s"
+                                    .formatted(element.getSimpleName()),
+                            element);
+                    return Stream.empty();
+                } else if (candidateGetters.size() > 1) {
+                    processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                            "Multiple public getter methods found for field annotated with @DeconstructorAccessor: %s. %s"
+                                    .formatted(element.getSimpleName(), candidateGetters.stream()
+                                            .map(ExecutableElement::getSimpleName).collect(Collectors.joining(", "))),
+                            element);
+                    return Stream.empty();
+                }
+
+                executableElement = candidateGetters.get(0);
+            } else {
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                        "@DeconstructorAccessor can only be applied to methods or fields.", element);
+                return Stream.empty();
+            }
+
+            if (!executableElement.getModifiers().contains(Modifier.PUBLIC)) {
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                        "@DeconstructorAccessor methods must be public.", executableElement);
+                return Stream.empty();
+            }
+
+            if (executableElement.getModifiers().contains(Modifier.STATIC)) {
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                        "@DeconstructorAccessor only valid for non-static methods.", executableElement);
+                return Stream.empty();
+            }
+
+            if (!executableElement.getParameters().isEmpty()) {
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
+                        "@DeconstructorAccessor methods cannot have parameters.", executableElement);
+                return Stream.empty();
+            }
+
+            TypeName typeName = TypeName.get(executableElement.getReturnType());
+            TypeName rawTypeName = TypeName
+                    .get(processingEnv.getTypeUtils().erasure(executableElement.getReturnType()));
+
+            String name;
+            if (deconstructorAccessor.name().isEmpty()) {
+                name = executableElement.getSimpleName().toString();
+                if (!deconstructorAccessor.prefixPattern().isEmpty()) {
+                    try {
+                        name = extractAndLowercase(Pattern.compile(deconstructorAccessor.prefixPattern()), name);
+                    } catch (Exception e) {
                         processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
-                                "@DeconstructorAccessor methods must be public.", executableElement);
-                        return Stream.empty();
+                                "Invalid prefix pattern: " + deconstructorAccessor.prefixPattern(), element);
                     }
+                }
+            } else {
+                name = deconstructorAccessor.name();
+            }
 
-                    if (executableElement.getModifiers().contains(Modifier.STATIC)) {
-                        processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
-                                "@DeconstructorAccessor only valid for non-static methods.", executableElement);
-                        return Stream.empty();
-                    }
+            List<? extends AnnotationMirror> annotationMirrors = element.getAnnotationMirrors().stream()
+                    .filter(annotation -> !annotation.getAnnotationType().asElement().getSimpleName().toString()
+                            .equals(DeconstructorAccessor.class.getSimpleName()))
+                    .toList();
+            var type = new RecordClassType(typeName, rawTypeName, name, executableElement.getSimpleName().toString(),
+                    annotationMirrors, List.of());
 
-                    TypeName typeName = TypeName.get(executableElement.getReturnType());
-                    TypeName rawTypeName = TypeName
-                            .get(processingEnv.getTypeUtils().erasure(executableElement.getReturnType()));
+            int order = deconstructorAccessor.order();
+            if (order == Integer.MAX_VALUE) {
+                order = accessorOrdinal.value++;
+            }
 
-                    String name;
-                    if (deconstructorAccessor.name().isEmpty()) {
-                        name = executableElement.getSimpleName().toString();
-                        if (!deconstructorAccessor.prefixPattern().isEmpty()) {
-                            try {
-                                name = extractAndLowercase(Pattern.compile(deconstructorAccessor.prefixPattern()),
-                                        name);
-                            } catch (Exception e) {
-                                processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
-                                        "Invalid prefix pattern: " + deconstructorAccessor.prefixPattern(), element);
-                            }
-                        }
-                    } else {
-                        name = deconstructorAccessor.name();
-                    }
-
-                    List<? extends AnnotationMirror> annotationMirrors = executableElement.getAnnotationMirrors()
-                            .stream().filter(annotation -> !annotation.getAnnotationType().asElement().getSimpleName()
-                                    .toString().equals(DeconstructorAccessor.class.getSimpleName()))
-                            .toList();
-                    var type = new RecordClassType(typeName, rawTypeName, name,
-                            executableElement.getSimpleName().toString(), annotationMirrors, List.of());
-                    var orderedType = Map.entry(deconstructorAccessor.order(), type);
-                    return Stream.of(orderedType);
-                }).sorted((o1, o2) -> {
-                    int diff = o1.getKey().compareTo(o2.getKey());
-                    return (diff == 0) ? o1.getValue().name().compareTo(o2.getValue().name()) : diff;
-                }).map(Map.Entry::getValue).toList();
+            var orderedType = Map.entry(order, type);
+            return Stream.of(orderedType);
+        }).sorted((o1, o2) -> {
+            int diff = o1.getKey().compareTo(o2.getKey());
+            return (diff == 0) ? o1.getValue().name().compareTo(o2.getValue().name()) : diff;
+        }).map(Map.Entry::getValue).toList();
 
         if (components.isEmpty()) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,

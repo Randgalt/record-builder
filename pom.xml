@@ -66,6 +66,7 @@
         <javax-el-version>3.0.1-b09</javax-el-version>
         <central-publishing-maven-plugin-version>0.7.0</central-publishing-maven-plugin-version>
         <jspecify-version>1.0.0</jspecify-version>
+        <lombok-version>1.18.42</lombok-version>
     </properties>
 
     <name>Record Builder</name>
@@ -176,6 +177,12 @@
                 <groupId>org.jspecify</groupId>
                 <artifactId>jspecify</artifactId>
                 <version>${jspecify-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok-version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

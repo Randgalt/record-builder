@@ -441,7 +441,7 @@ public @interface RecordBuilder {
     }
 
     @Retention(RetentionPolicy.SOURCE)
-    @Target(ElementType.METHOD)
+    @Target({ ElementType.METHOD, ElementType.FIELD })
     @Inherited
     @interface DeconstructorAccessor {
         /**
@@ -457,7 +457,8 @@ public @interface RecordBuilder {
 
         /**
          * The order of the component in the generated record. Components are ordered by this value (lowest to highest).
-         * Components with the same order value are then ordered alphabetically by component name.
+         * Components with the same order value are then ordered alphabetically by component name. Note: if
+         * {@code order()} is the default value, the order in which it occurs in the class is used.
          */
         int order() default Integer.MAX_VALUE;
     }
