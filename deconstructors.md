@@ -24,7 +24,9 @@ A deconstructor is either:
     - is annotated with `@RecordBuilder.Deconstructor`
 2. a class or interface that is:
    - annotated with `@RecordBuilder.Deconstructor`
-   - has one or more accessor methods annotated with `@RecordBuilder.DeconstructorAccessor`
+   - has one or more accessor methods or fields annotated with `@RecordBuilder.DeconstructorAccessor`. If it is
+   a field that is annotated, there must be a matching public, non-static method that is named either the same as the field
+   or is prefixed with `get` or `is`.
 
 When RecordBuilder encounters a deconstructor it generates a `record` that matches the deconstructor's parameters
 and, optionally, creates a record builder for it.

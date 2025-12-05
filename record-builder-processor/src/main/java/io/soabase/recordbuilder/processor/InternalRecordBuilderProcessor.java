@@ -955,7 +955,7 @@ class InternalRecordBuilderProcessor {
         }
     }
 
-    private String capitalize(String s) {
+    public static String capitalize(String s) {
         return (s.length() < 2) ? s.toUpperCase(Locale.ROOT) : (Character.toUpperCase(s.charAt(0)) + s.substring(1));
     }
 
