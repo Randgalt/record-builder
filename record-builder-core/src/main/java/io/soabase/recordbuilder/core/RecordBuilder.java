@@ -360,7 +360,30 @@ public @interface RecordBuilder {
          */
         boolean defaultNotNull() default false;
 
-        boolean addJacksonAnnotations() default false;
+        /**
+         * Configuration for Jackson annotation support on generated builders.
+         *
+         * @see JacksonConfig
+         */
+        JacksonConfig jackson() default @JacksonConfig;
+    }
+
+    /**
+     * Configuration for Jackson annotation support on generated builders.
+     */
+    @Retention(RetentionPolicy.CLASS)
+    @Target(ElementType.ANNOTATION_TYPE)
+    @interface JacksonConfig {
+        /**
+         * Add {@code @JsonPOJOBuilder} annotation to generated builder. This annotation works with
+         * {@code @JsonDeserialize(builder = ...)} on the record.
+         */
+        boolean jsonPOJOBuilder() default false;
+
+        /**
+         * Which Jackson version to use for annotations.
+         */
+        JacksonVersion version() default JacksonVersion.AUTO;
     }
 
     @Retention(RetentionPolicy.CLASS)
@@ -378,6 +401,29 @@ public @interface RecordBuilder {
 
     enum ConcreteSettersForOptionalMode {
         DISABLED, ENABLED, ENABLED_WITH_NULLABLE_ANNOTATION,
+    }
+
+    /**
+     * Specifies which Jackson version(s) to use when generating builder annotations.
+     */
+    enum JacksonVersion {
+        /**
+         * Automatically detect Jackson version(s) on classpath and add all found annotations. If both Jackson 2.x and
+         * 3.x are present, both annotations will be added.
+         */
+        AUTO,
+
+        /**
+         * Only add Jackson 2.x annotations (com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder). Fails if
+         * Jackson 2.x is not found on classpath.
+         */
+        JACKSON_2,
+
+        /**
+         * Only add Jackson 3.x annotations (tools.jackson.databind.annotation.JsonPOJOBuilder). Fails if Jackson 3.x is
+         * not found on classpath.
+         */
+        JACKSON_3,
     }
 
     /**

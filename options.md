@@ -54,12 +54,6 @@ The names used for generated methods, classes, etc. can be changed via the follo
 | `@RecordBuilder.Options(fileIndent = "    ")`                    | Return the file indent to use.                                                                                                                           |
 | `@RecordBuilder.Options(prefixEnclosingClassNames = true/false)` | If the record is declared inside another class, the outer class's name will be prefixed to the builder name if this returns true. The default is `true`. |
 
-## Jackson Support
-
-| option                                                       | details                                                                                                                                                                                                                                                                                                                      |
-|--------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `@RecordBuilder.Options(addJacksonAnnotations = true/false)` | If true, builders will be annotated with `@JsonPOJOBuilder` Jackson annotations which can be used in combination with `@JsonDeserialize(builder = ...)`. See [TestJacksonAnnotations](./record-builder-test/src/test/java/io/soabase/recordbuilder/test/TestJacksonAnnotations.java) for an example. The default is `false`. |
-
 ## Miscellaneous
 
 | option                                                                     | details                                                                                                                                                          |
@@ -122,3 +116,58 @@ Special handling for collections. See the project test classes for usage.
 | `@RecordBuilder.Options(useUnmodifiableCollections = true/false)`      | Adds special handling for collection record components. The default is `false`.     |
 | `@RecordBuilder.Options(allowNullableCollections = true/false)`        | Adds special null handling for record collectioncomponents. The default is `false`. |
 | `@RecordBuilder.Options(addSingleItemCollectionBuilders = true/false)` | Adds special handling for record collectioncomponents. The default is `false`.      |
+
+## Jackson Support
+
+RecordBuilder can automatically add Jackson annotations to generated builders, supporting both Jackson 2.x and 3.x. Configuration is done via the nested `@JacksonConfig` annotation.
+
+### Basic Example
+
+```java
+@RecordBuilder
+@RecordBuilder.Options(
+    jackson = @RecordBuilder.JacksonConfig(jsonPOJOBuilder = true)
+)
+@JsonDeserialize(builder = UserRecordBuilder.class)
+record UserRecord(String name, int age) {}
+```
+
+### Configuration Options
+
+| option | details |
+|--------|---------|
+| `jackson = @JacksonConfig(...)` | Configures Jackson annotation support for the generated builder. By default, no Jackson annotations are added. |
+
+### JacksonConfig Properties
+
+| property | details |
+|----------|---------|
+| `jsonPOJOBuilder` | **boolean** (default: `false`) - When `true`, adds `@JsonPOJOBuilder` annotation to the generated builder. This annotation works with `@JsonDeserialize(builder = ...)` on the record. |
+| `version` | **JacksonVersion** (default: `AUTO`) - Specifies which Jackson version to use:<br/>• `AUTO` - Automatically detect Jackson version(s) on classpath and add all found annotations. If both Jackson 2.x and 3.x are present, annotations for both versions will be added.<br/>• `JACKSON_2` - Only add Jackson 2.x annotations (`com.fasterxml.jackson.*`). Fails if Jackson 2.x is not found.<br/>• `JACKSON_3` - Only add Jackson 3.x annotations (`tools.jackson.*`). Fails if Jackson 3.x is not found. |
+
+### Examples
+
+#### Auto-detect Jackson version (default)
+```java
+@RecordBuilder.Options(jackson = @RecordBuilder.JacksonConfig(jsonPOJOBuilder = true))
+```
+
+#### Explicit Jackson 2.x
+```java
+@RecordBuilder.Options(
+    jackson = @RecordBuilder.JacksonConfig(
+        jsonPOJOBuilder = true,
+        version = JacksonVersion.JACKSON_2
+    )
+)
+```
+
+#### With custom setter prefix
+```java
+@RecordBuilder.Options(
+    jackson = @RecordBuilder.JacksonConfig(jsonPOJOBuilder = true),
+    setterPrefix = "set"
+)
+```
+
+See [TestJacksonAnnotations](./record-builder-test/src/test/java/io/soabase/recordbuilder/test/TestJacksonAnnotations.java) for complete examples.

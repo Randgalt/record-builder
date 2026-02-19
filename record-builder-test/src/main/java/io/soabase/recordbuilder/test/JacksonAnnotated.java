@@ -28,7 +28,7 @@ public interface JacksonAnnotated {
     Map<String, Object> properties();
 
     @RecordBuilder
-    @RecordBuilder.Options(addJacksonAnnotations = true, useImmutableCollections = true, prefixEnclosingClassNames = false)
+    @RecordBuilder.Options(jackson = @RecordBuilder.JacksonConfig(jsonPOJOBuilder = true), useImmutableCollections = true, prefixEnclosingClassNames = false)
     @JsonDeserialize(builder = JacksonAnnotatedRecordBuilder.class)
     record JacksonAnnotatedRecord(String name, @RecordBuilder.Initializer("DEFAULT_TYPE") String type,
             Map<String, Object> properties) implements JacksonAnnotated {
@@ -36,10 +36,32 @@ public interface JacksonAnnotated {
     }
 
     @RecordBuilder
-    @RecordBuilder.Options(addJacksonAnnotations = true, useImmutableCollections = true, prefixEnclosingClassNames = false, setterPrefix = "set")
+    @RecordBuilder.Options(jackson = @RecordBuilder.JacksonConfig(jsonPOJOBuilder = true), useImmutableCollections = true, prefixEnclosingClassNames = false, setterPrefix = "set")
     @JsonDeserialize(builder = JacksonAnnotatedRecordCustomSetterPrefixBuilder.class)
     record JacksonAnnotatedRecordCustomSetterPrefix(String name, @RecordBuilder.Initializer("DEFAULT_TYPE") String type,
             Map<String, Object> properties) implements JacksonAnnotated {
         public static final String DEFAULT_TYPE = "dummy";
+    }
+
+    @RecordBuilder
+    @RecordBuilder.Options(jackson = @RecordBuilder.JacksonConfig(jsonPOJOBuilder = true, version = RecordBuilder.JacksonVersion.JACKSON_2), useImmutableCollections = true, prefixEnclosingClassNames = false)
+    @JsonDeserialize(builder = JacksonAnnotatedRecordJackson2Builder.class)
+    record JacksonAnnotatedRecordJackson2(String name, @RecordBuilder.Initializer("DEFAULT_TYPE") String type,
+            Map<String, Object> properties) implements JacksonAnnotated {
+        public static final String DEFAULT_TYPE = "dummy";
+    }
+
+    @RecordBuilder
+    @RecordBuilder.Options(jackson = @RecordBuilder.JacksonConfig(jsonPOJOBuilder = true, version = RecordBuilder.JacksonVersion.JACKSON_3), useImmutableCollections = true, prefixEnclosingClassNames = false)
+    @tools.jackson.databind.annotation.JsonDeserialize(builder = JacksonAnnotatedRecordJackson3Builder.class)
+    record JacksonAnnotatedRecordJackson3(String name, @RecordBuilder.Initializer("DEFAULT_TYPE") String type,
+            Map<String, Object> properties) implements JacksonAnnotated {
+        public static final String DEFAULT_TYPE = "dummy";
+    }
+
+    @RecordBuilder
+    @RecordBuilder.Options(prefixEnclosingClassNames = false)
+    record JacksonAnnotatedRecordNoJackson(String name, String type, Map<String, Object> properties)
+            implements JacksonAnnotated {
     }
 }
