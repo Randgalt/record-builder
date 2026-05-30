@@ -89,6 +89,8 @@ class InternalRecordBuilderProcessor {
             builder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
 
+        new JacksonSupport(processingEnv).addJacksonAnnotations(metaData, builder);
+
         if (!validateMethodNameConflicts(processingEnv, recordFacade.element())) {
             builderType = Optional.empty();
             return;
