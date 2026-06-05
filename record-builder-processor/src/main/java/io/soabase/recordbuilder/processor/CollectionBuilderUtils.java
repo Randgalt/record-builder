@@ -23,9 +23,7 @@ import java.io.Serial;
 import java.util.*;
 import java.util.regex.Pattern;
 
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.suppressWarningsAnnotation;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.*;
 
 class CollectionBuilderUtils {
     private final boolean useImmutableCollections;
@@ -388,9 +386,6 @@ class CollectionBuilderUtils {
         var extendedParameterizedType = ParameterizedTypeName.get(ClassName.get(abstractType), wildCardTypeArguments);
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(name);
-        if (!useImmutableCollections) {
-            methodBuilder.addAnnotation(suppressWarningsAnnotation);
-        }
         return methodBuilder.addAnnotation(generatedRecordBuilderAnnotation)
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC).addTypeVariables(Arrays.asList(typeVariables))
                 .returns(parameterizedType).addParameter(extendedParameterizedType, "o").addStatement(code).build();
@@ -485,6 +480,8 @@ class CollectionBuilderUtils {
         if (addClassRetainedGenerated) {
             builder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
+
+        builder.addAnnotation(suppressWarningsAnnotation);
 
         return builder.build();
     }

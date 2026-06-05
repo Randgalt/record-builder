@@ -38,8 +38,7 @@ import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleIt
 import static io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMetaDataMode.STANDARD_FOR_SETTER;
 import static io.soabase.recordbuilder.processor.ElementUtils.*;
 import static io.soabase.recordbuilder.processor.ParameterSpecUtil.createParameterSpec;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.*;
 import static javax.tools.Diagnostic.Kind.ERROR;
 
 class InternalRecordBuilderProcessor {
@@ -88,6 +87,7 @@ class InternalRecordBuilderProcessor {
         if (metaData.addClassRetainedGenerated()) {
             builder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
+        builder.addAnnotation(suppressWarningsAnnotation);
 
         if (!validateMethodNameConflicts(processingEnv, recordFacade.element())) {
             builderType = Optional.empty();
@@ -264,6 +264,7 @@ class InternalRecordBuilderProcessor {
         if (metaData.addClassRetainedGenerated()) {
             classBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
+        classBuilder.addAnnotation(suppressWarningsAnnotation);
 
         MethodSpec buildMethod = buildMethod().addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
                 .addStatement("return $L().$L()", metaData.builderMethodName(), metaData.buildMethodName()).build();
@@ -313,6 +314,7 @@ class InternalRecordBuilderProcessor {
         if (metaData.addClassRetainedGenerated()) {
             classBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
+        classBuilder.addAnnotation(suppressWarningsAnnotation);
 
         var returnType = nextComponent.map(this::stagedBuilderType)
                 .orElseGet(() -> stagedBuilderType(builderClassType));
@@ -375,6 +377,7 @@ class InternalRecordBuilderProcessor {
         if (metaData.addClassRetainedGenerated()) {
             classBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
+        classBuilder.addAnnotation(suppressWarningsAnnotation);
         recordComponents.forEach(component -> addNestedGetterMethod(classBuilder, component, component.name()));
         addWithBuilderMethod(classBuilder);
         addWithSuppliedBuilderMethod(classBuilder);
@@ -398,7 +401,7 @@ class InternalRecordBuilderProcessor {
         var classBuilder = TypeSpec.interfaceBuilder(metaData.beanClassName())
                 .addAnnotation(generatedRecordBuilderAnnotation)
                 .addJavadoc("Add getters to {@code $L}\n", recordClassType.name()).addModifiers(Modifier.PUBLIC)
-                .addTypeVariables(typeVariables);
+                .addTypeVariables(typeVariables).addAnnotation(suppressWarningsAnnotation);
         recordComponents.forEach(component -> {
             if (prefixedName(component, true).equals(component.name())) {
                 return;
@@ -754,6 +757,7 @@ class InternalRecordBuilderProcessor {
         if (metaData.addClassRetainedGenerated()) {
             fromWithClassBuilder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
+        fromWithClassBuilder.addAnnotation(suppressWarningsAnnotation);
 
         fromWithClassBuilder.addField(recordClassType.typeName(), "from", Modifier.PRIVATE, Modifier.FINAL);
         MethodSpec constructorSpec = MethodSpec.constructorBuilder().addParameter(recordClassType.typeName(), "from")
@@ -1216,7 +1220,8 @@ class InternalRecordBuilderProcessor {
         }
         return TypeSpec.interfaceBuilder(className).addAnnotation(generatedRecordBuilderAnnotation)
                 .addAnnotation(FunctionalInterface.class).addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .addTypeVariables(localTypeVariables).addMethod(methodBuilder.build()).build();
+                .addTypeVariables(localTypeVariables).addMethod(methodBuilder.build())
+                .addAnnotation(suppressWarningsAnnotation).build();
     }
 
     private String prefixedName(RecordClassType component, boolean isGetter) {

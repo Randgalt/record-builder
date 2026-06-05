@@ -30,8 +30,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static io.soabase.recordbuilder.processor.ElementUtils.generateName;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordInterfaceAnnotation;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.*;
 
 class InternalRecordInterfaceProcessor {
     private final ProcessingEnvironment processingEnv;
@@ -94,6 +93,8 @@ class InternalRecordInterfaceProcessor {
                 }
             }
         }
+
+        builder.addAnnotation(suppressWarningsAnnotation);
 
         addAlternateMethods(builder, recordComponents);
 

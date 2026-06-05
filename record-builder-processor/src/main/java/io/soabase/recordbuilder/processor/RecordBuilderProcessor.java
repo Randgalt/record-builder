@@ -47,7 +47,7 @@ public class RecordBuilderProcessor extends AbstractProcessor {
     static final AnnotationSpec generatedRecordBuilderAnnotation = AnnotationSpec.builder(Generated.class)
             .addMember("value", "$S", RecordBuilder.class.getName()).build();
     static final AnnotationSpec suppressWarningsAnnotation = AnnotationSpec.builder(SuppressWarnings.class)
-            .addMember("value", "$S", "unchecked").build();
+            .addMember("value", "{$S, $S}", "all", "cast").build();
     static final AnnotationSpec generatedRecordInterfaceAnnotation = AnnotationSpec.builder(Generated.class)
             .addMember("value", "$S", RecordInterface.class.getName()).build();
     static final AnnotationSpec recordBuilderGeneratedAnnotation = AnnotationSpec.builder(RecordBuilderGenerated.class)

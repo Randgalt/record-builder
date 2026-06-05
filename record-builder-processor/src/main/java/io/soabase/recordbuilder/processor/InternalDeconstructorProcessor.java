@@ -44,8 +44,7 @@ import static io.soabase.recordbuilder.processor.ElementUtils.generateName;
 import static io.soabase.recordbuilder.processor.ElementUtils.hasAnnotationTarget;
 import static io.soabase.recordbuilder.processor.InternalRecordBuilderProcessor.capitalize;
 import static io.soabase.recordbuilder.processor.ParameterSpecUtil.createParameterSpec;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.generatedRecordBuilderAnnotation;
-import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.recordBuilderGeneratedAnnotation;
+import static io.soabase.recordbuilder.processor.RecordBuilderProcessor.*;
 
 class InternalDeconstructorProcessor {
     private final String packageName;
@@ -111,6 +110,8 @@ class InternalDeconstructorProcessor {
         if (metaData.addClassRetainedGenerated()) {
             builder.addAnnotation(recordBuilderGeneratedAnnotation);
         }
+
+        builder.addAnnotation(suppressWarningsAnnotation);
 
         addVisibility(element.getModifiers());
         addRecordComponents();
