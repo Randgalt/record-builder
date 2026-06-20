@@ -359,6 +359,14 @@ public @interface RecordBuilder {
          * @see #nullablePattern
          */
         boolean defaultNotNull() default false;
+
+        /**
+         * Set of annotations that are copied from the record to the generated builder if
+         * {@link #inheritComponentAnnotations()} is true
+         *
+         * @return annotations
+         */
+        String[] inheritRecordAnnotations() default { "java.lang.SuppressWarnings" };
     }
 
     @Retention(RetentionPolicy.CLASS)
