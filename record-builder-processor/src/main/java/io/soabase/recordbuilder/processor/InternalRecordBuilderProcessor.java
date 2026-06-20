@@ -23,6 +23,7 @@ import io.soabase.recordbuilder.processor.CollectionBuilderUtils.SingleItemsMeta
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
 import java.lang.annotation.ElementType;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -93,6 +94,8 @@ class InternalRecordBuilderProcessor {
             builderType = Optional.empty();
             return;
         }
+
+        addInheritedRecordAnnotations(builder, recordFacade, metaData);
 
         addVisibility(recordFacade.builderIsInRecordPackage(), recordFacade.modifiers());
         if (metaData.enableWither()) {
@@ -184,6 +187,17 @@ class InternalRecordBuilderProcessor {
 
             return true;
         });
+    }
+
+    private void addInheritedRecordAnnotations(TypeSpec.Builder builder, RecordFacade recordFacade,
+            RecordBuilder.Options metaData) {
+        if (metaData.inheritComponentAnnotations()) {
+            Set<String> inheritRecordAnnotationsInclusions = Set.of(metaData.inheritRecordAnnotations());
+            recordFacade.element().getAnnotationMirrors().stream()
+                    .filter(annotation -> inheritRecordAnnotationsInclusions.contains(
+                            ((TypeElement) annotation.getAnnotationType().asElement()).getQualifiedName().toString()))
+                    .map(AnnotationSpec::get).forEach(builder::addAnnotation);
+        }
     }
 
     private void addVisibility(boolean builderIsInRecordPackage, Set<Modifier> modifiers) {
