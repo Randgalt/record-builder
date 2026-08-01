@@ -13,24 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.soabase.recordbuilder.test.deconstructors;
+package io.soabase.recordbuilder.lombok.tests;
 
 import io.soabase.recordbuilder.core.RecordBuilder.Deconstructor;
 import io.soabase.recordbuilder.core.RecordBuilder.DeconstructorAccessor;
 import lombok.Getter;
-import lombok.experimental.Accessors;
 
 @Deconstructor
 @Getter
-@Accessors(fluent = true)
-public class LombokTest {
+public class LombokTest2 {
     @DeconstructorAccessor
     private final int qty;
 
     @DeconstructorAccessor
     private final String name;
 
-    public LombokTest(int qty, String name) {
+    public LombokTest2(int qty, String name) {
         this.qty = qty;
         this.name = name;
     }

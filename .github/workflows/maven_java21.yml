@@ -21,4 +21,4 @@ jobs:
       with:
         java-version: 21
     - name: Build with Maven
-      run: ./mvnw -B package --file pom.xml -Djdk-version=21
+      run: ./mvnw -P lomboktests -B package --file pom.xml -Djdk-version=21

@@ -445,5 +445,12 @@
                 </plugins>
             </build>
         </profile>
+
+        <profile>
+            <id>lomboktests</id>
+            <modules>
+                <module>record-builder-lombok-tests</module>
+            </modules>
+        </profile>
     </profiles>
 </project>

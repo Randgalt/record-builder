@@ -32,16 +32,4 @@ public class TestAccessors {
         AccessorTestNoBuilder accessorTest = new AccessorTestNoBuilder("hey", 42);
         assertThat(new AccessorTestNoBuilderDao("hey", 42)).isEqualTo(AccessorTestNoBuilderDao.from(accessorTest));
     }
-
-    @Test
-    public void testLombok() {
-        LombokTest lombokTest = new LombokTest(42, "hey");
-        assertThat(new LombokTestDao(42, "hey")).isEqualTo(LombokTestDao.from(lombokTest));
-    }
-
-    @Test
-    public void testLombok2() {
-        LombokTest2 lombokTest = new LombokTest2(42, "hey");
-        assertThat(new LombokTest2Dao(42, "hey")).isEqualTo(LombokTest2Dao.from(lombokTest));
-    }
 }
