@@ -23,7 +23,9 @@ import com.palantir.javapoet.TypeVariableName;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.tools.Diagnostic;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 import java.util.Collections;
@@ -178,6 +180,13 @@ public class ElementUtils {
     public static RecordClassType getRecordClassType(ProcessingEnvironment processingEnv,
             RecordComponentElement recordComponent, List<? extends AnnotationMirror> accessorAnnotations,
             List<? extends AnnotationMirror> canonicalConstructorAnnotations) {
+        if (recordComponent.asType().getKind() == TypeKind.ERROR) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.MANDATORY_WARNING,
+                    "Unable to resolve type/package for record component \"%s %s\" of \"%s\". You can usually work around this by spelling the class's FQPN."
+                            .formatted(recordComponent.asType(), recordComponent.getSimpleName(),
+                                    recordComponent.getEnclosingElement()));
+        }
+
         var typeName = TypeName.get(recordComponent.asType());
         var rawTypeName = TypeName.get(processingEnv.getTypeUtils().erasure(recordComponent.asType()));
         return new RecordClassType(typeName, rawTypeName, recordComponent.getSimpleName().toString(),
