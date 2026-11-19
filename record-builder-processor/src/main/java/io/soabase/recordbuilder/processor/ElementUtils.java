@@ -42,7 +42,9 @@ public class ElementUtils {
 
     public static List<? extends AnnotationMirror> getAccessorAnnotations(ProcessingEnvironment processingEnv,
             RecordComponentElement component) {
-        var accessorMirrors = component.getAccessor().getAnnotationMirrors();
+        var accessor = component.getAccessor();
+        List<? extends AnnotationMirror> accessorMirrors = (accessor != null) ? accessor.getAnnotationMirrors()
+                : List.of();
         var typeMirrors = component.asType().getAnnotationMirrors().stream()
                 .filter(typeMirror -> accessorMirrors.stream().noneMatch(accessorMirror -> processingEnv.getTypeUtils()
                         .isSameType(accessorMirror.getAnnotationType(), typeMirror.getAnnotationType())));
